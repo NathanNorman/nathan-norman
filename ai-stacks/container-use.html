@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Container Use — Sandboxed Dev Environments for Coding Agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-deep: #060a14;
+  --bg-base: #0a0e1a;
+  --bg-surface: #0f1629;
+  --bg-elevated: #151d33;
+  --bg-card: #111827;
+  --border-subtle: rgba(100, 200, 255, 0.08);
+  --border-accent: rgba(0, 240, 255, 0.2);
+  --cyan: #00f0ff;
+  --cyan-dim: #00a8b3;
+  --cyan-glow: rgba(0, 240, 255, 0.15);
+  --amber: #ff9f1c;
+  --amber-dim: #b36f14;
+  --amber-glow: rgba(255, 159, 28, 0.12);
+  --violet: #8b5cf6;
+  --violet-dim: #6d45c7;
+  --green: #34d399;
+  --green-dim: #059669;
+  --red: #f87171;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+  --text-dim: #334155;
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-body: 'Outfit', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(0, 240, 255, 0.25);
+  color: #fff;
+}
+
+a { color: var(--cyan); text-decoration: none; transition: color 0.2s; }
+a:hover { color: #fff; }
+
+/* ============================================================
+   ANIMATED BACKGROUND GRID
+   ============================================================ */
+.grid-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 70%);
+}
+
+.grid-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(0, 240, 255, 0.04) 0%, transparent 50%),
+              radial-gradient(circle at 70% 60%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
+}
+
+/* ============================================================
+   SCANLINE OVERLAY
+   ============================================================ */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(6, 10, 20, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+nav .nav-back {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  transition: color 0.2s;
+}
+
+nav .nav-back:hover { color: var(--cyan); }
+
+nav .nav-brand {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cyan);
+  letter-spacing: 1px;
+}
+
+/* ============================================================
+   MAIN CONTAINER
+   ============================================================ */
+main {
+  position: relative;
+  z-index: 2;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ============================================================
+   HERO SECTION
+   ============================================================ */
+.hero {
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 120px 0 80px;
+}
+
+.hero-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.2s forwards;
+}
+
+.hero-label::before {
+  content: '//';
+  margin-right: 8px;
+  color: var(--text-muted);
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(44px, 7vw, 76px);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -2px;
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.4s forwards;
+}
+
+.hero h1 .accent {
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--green) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-subtitle {
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  max-width: 620px;
+  line-height: 1.7;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.6s forwards;
+}
+
+.hero-meta {
+  margin-top: 40px;
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.8s forwards;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-stat .num {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--cyan);
+}
+
+.hero-stat .label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   SECTION STYLING
+   ============================================================ */
+section {
+  padding: 100px 0 60px;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 16px;
+}
+
+.section-label::before {
+  content: attr(data-num);
+  color: var(--text-dim);
+  margin-right: 12px;
+}
+
+section h2 {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 700;
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+  line-height: 1.1;
+}
+
+.section-desc {
+  font-size: 17px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  max-width: 640px;
+  margin-bottom: 40px;
+  line-height: 1.7;
+}
+
+/* ============================================================
+   CONTENT CARDS
+   ============================================================ */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 16px;
+  transition: border-color 0.3s;
+}
+
+.card:hover {
+  border-color: var(--border-accent);
+}
+
+.card h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.card p, .card li {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.card ul {
+  list-style: none;
+  padding: 0;
+}
+
+.card li {
+  padding: 4px 0;
+}
+
+.card li::before {
+  content: '>';
+  font-family: var(--font-mono);
+  color: var(--cyan-dim);
+  margin-right: 8px;
+}
+
+/* ============================================================
+   FEATURE GRID
+   ============================================================ */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.feature-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 24px;
+  transition: border-color 0.3s;
+}
+
+.feature-card:hover { border-color: var(--border-accent); }
+
+.feature-card h4 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.feature-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.feature-icon {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.feature-icon.core { background: rgba(0, 240, 255, 0.1); color: var(--cyan); }
+.feature-icon.safety { background: rgba(52, 211, 153, 0.1); color: var(--green); }
+.feature-icon.power { background: rgba(139, 92, 246, 0.1); color: var(--violet); }
+.feature-icon.mcp { background: rgba(255, 159, 28, 0.1); color: var(--amber); }
+
+/* ============================================================
+   CODE BLOCK
+   ============================================================ */
+.code-block {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
+.code-block code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.8;
+}
+
+.code-block .comment { color: var(--text-muted); }
+.code-block .cmd { color: var(--cyan); }
+.code-block .flag { color: var(--amber); }
+.code-block .str { color: var(--green); }
+
+/* ============================================================
+   COMMAND TABLE
+   ============================================================ */
+.cmd-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+.cmd-table th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.cmd-table td {
+  font-size: 14px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(100, 200, 255, 0.04);
+  color: var(--text-secondary);
+}
+
+.cmd-table tr:hover td { background: rgba(0, 240, 255, 0.02); }
+
+.cmd-table td:first-child {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cyan);
+  white-space: nowrap;
+}
+
+/* ============================================================
+   QUOTE BLOCK
+   ============================================================ */
+.quote-block {
+  background: var(--bg-surface);
+  border-left: 3px solid var(--cyan);
+  border-radius: 0 12px 12px 0;
+  padding: 32px 40px;
+  margin: 48px 0;
+  position: relative;
+}
+
+.quote-block::before {
+  content: '\201C';
+  position: absolute;
+  top: 16px;
+  left: 14px;
+  font-family: var(--font-display);
+  font-size: 48px;
+  color: var(--cyan-dim);
+  opacity: 0.3;
+  line-height: 1;
+}
+
+.quote-block p {
+  font-size: 18px;
+  font-weight: 300;
+  font-style: italic;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
+.quote-block .quote-attr {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-style: normal;
+  color: var(--text-muted);
+  margin-top: 12px;
+  display: block;
+}
+
+/* ============================================================
+   ARCHITECTURE DIAGRAM
+   ============================================================ */
+.arch-diagram {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 32px;
+  margin: 24px 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 2;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.arch-diagram .highlight { color: var(--cyan); font-weight: 600; }
+.arch-diagram .dim { color: var(--text-muted); }
+.arch-diagram .accent { color: var(--green); }
+
+/* ============================================================
+   WORKFLOW STEPS
+   ============================================================ */
+.steps {
+  display: grid;
+  gap: 2px;
+  counter-reset: step;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  align-items: start;
+}
+
+.step-num {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--cyan-dim);
+  text-align: right;
+}
+
+.step h4 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.step p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   COMPARISON TABLE
+   ============================================================ */
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 24px 0;
+}
+
+.compare-table th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.compare-table td {
+  font-size: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(100, 200, 255, 0.04);
+  color: var(--text-secondary);
+}
+
+.compare-table tr:hover td { background: rgba(0, 240, 255, 0.02); }
+
+.compare-table .yes { color: var(--green); font-weight: 500; }
+.compare-table .no { color: var(--text-muted); }
+.compare-table .partial { color: var(--amber); }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer {
+  padding: 80px 0 40px;
+  text-align: center;
+}
+
+footer p {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+footer a {
+  color: var(--text-muted);
+  transition: color 0.2s;
+}
+
+footer a:hover { color: var(--cyan); }
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  main { padding: 0 16px; }
+  section { padding: 60px 0 40px; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .hero { padding: 100px 0 60px; min-height: auto; }
+  .hero-meta { gap: 20px; }
+  .quote-block { padding: 24px 28px; }
+  .arch-diagram { font-size: 11px; padding: 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="scanlines"></div>
+
+<nav>
+  <a href="index.html" class="nav-back">&larr; Back to All AI Stacks</a>
+  <span class="nav-brand">CONTAINER USE // DEEP DIVE</span>
+</nav>
+
+<main>
+
+  <!-- ====== HERO ====== -->
+  <section class="hero">
+    <div class="hero-label">Orchestration Tool Deep Dive</div>
+    <h1><span class="accent">Container Use</span><br>by Dagger</h1>
+    <p class="hero-subtitle">Sandboxed dev environments for coding agents. Each agent gets its own container and git branch &mdash; work in parallel without getting in your way.</p>
+    <div class="hero-meta">
+      <div class="hero-stat">
+        <span class="num">Go</span>
+        <span class="label">Built with</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">3.6k</span>
+        <span class="label">GitHub Stars</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">MCP</span>
+        <span class="label">Integration</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">Dagger</span>
+        <span class="label">By</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== WHAT IS IT ====== -->
+  <section>
+    <div class="section-label reveal" data-num="01">Overview</div>
+    <h2 class="reveal">What Is Container Use?</h2>
+    <p class="section-desc reveal">Container Use is an open-source MCP server that gives each coding agent its own containerized environment and git worktree, enabling safe parallel agent execution with full observability.</p>
+
+    <div class="card reveal">
+      <h3>The Problem It Solves</h3>
+      <p>Running multiple AI coding agents simultaneously creates chaos: they corrupt each other's files, clobber shared state, consume unpredictable resources, and produce irreversible host system changes. Container Use eliminates these problems by giving each agent its own isolated sandbox.</p>
+    </div>
+
+    <div class="card reveal">
+      <h3>Who Built It</h3>
+      <p>Container Use comes from <strong>Dagger</strong>, the company founded by <strong>Solomon Hykes</strong> (creator of Docker). Built on Dagger's container pipeline engine, it applies the same containerization philosophy to AI coding agents. Released May 2025, it has rapidly gained traction with 3.6k+ GitHub stars and 32 contributors.</p>
+    </div>
+
+    <div class="card reveal">
+      <h3>Supported Agents</h3>
+      <p>Container Use works with any MCP-compatible agent through its stdio-based MCP server. Documented integrations include:</p>
+      <ul>
+        <li><strong>Claude Code</strong> &mdash; primary integration</li>
+        <li><strong>Cursor</strong> &mdash; via MCP config</li>
+        <li><strong>Goose</strong> &mdash; via <code>.goosehints</code></li>
+        <li><strong>VS Code</strong> &mdash; via MCP-compatible extension</li>
+        <li>Any other MCP-compatible coding agent</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="quote-block reveal">
+    <p>Run coding agents in parallel without destroying everything. Each agent gets its own environment.</p>
+    <span class="quote-attr">&mdash; Dagger blog, announcing Container Use</span>
+  </div>
+
+  <!-- ====== ARCHITECTURE ====== -->
+  <section>
+    <div class="section-label reveal" data-num="02">How It Works</div>
+    <h2 class="reveal">Architecture</h2>
+    <p class="section-desc reveal">Container Use combines Dagger's container engine with Git worktrees to provide isolation at both the filesystem and version control level.</p>
+
+    <div class="arch-diagram reveal"><span class="dim">Architecture:</span>
+
+  <span class="highlight">MCP Server</span> <span class="dim">(container-use stdio)</span>
+       <span class="dim">|</span>
+       <span class="dim">v</span>
+  <span class="highlight">Dagger Engine</span> <span class="dim">(container orchestration)</span>
+       <span class="dim">|</span>
+       <span class="dim">+--</span> <span class="accent">Environment A</span> <span class="dim">[container + git worktree: cu-fancy-mallard]</span>
+       <span class="dim">|</span>
+       <span class="dim">+--</span> <span class="accent">Environment B</span> <span class="dim">[container + git worktree: cu-swift-eagle]</span>
+       <span class="dim">|</span>
+       <span class="dim">+--</span> <span class="accent">Environment C</span> <span class="dim">[container + git worktree: cu-bold-falcon]</span>
+
+<span class="dim">Each environment has:</span>
+  <span class="highlight">Isolated filesystem</span>  <span class="dim">Independent process namespace</span>
+  <span class="highlight">Dedicated git branch</span>  <span class="dim">Controlled network access</span>
+  <span class="highlight">Full command history</span>  <span class="dim">Disposable after completion</span></div>
+
+    <div class="feature-grid">
+      <div class="feature-card reveal">
+        <span class="feature-icon mcp">MCP</span>
+        <h4>MCP-Native</h4>
+        <p>Implements the Model Context Protocol as a stdio server. Any MCP-compatible agent can connect without custom integration code.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon core">Core</span>
+        <h4>Git Worktrees</h4>
+        <p>Each environment gets its own git branch (e.g., <code>cu-fancy-mallard</code>). Review agent work with standard git commands.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon safety">Safety</span>
+        <h4>Ephemeral Containers</h4>
+        <p>Containers are disposable. Spin up, let the agent work, extract results, destroy. No persistent host changes.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== INSTALLATION ====== -->
+  <section>
+    <div class="section-label reveal" data-num="03">Getting Started</div>
+    <h2 class="reveal">Installation & Setup</h2>
+
+    <div class="code-block reveal">
+<code><span class="comment"># macOS (recommended)</span>
+<span class="cmd">brew install</span> dagger/tap/container-use
+
+<span class="comment"># All platforms</span>
+<span class="cmd">curl</span> -fsSL https://raw.githubusercontent.com/dagger/container-use/main/install.sh | <span class="cmd">bash</span></code>
+    </div>
+
+    <div class="card reveal">
+      <h3>Add to Claude Code</h3>
+      <div class="code-block">
+<code><span class="comment"># Register as MCP server</span>
+<span class="cmd">cd</span> /path/to/repository
+<span class="cmd">claude mcp add</span> container-use -- container-use stdio
+
+<span class="comment"># Optional: add agent rules for better behavior</span>
+<span class="cmd">curl</span> https://raw.githubusercontent.com/dagger/container-use/main/rules/agent.md >> CLAUDE.md</code>
+      </div>
+    </div>
+
+    <div class="card reveal">
+      <h3>Project Configuration</h3>
+      <p>Container Use stores project config in <code>.container-use/environment.json</code> &mdash; commit this directory to share setup with your team.</p>
+      <div class="code-block">
+<code><span class="comment"># Set a base image</span>
+<span class="cmd">container-use config</span> base-image set <span class="str">python:3.11</span>
+
+<span class="comment"># Add setup commands (run before code is copied)</span>
+<span class="cmd">container-use config</span> setup-command add <span class="str">"apt-get update && apt-get install -y ffmpeg"</span>
+
+<span class="comment"># Add install commands (run after code is copied)</span>
+<span class="cmd">container-use config</span> install-command add <span class="str">"pip install -r requirements.txt"</span>
+
+<span class="comment"># Set environment variables</span>
+<span class="cmd">container-use config</span> env set <span class="str">NODE_ENV</span> <span class="str">development</span>
+
+<span class="comment"># Configure secrets</span>
+<span class="cmd">container-use config</span> secret set <span class="str">API_KEY</span></code>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== KEY FEATURES ====== -->
+  <section>
+    <div class="section-label reveal" data-num="04">Capabilities</div>
+    <h2 class="reveal">Key Features</h2>
+    <p class="section-desc reveal">Container Use focuses on a small set of things done well: isolation, observability, and standard git workflow integration.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card reveal">
+        <span class="feature-icon core">Core</span>
+        <h4>Isolated Environments</h4>
+        <p>Every agent receives a fresh container on its own git branch. Parallel agents never conflict &mdash; each has full filesystem independence.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon core">Core</span>
+        <h4>Real-time Visibility</h4>
+        <p>Full command history and logs show what agents actually did. Use <code>cu watch</code> for live monitoring across all active environments.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon power">Power</span>
+        <h4>Direct Intervention</h4>
+        <p><code>cu terminal &lt;env-id&gt;</code> drops you into any agent's container. Inspect state, debug issues, or take manual control.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon core">Core</span>
+        <h4>Standard Git Workflow</h4>
+        <p>Merge with <code>cu merge</code>, stage with <code>cu apply</code>, or checkout with <code>cu checkout</code>. No proprietary review interface.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon mcp">MCP</span>
+        <h4>Universal Compatibility</h4>
+        <p>No vendor lock-in. Works with any MCP-compatible agent, model, or infrastructure. One interface for all agents.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon safety">Config</span>
+        <h4>Secrets Management</h4>
+        <p>Secure handling of API keys and credentials via 1Password integration, environment variables, and file references.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== COMMANDS ====== -->
+  <section>
+    <div class="section-label reveal" data-num="05">Reference</div>
+    <h2 class="reveal">CLI Commands</h2>
+    <p class="section-desc reveal">The <code>container-use</code> command is also available as <code>cu</code> for convenience.</p>
+
+    <div class="card reveal">
+      <h3>Environment Management</h3>
+      <table class="cmd-table">
+        <thead>
+          <tr><th>Command</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>cu list</td><td>List all environments (<code>--no-trunc</code> for full output, <code>-q</code> for IDs only)</td></tr>
+          <tr><td>cu log &lt;id&gt;</td><td>Show commit history and executed commands (<code>--patch</code> for diffs)</td></tr>
+          <tr><td>cu diff &lt;id&gt;</td><td>Compare environment to its base branch</td></tr>
+          <tr><td>cu watch</td><td>Real-time monitoring of all active environments</td></tr>
+          <tr><td>cu terminal &lt;id&gt;</td><td>Open interactive shell inside the container</td></tr>
+          <tr><td>cu delete &lt;id&gt;</td><td>Delete an environment (<code>--all</code> to delete everything)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card reveal">
+      <h3>Code Integration</h3>
+      <table class="cmd-table">
+        <thead>
+          <tr><th>Command</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>cu checkout &lt;id&gt;</td><td>Switch to environment's branch (<code>-b</code> for custom name)</td></tr>
+          <tr><td>cu merge &lt;id&gt;</td><td>Merge environment commits into current branch (<code>-d</code> to auto-delete)</td></tr>
+          <tr><td>cu apply &lt;id&gt;</td><td>Stage changes without committing (<code>-d</code> to auto-delete)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card reveal">
+      <h3>Configuration</h3>
+      <table class="cmd-table">
+        <thead>
+          <tr><th>Command</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>cu config show</td><td>Display current configuration</td></tr>
+          <tr><td>cu config base-image</td><td>Get, set, or reset base image (default: ubuntu:24.04)</td></tr>
+          <tr><td>cu config setup-command</td><td>Add/remove/list/clear pre-code setup commands</td></tr>
+          <tr><td>cu config install-command</td><td>Add/remove/list/clear post-code install commands</td></tr>
+          <tr><td>cu config env</td><td>Set/unset/list/clear environment variables</td></tr>
+          <tr><td>cu config secret</td><td>Set/unset/list/clear secrets</td></tr>
+          <tr><td>cu config agent</td><td>Configure MCP for specific agent (claude, goose, cursor)</td></tr>
+          <tr><td>cu stdio</td><td>Start the MCP server (used in agent config, not manually)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card reveal">
+      <h3>Environment ID Formats</h3>
+      <p>Environments can be referenced by:</p>
+      <ul>
+        <li><strong>Full name:</strong> <code>fancy-mallard</code></li>
+        <li><strong>Partial (if unique):</strong> <code>fancy</code></li>
+        <li><strong>Branch name:</strong> <code>cu-fancy-mallard</code></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ====== EXAMPLE WORKFLOW ====== -->
+  <section>
+    <div class="section-label reveal" data-num="06">In Practice</div>
+    <h2 class="reveal">Example Workflow</h2>
+    <p class="section-desc reveal">A typical workflow: you prompt your agent, it works in isolation, and you review/merge when ready.</p>
+
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">01</div>
+        <div>
+          <h4>Install and register</h4>
+          <p><code>brew install dagger/tap/container-use</code> then <code>claude mcp add container-use -- container-use stdio</code></p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">02</div>
+        <div>
+          <h4>Prompt your agent</h4>
+          <p>Ask Claude Code to build something: "Create a hello world app in Python using Flask." Container Use automatically creates an isolated environment.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">03</div>
+        <div>
+          <h4>Agent works in isolation</h4>
+          <p>The agent gets a fresh container with its own git branch (e.g., <code>cu-fancy-mallard</code>). It can install packages, write files, run tests &mdash; all without touching your host.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">04</div>
+        <div>
+          <h4>Monitor progress</h4>
+          <p><code>cu watch</code> shows real-time activity across all environments. <code>cu log &lt;id&gt;</code> shows detailed command history.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">05</div>
+        <div>
+          <h4>Review and merge</h4>
+          <p><code>cu diff &lt;id&gt;</code> to see what changed. <code>cu merge &lt;id&gt; -d</code> to merge and clean up. Standard git from here.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="quote-block reveal">
+      <p>Container Use reframes agent execution as a containerized, stateless operation &mdash; borrowing from CI/CD pipeline thinking &mdash; so teams can safely parallelize AI coding workflows at scale.</p>
+      <span class="quote-attr">&mdash; Dagger engineering blog</span>
+    </div>
+  </section>
+
+  <!-- ====== LIMITATIONS ====== -->
+  <section>
+    <div class="section-label reveal" data-num="07">Trade-offs</div>
+    <h2 class="reveal">Limitations & Considerations</h2>
+
+    <div class="feature-grid">
+      <div class="feature-card reveal">
+        <h4>Early Development</h4>
+        <p>Explicitly flagged as "experimental" and "actively evolving." APIs and behavior may change between releases. Currently at v0.4.2.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h4>Dagger Dependency</h4>
+        <p>Built on the Dagger engine, which is an additional runtime dependency. Not a simple Docker container &mdash; it's a full pipeline engine.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h4>No Task Queue</h4>
+        <p>Unlike TSK, Container Use doesn't have built-in task queuing or chaining. It provides environments, not workflow orchestration.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h4>No Built-in TUI</h4>
+        <p><code>cu watch</code> provides monitoring, but there's no interactive TUI dashboard for managing multiple environments simultaneously.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h4>MCP-Only Integration</h4>
+        <p>Agents must support MCP to use Container Use. Non-MCP agents cannot integrate without a compatibility layer.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h4>Container Overhead</h4>
+        <p>Each environment runs a full container with its own copy of the codebase. Resource-intensive for large repos or many parallel agents.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== VS TSK ====== -->
+  <section>
+    <div class="section-label reveal" data-num="08">Comparison</div>
+    <h2 class="reveal">Container Use vs TSK</h2>
+    <p class="section-desc reveal">Both tools provide containerized agent isolation, but with different philosophies.</p>
+
+    <div class="card reveal">
+      <table class="compare-table">
+        <thead>
+          <tr><th>Feature</th><th>Container Use</th><th>TSK</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Integration</td><td class="yes">MCP server (universal)</td><td class="partial">CLI tool (direct)</td></tr>
+          <tr><td>Task queue</td><td class="no">No</td><td class="yes">Yes, with server mode</td></tr>
+          <tr><td>Task chaining</td><td class="no">No</td><td class="yes">Yes, via --parent</td></tr>
+          <tr><td>Task templates</td><td class="no">No</td><td class="yes">Yes, Markdown templates</td></tr>
+          <tr><td>Multi-agent comparison</td><td class="no">No</td><td class="yes">Yes, --agent codex,claude</td></tr>
+          <tr><td>Interactive shell</td><td class="yes">cu terminal</td><td class="yes">tsk shell</td></tr>
+          <tr><td>Real-time monitoring</td><td class="yes">cu watch</td><td class="yes">TUI dashboard</td></tr>
+          <tr><td>Agent support</td><td class="yes">Any MCP agent</td><td class="partial">Claude Code + Codex only</td></tr>
+          <tr><td>Installation</td><td class="yes">brew install</td><td class="partial">cargo install</td></tr>
+          <tr><td>Network isolation</td><td class="partial">Container-level</td><td class="yes">Squid proxy with ACLs</td></tr>
+          <tr><td>Language</td><td>Go</td><td>Rust</td></tr>
+          <tr><td>Maturity</td><td class="partial">Experimental (v0.4.2)</td><td class="partial">Early</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ====== LINKS ====== -->
+  <section>
+    <div class="section-label reveal" data-num="09">Resources</div>
+    <h2 class="reveal">Links & Resources</h2>
+
+    <div class="card reveal">
+      <h3>Official</h3>
+      <ul>
+        <li><a href="https://github.com/dagger/container-use" target="_blank">GitHub Repository</a> &mdash; github.com/dagger/container-use</li>
+        <li><a href="https://container-use.com" target="_blank">Documentation Site</a> &mdash; container-use.com</li>
+        <li><a href="https://dagger.io" target="_blank">Dagger</a> &mdash; parent organization</li>
+      </ul>
+    </div>
+
+    <div class="card reveal">
+      <h3>Articles & Coverage</h3>
+      <ul>
+        <li><a href="https://dagger.io/blog/agent-container-use" target="_blank">Dagger Blog</a> &mdash; "Run Coding Agents in Parallel without Destroying Everything"</li>
+        <li><a href="https://www.infoq.com/news/2025/08/container-use/" target="_blank">InfoQ</a> &mdash; "Container Use: a New Tool for Isolated, Parallel Coding Agents"</li>
+        <li><a href="https://thenewstack.io/ai-dev-tools-how-to-containerize-agents-using-dagger/" target="_blank">The New Stack</a> &mdash; "AI Dev Tools: How To Containerize Agents Using Dagger"</li>
+      </ul>
+    </div>
+
+    <div class="card reveal">
+      <h3>Community</h3>
+      <ul>
+        <li><strong>Discord:</strong> container-use.com/discord (#container-use channel)</li>
+        <li><strong>Contributors:</strong> 32</li>
+        <li><strong>License:</strong> Apache-2.0</li>
+        <li><strong>Current version:</strong> v0.4.2 (14 releases total)</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <p><a href="index.html">&larr; Back to All AI Stacks</a> &middot; Container Use Deep Dive &middot; February 2026</p>
+  </footer>
+
+</main>
+
+<script>
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+</script>
+
+</body>
+</html>

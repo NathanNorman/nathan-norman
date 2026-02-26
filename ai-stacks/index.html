@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Stacks 2026 — Who's Using What</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-deep: #060a14;
+  --bg-base: #0a0e1a;
+  --bg-surface: #0f1629;
+  --bg-elevated: #151d33;
+  --bg-card: #111827;
+  --border-subtle: rgba(100, 200, 255, 0.08);
+  --border-accent: rgba(0, 240, 255, 0.2);
+  --cyan: #00f0ff;
+  --cyan-dim: #00a8b3;
+  --cyan-glow: rgba(0, 240, 255, 0.15);
+  --amber: #ff9f1c;
+  --amber-dim: #b36f14;
+  --amber-glow: rgba(255, 159, 28, 0.12);
+  --violet: #8b5cf6;
+  --violet-dim: #6d45c7;
+  --green: #34d399;
+  --green-dim: #059669;
+  --red: #f87171;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+  --text-dim: #334155;
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-body: 'Outfit', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(0, 240, 255, 0.25);
+  color: #fff;
+}
+
+/* ============================================================
+   ANIMATED BACKGROUND GRID
+   ============================================================ */
+.grid-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 70%);
+}
+
+.grid-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(0, 240, 255, 0.04) 0%, transparent 50%),
+              radial-gradient(circle at 70% 60%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
+}
+
+/* ============================================================
+   SCANLINE OVERLAY (SUBTLE)
+   ============================================================ */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+/* ============================================================
+   MAIN CONTAINER
+   ============================================================ */
+main {
+  position: relative;
+  z-index: 2;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ============================================================
+   HERO SECTION
+   ============================================================ */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 80px 0;
+  position: relative;
+}
+
+.hero-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.2s forwards;
+}
+
+.hero-label::before {
+  content: '//';
+  margin-right: 8px;
+  color: var(--text-muted);
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(48px, 8vw, 96px);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -2px;
+  margin-bottom: 32px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.4s forwards;
+}
+
+.hero h1 .accent {
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--violet) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-subtitle {
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  max-width: 600px;
+  line-height: 1.7;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.6s forwards;
+}
+
+.hero-meta {
+  margin-top: 48px;
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.8s forwards;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-stat .num {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--cyan);
+}
+
+.hero-stat .label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.scroll-indicator {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 1s forwards;
+}
+
+.scroll-indicator span {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.scroll-indicator .arrow {
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(to bottom, var(--cyan), transparent);
+  animation: pulse-down 2s ease-in-out infinite;
+}
+
+@keyframes pulse-down {
+  0%, 100% { opacity: 0.3; transform: scaleY(0.6); }
+  50% { opacity: 1; transform: scaleY(1); }
+}
+
+/* ============================================================
+   SECTION STYLING
+   ============================================================ */
+section {
+  padding: 120px 0 80px;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 16px;
+}
+
+.section-label::before {
+  content: attr(data-num);
+  color: var(--text-dim);
+  margin-right: 12px;
+}
+
+section h2 {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5vw, 56px);
+  font-weight: 700;
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+  line-height: 1.1;
+}
+
+.section-desc {
+  font-size: 17px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  max-width: 640px;
+  margin-bottom: 56px;
+  line-height: 1.7;
+}
+
+/* ============================================================
+   TIER CARDS
+   ============================================================ */
+.tier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.tier-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 32px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s, transform 0.3s;
+}
+
+.tier-card:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-2px);
+}
+
+.tier-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+
+.tier-card.tier-1::before { background: linear-gradient(90deg, var(--cyan), var(--violet)); }
+.tier-card.tier-2::before { background: linear-gradient(90deg, var(--amber), var(--red)); }
+.tier-card.tier-3::before { background: linear-gradient(90deg, var(--violet), var(--green)); }
+
+.tier-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+
+.tier-1 .tier-badge { background: rgba(0, 240, 255, 0.1); color: var(--cyan); }
+.tier-2 .tier-badge { background: rgba(255, 159, 28, 0.1); color: var(--amber); }
+.tier-3 .tier-badge { background: rgba(139, 92, 246, 0.1); color: var(--violet); }
+
+.tier-card h3 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.tier-card .tier-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.tier-card .tier-cost {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-muted);
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.tier-card .tier-cost strong {
+  color: var(--text-primary);
+}
+
+.tier-rule {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  border-left: 2px solid;
+}
+
+.tier-1 .tier-rule { border-color: var(--cyan); }
+.tier-2 .tier-rule { border-color: var(--amber); }
+.tier-3 .tier-rule { border-color: var(--violet); }
+
+/* ============================================================
+   PROFILE CARDS
+   ============================================================ */
+.profiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 16px;
+}
+
+.profile-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.3s;
+  cursor: pointer;
+}
+
+.profile-card:hover {
+  border-color: var(--border-accent);
+}
+
+.profile-header {
+  padding: 24px 24px 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.profile-name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.profile-role {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.profile-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.profile-tag.opus { background: rgba(0, 240, 255, 0.1); color: var(--cyan); }
+.profile-tag.multi { background: rgba(139, 92, 246, 0.1); color: var(--violet); }
+.profile-tag.orchestrator { background: rgba(255, 159, 28, 0.1); color: var(--amber); }
+
+.profile-summary {
+  padding: 12px 24px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.profile-stack {
+  padding: 0 24px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.stack-chip {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.stack-chip.primary {
+  background: rgba(0, 240, 255, 0.08);
+  color: var(--cyan);
+  border-color: rgba(0, 240, 255, 0.15);
+}
+
+.profile-detail {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.5s ease;
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.profile-card.expanded .profile-detail {
+  max-height: 800px;
+}
+
+.profile-detail-inner {
+  padding: 20px 24px;
+}
+
+.profile-detail-inner h4 {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 8px;
+  margin-top: 16px;
+}
+
+.profile-detail-inner h4:first-child { margin-top: 0; }
+
+.profile-detail-inner p,
+.profile-detail-inner li {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.profile-detail-inner ul {
+  list-style: none;
+  padding: 0;
+}
+
+.profile-detail-inner li::before {
+  content: '>';
+  font-family: var(--font-mono);
+  color: var(--cyan-dim);
+  margin-right: 8px;
+}
+
+.profile-quote {
+  font-style: italic;
+  color: var(--text-primary) !important;
+  border-left: 2px solid var(--cyan-dim);
+  padding-left: 12px;
+  margin: 12px 0;
+}
+
+.expand-hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  padding: 0 24px 16px;
+  transition: color 0.3s;
+}
+
+.profile-card:hover .expand-hint { color: var(--cyan-dim); }
+.profile-card.expanded .expand-hint { display: none; }
+
+/* ============================================================
+   MCP FREQUENCY CHART
+   ============================================================ */
+.mcp-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 700px;
+}
+
+.mcp-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 40px;
+  align-items: center;
+  gap: 16px;
+}
+
+.mcp-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.mcp-bar-track {
+  height: 24px;
+  background: var(--bg-elevated);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.mcp-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  position: relative;
+  transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 0;
+}
+
+.mcp-bar-fill.loaded { /* width set via JS */ }
+
+.mcp-bar-fill::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1));
+}
+
+.mcp-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   WORKFLOW PATTERNS
+   ============================================================ */
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.workflow-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 28px;
+  transition: border-color 0.3s;
+}
+
+.workflow-card:hover {
+  border-color: var(--border-accent);
+}
+
+.workflow-num {
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--bg-elevated);
+  -webkit-text-stroke: 1px var(--text-dim);
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.workflow-card h3 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.workflow-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.workflow-source {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 12px;
+}
+
+/* ============================================================
+   ORCHESTRATION TOOLS
+   ============================================================ */
+.orch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.orch-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.3s;
+}
+
+.orch-card:hover { border-color: var(--border-accent); }
+
+a.orch-card {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+a.orch-card:hover {
+  border-color: var(--cyan);
+}
+
+a.orch-card:hover .deep-dive-link {
+  color: var(--cyan);
+}
+
+.deep-dive-link {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: auto;
+  padding-top: 8px;
+  transition: color 0.3s;
+}
+
+.orch-card h4 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.orch-card .orch-author {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.orch-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ============================================================
+   QUOTE BLOCK
+   ============================================================ */
+.quote-block {
+  background: var(--bg-surface);
+  border-left: 3px solid var(--cyan);
+  border-radius: 0 12px 12px 0;
+  padding: 32px 40px;
+  margin: 48px 0;
+  position: relative;
+}
+
+.quote-block::before {
+  content: '"';
+  position: absolute;
+  top: 16px;
+  left: 14px;
+  font-family: var(--font-display);
+  font-size: 48px;
+  color: var(--cyan-dim);
+  opacity: 0.3;
+  line-height: 1;
+}
+
+.quote-block p {
+  font-size: 18px;
+  font-weight: 300;
+  font-style: italic;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
+.quote-block .quote-attr {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-style: normal;
+  color: var(--text-muted);
+  margin-top: 12px;
+}
+
+/* ============================================================
+   COST TABLE
+   ============================================================ */
+.cost-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 32px;
+}
+
+.cost-table th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.cost-table td {
+  font-size: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(100, 200, 255, 0.04);
+  color: var(--text-secondary);
+}
+
+.cost-table tr:hover td { background: rgba(0, 240, 255, 0.02); }
+
+.cost-table td:nth-child(2) {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ============================================================
+   UNIVERSAL PRINCIPLES
+   ============================================================ */
+.principles-list {
+  display: grid;
+  gap: 2px;
+  counter-reset: principle;
+}
+
+.principle {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  counter-increment: principle;
+  align-items: start;
+}
+
+.principle-num {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--cyan-dim);
+  text-align: right;
+}
+
+.principle h4 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.principle p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer {
+  padding: 80px 0 40px;
+  text-align: center;
+}
+
+footer p {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  main { padding: 0 16px; }
+  section { padding: 80px 0 40px; }
+  .profiles-grid { grid-template-columns: 1fr; }
+  .mcp-row { grid-template-columns: 100px 1fr 32px; }
+  .mcp-name { font-size: 10px; }
+  .tier-grid { grid-template-columns: 1fr; }
+  .hero-meta { gap: 24px; }
+}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(6, 10, 20, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+}
+
+nav.visible { transform: translateY(0); }
+
+nav .nav-brand {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cyan);
+  letter-spacing: 1px;
+}
+
+nav .nav-links {
+  display: flex;
+  gap: 24px;
+  list-style: none;
+}
+
+nav .nav-links a {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-decoration: none;
+  letter-spacing: 1px;
+  transition: color 0.2s;
+}
+
+nav .nav-links a:hover { color: var(--cyan); }
+
+@media (max-width: 768px) {
+  nav .nav-links { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="scanlines"></div>
+
+<nav id="nav">
+  <span class="nav-brand">AI STACKS // 2026</span>
+  <ul class="nav-links">
+    <li><a href="#tiers">Tiers</a></li>
+    <li><a href="#profiles">Profiles</a></li>
+    <li><a href="#mcp">MCP Servers</a></li>
+    <li><a href="#workflows">Workflows</a></li>
+    <li><a href="#orchestration">Orchestration</a></li>
+    <li><a href="#cost">Cost</a></li>
+  </ul>
+</nav>
+
+<main>
+
+  <!-- ====== HERO ====== -->
+  <section class="hero">
+    <div class="hero-label">Research compiled February 2026</div>
+    <h1>Who's Using<br><span class="accent">Claude Code</span><br>& How</h1>
+    <p class="hero-subtitle">A comprehensive survey of AI coding stacks from top practitioners — sourced from YouTube, podcasts, blogs, and GitHub configs.</p>
+    <div class="hero-meta">
+      <div class="hero-stat">
+        <span class="num">25+</span>
+        <span class="label">Practitioners profiled</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">15+</span>
+        <span class="label">MCP servers cataloged</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">7</span>
+        <span class="label">Orchestration tools</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">30+</span>
+        <span class="label">Sources analyzed</span>
+      </div>
+    </div>
+    <div class="scroll-indicator">
+      <span>Scroll</span>
+      <div class="arrow"></div>
+    </div>
+  </section>
+
+  <!-- ====== TIERS ====== -->
+  <section id="tiers">
+    <div class="section-label reveal" data-num="01">The Landscape</div>
+    <h2 class="reveal">Three Tiers of Usage</h2>
+    <p class="section-desc reveal">The consensus from 30+ sources: there are three distinct patterns for how top practitioners integrate AI into their coding workflow.</p>
+
+    <div class="tier-grid">
+      <div class="tier-card tier-1 reveal">
+        <span class="tier-badge">Most Common</span>
+        <h3>Dual-Tool</h3>
+        <div class="tier-rule">80% autocomplete (Cursor) / 15% agent tasks / 5% deep work (Claude Code)</div>
+        <p class="tier-desc">Cursor for daily flow and inline edits. Claude Code for hard problems — debugging, architecture, multi-file refactors. The best of both worlds.</p>
+        <div class="tier-cost"><strong>~$120/mo</strong> — Cursor Pro + Claude Code Max</div>
+      </div>
+      <div class="tier-card tier-2 reveal">
+        <span class="tier-badge">Power Users</span>
+        <h3>Claude Code-First</h3>
+        <div class="tier-rule">Terminal-native. No IDE. Editor only for reviewing diffs.</div>
+        <p class="tier-desc">CLAUDE.md as the configuration backbone. Custom skills, hooks, slash commands. MCP servers for the entire dev ecosystem. Multiple practitioners report not opening an IDE at all.</p>
+        <div class="tier-cost"><strong>$100/mo</strong> — Claude Code Max</div>
+      </div>
+      <div class="tier-card tier-3 reveal">
+        <span class="tier-badge">Frontier</span>
+        <h3>Multi-Agent Orchestration</h3>
+        <div class="tier-rule">Multiple Claude Code instances. Orchestration dashboards. Agent fleets.</div>
+        <p class="tier-desc">tmux terminals, git worktrees, custom coordinators. Steve Yegge runs 3 concurrent Max accounts. The merge wall is the bottleneck — agents reserve files before editing.</p>
+        <div class="tier-cost"><strong>~$100/hr</strong> — Multiple Max accounts + heavy token usage</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="quote-block reveal">
+    <p>Cursor is the best AI editor. Claude Code is the best AI engineer. Windsurf is the best value.</p>
+    <span class="quote-attr">— Consensus from multiple comparison surveys</span>
+  </div>
+
+  <!-- ====== PROFILES ====== -->
+  <section id="profiles">
+    <div class="section-label reveal" data-num="02">Named Stacks</div>
+    <h2 class="reveal">Who Uses What</h2>
+    <p class="section-desc reveal">Click any card to expand. These are real configurations from practitioners who've shared their setups publicly.</p>
+
+    <div class="profiles-grid">
+
+      <!-- Boris Cherny -->
+      <div class="profile-card reveal" onclick="this.classList.toggle('expanded')">
+        <div class="profile-header">
+          <div>
+            <div class="profile-name">Boris Cherny</div>
+            <div class="profile-role">Creator of Claude Code, Anthropic</div>
+          </div>
+          <span class="profile-tag opus">100% AI</span>
+        </div>
+        <p class="profile-summary">Every line of committed code last month was AI-written. ~259 PRs, ~40K lines. ~5 releases per engineer per day. Hasn't opened an IDE in over a month.</p>
+        <div class="profile-stack">
+          <span class="stack-chip primary">Claude Code</span>
+          <span class="stack-chip primary">Opus 4.5</span>
+          <span class="stack-chip">Puppeteer MCP</span>
+          <span class="stack-chip">GitHub MCP</span>
+          <span class="stack-chip">Sentry MCP</span>
+          <span class="stack-chip">Slack MCP</span>
+        </div>
+        <div class="expand-hint">Click to expand</div>
+        <div class="profile-detail">
+          <div class="profile-detail-inner">
+            <h4>Slash Commands</h4>
+            <ul>
+              <li>/commit — runs linting, generates messages via Haiku (faster/cheaper)</li>
+              <li>/pr — pull request workflow</li>
+              <li>/feature-dev — spec → plan → todo → step-by-step execution</li>
+              <li>/code-review — first-pass review on all PRs</li>
+              <li>/security-review — runs on all PRs</li>
+            </ul>
+            <h4>Advanced Patterns</h4>
+            <ul>
+              <li>Sub-agents for migrations: 10 parallel agents + 5 dedup agents</li>
+              <li>Stop hook: "if tests don't pass, keep going"</li>
+              <li>Notification hook: ping Slack when Claude needs permission</li>
+              <li>Engineers write "diary entries" after each task</li>
+            </ul>
+            <h4>Key Insight</h4>
+            <p class="profile-quote">"Using plan mode can 2-3x success rates pretty easily if you align on the plan first."</p>
+            <p class="profile-quote">"Claude Code is not a product as much as it's a Unix utility."</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Steve Yegge -->
+      <div class="profile-card reveal" onclick="this.classList.toggle('expanded')">
+        <div class="profile-header">
+          <div>
+            <div class="profile-name">Steve Yegge</div>
+            <div class="profile-role">Ex-Google, Ex-Amazon</div>
+          </div>
+          <span class="profile-tag orchestrator">Orchestrator</span>
+        </div>
+        <p class="profile-summary">Built Gas Town — "Kubernetes for AI agents." A Mayor agent delegates to 20+ workers in tmux terminals. Runs 3 concurrent Claude Max accounts at ~$100/hr.</p>
+        <div class="profile-stack">
+          <span class="stack-chip primary">Gas Town</span>
+          <span class="stack-chip primary">Claude Code x3</span>
+          <span class="stack-chip">Beads (SQLite+JSONL)</span>
+          <span class="stack-chip">tmux</span>
+          <span class="stack-chip">Git/GitHub</span>
+        </div>
+        <div class="expand-hint">Click to expand</div>
+        <div class="profile-detail">
+          <div class="profile-detail-inner">
+            <h4>Architecture</h4>
+            <ul>
+              <li>"Mayor" agent as foreman/interface for all tasks</li>
+              <li>20+ specialized worker agents in separate tmux terminals</li>
+              <li>Agents push branches, open PRs, can autonomously merge</li>
+              <li>Beads: SQLite for fast queries + JSONL for git-tracked source of truth</li>
+            </ul>
+            <h4>Key Insights</h4>
+            <p class="profile-quote">"Trust = predictability, not capability. Takes ~2,000 hours of daily use."</p>
+            <p class="profile-quote">"Joel Spolsky's 'never rewrite' rule is now obsolete for a growing class of codebases."</p>
+            <h4>Thesis</h4>
+            <p>Current tools (Claude Code, Cursor) are "already obsolete." The future is agent orchestration dashboards — factory farming of code.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Addy Osmani -->
+      <div class="profile-card reveal" onclick="this.classList.toggle('expanded')">
+        <div class="profile-header">
+          <div>
+            <div class="profile-name">Addy Osmani</div>
+            <div class="profile-role">Google Chrome Team</div>
+          </div>
+          <span class="profile-tag multi">Multi-Model</span>
+        </div>
+        <p class="profile-summary">Uses every major AI coding tool. "Model musical chairs" — swaps freely when one gets stuck. Starts every feature with spec.md → plan.md.</p>
+        <div class="profile-stack">
+          <span class="stack-chip primary">Claude Code</span>
+          <span class="stack-chip primary">Gemini CLI</span>
+          <span class="stack-chip">Codex CLI</span>
+          <span class="stack-chip">Cursor</span>
+          <span class="stack-chip">Context7 MCP</span>
+          <span class="stack-chip">Chrome DevTools MCP</span>
+          <span class="stack-chip">CodeRabbit</span>
+          <span class="stack-chip">Conductor</span>
+        </div>
+        <div class="expand-hint">Click to expand</div>
+        <div class="profile-detail">
+          <div class="profile-detail-inner">
+            <h4>5-Step Workflow</h4>
+            <ul>
+              <li>Specs before code ("15-minute waterfall")</li>
+              <li>Break work into small chunks with prompt plan files</li>
+              <li>Extensive context via Context7 MCP or gitingest/repo2txt</li>
+              <li>Choose the right model — swap freely when stuck</li>
+              <li>AI across full SDLC: CLI agents, async agents, orchestration</li>
+            </ul>
+            <h4>Key Quotes</h4>
+            <p class="profile-quote">"Vibe coding is not an excuse for low-quality work."</p>
+            <p class="profile-quote">"The human engineer remains the director."</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Simon Willison -->
+      <div class="profile-card reveal" onclick="this.classList.toggle('expanded')">
+        <div class="profile-header">
+          <div>
+            <div class="profile-name">Simon Willison</div>
+            <div class="profile-role">Datasette Creator, Prolific Blogger</div>
+          </div>
+          <span class="profile-tag multi">Multi-Model</span>
+        </div>
+        <p class="profile-summary">Runs 2-3 async code research projects per day. Built his own CLI tools (files-to-prompt, llm). Prefers minimal MCP — custom shell scripts instead.</p>
+        <div class="profile-stack">
+          <span class="stack-chip primary">Claude Code</span>
+          <span class="stack-chip">Claude Projects</span>
+          <span class="stack-chip">Gemini 2.0 Pro</span>
+          <span class="stack-chip">files-to-prompt</span>
+          <span class="stack-chip">llm CLI</span>
+          <span class="stack-chip">ChatGPT</span>
+        </div>
+        <div class="expand-hint">Click to expand</div>
+        <div class="profile-detail">
+          <div class="profile-detail-inner">
+            <h4>Workflow Phases</h4>
+            <ul>
+              <li>Research: ask for options with usage examples, build prototypes</li>
+              <li>Production ("Authoritarian" mode): exact function signatures, dictated choices</li>
+              <li>Async research: dedicated GitHub repos with AGENTS.md, fire and forget</li>
+            </ul>
+            <h4>Philosophy</h4>
+            <p class="profile-quote">"If someone tells you that coding with LLMs is easy they are (probably unintentionally) misleading you."</p>
+            <p class="profile-quote">"It's not about getting work done faster, it's about being able to ship projects that I wouldn't have been able to justify spending time on at all."</p>
+            <h4>Costs</h4>
+            <p>$0.11-$0.61 per session. A full feature build: $0.61, 17 minutes.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kieran Klaassen -->
+      <div class="profile-card reveal" onclick="this.classList.toggle('expanded')">
+        <div class="profile-header">
+          <div>
+            <div class="profile-name">Kieran Klaassen</div>
+            <div class="profile-role">CTO at Kora/Every</div>
+          </div>
+          <span class="profile-tag opus">Compound Eng</span>
+        </div>
+        <p class="profile-summary">Created the Compound Engineering methodology and open-source plugin. Plan → Work → Assess → Compound. The most-referenced workflow system.</p>
+        <div class="profile-stack">
+          <span class="stack-chip primary">Claude Code</span>
+          <span class="stack-chip primary">Compound Plugin</span>
+          <span class="stack-chip">Playwright MCP</span>
+          <span class="stack-chip">Sub-agent reviewers</span>
+        </div>
+        <div class="expand-hint">Click to expand</div>
+        <div class="profile-detail">
+          <div class="profile-detail-inner">
+            <h4>Custom Commands</h4>
+            <ul>
+              <li>/workflows:plan — feature ideas → detailed implementation plans</li>
+              <li>/workflows:work — execute with worktrees and task tracking</li>
+              <li>/workflows:review — multi-agent code review</li>
+              <li>/workflows:compound — capture learnings into CLAUDE.md</li>
+              <li>/lfg — zero to production, fully autonomous</li>
+              <li>/slfg — swarm mode for parallel execution</li>
+            </ul>
+            <h4>Plugin</h4>
+            <p>Open-source: github.com/EveryInc/compound-engineering-plugin</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dzianis Karviha -->
+      <div class="profile-card reveal" onclick="this.classList.toggle('expanded')">
+        <div class="profile-header">
+          <div>
+            <div class="profile-name">Dzianis Karviha</div>
+            <div class="profile-role">Solo Maintainer, 350K+ LOC</div>
+          </div>
+          <span class="profile-tag opus">3x Tests</span>
+        </div>
+        <p class="profile-summary">Measured 3x increase in test output. 80%+ of code changes written by Claude Code. 20+ custom skills across PHP, TypeScript, React Native, Terraform.</p>
+        <div class="profile-stack">
+          <span class="stack-chip primary">Claude Code Max</span>
+          <span class="stack-chip">Custom YouTrack MCP</span>
+          <span class="stack-chip">20+ Skills</span>
+          <span class="stack-chip">Nested CLAUDE.md</span>
+        </div>
+        <div class="expand-hint">Click to expand</div>
+        <div class="profile-detail">
+          <div class="profile-detail-inner">
+            <h4>Measured Productivity Gains</h4>
+            <ul>
+              <li>Commits/week: 26-30 → 50</li>
+              <li>Test LOC/week: 707 → 2,043 (3x)</li>
+              <li>Total LOC/week: 3,975 → 5,947</li>
+              <li>Prod deployments/week: 19-22 → 28</li>
+            </ul>
+            <h4>Configuration Architecture</h4>
+            <ul>
+              <li>Root CLAUDE.md + backend/ + frontend/ + mobile/ CLAUDE.md</li>
+              <li>Per-feature directories in git with implementation plans</li>
+              <li>/clear between every subtask — never waits for auto-compaction</li>
+              <li>Meta-skill: "implementing-skill" that generates other skills</li>
+            </ul>
+            <p class="profile-quote">"Don't create CLAUDE.md for every module — only where you observe comprehension failures."</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- YK -->
+      <div class="profile-card reveal" onclick="this.classList.toggle('expanded')">
+        <div class="profile-header">
+          <div>
+            <div class="profile-name">YK</div>
+            <div class="profile-role">Sourcegraph DevEx / CS Dojo</div>
+          </div>
+          <span class="profile-tag multi">35+ Tips</span>
+        </div>
+        <p class="profile-summary">The deepest public documentation of Claude Code usage. Custom status bar, system prompt patching (41% token reduction), voice input, multi-model containers.</p>
+        <div class="profile-stack">
+          <span class="stack-chip primary">Claude Code</span>
+          <span class="stack-chip">superwhisper</span>
+          <span class="stack-chip">Docker containers</span>
+          <span class="stack-chip">Gemini CLI</span>
+          <span class="stack-chip">Playwright MCP</span>
+        </div>
+        <div class="expand-hint">Click to expand</div>
+        <div class="profile-detail">
+          <div class="profile-detail-inner">
+            <h4>Optimizations</h4>
+            <ul>
+              <li>System prompt: 18K → 10K tokens (41% reduction)</li>
+              <li>Lazy MCP via ENABLE_TOOL_SEARCH: true</li>
+              <li>/clone, /half-clone for conversation forking</li>
+              <li>"Cascade method": 3-4 tabs, sweep left-to-right</li>
+            </ul>
+            <h4>Multi-Model</h4>
+            <p>Outer Claude Code coordinates Codex + Gemini CLI in separate Docker containers via tmux.</p>
+            <p class="profile-quote">"Context length degrades performance — treat context like milk: fresh and condensed."</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Steve Sewell -->
+      <div class="profile-card reveal" onclick="this.classList.toggle('expanded')">
+        <div class="profile-header">
+          <div>
+            <div class="profile-name">Steve Sewell</div>
+            <div class="profile-role">CEO, Builder.io</div>
+          </div>
+          <span class="profile-tag opus">YOLO Mode</span>
+        </div>
+        <p class="profile-summary">Runs --dangerously-skip-permissions every session. Switched from Cursor. Custom hooks auto-format with Prettier and TypeScript check on every edit.</p>
+        <div class="profile-stack">
+          <span class="stack-chip primary">Claude Code Max</span>
+          <span class="stack-chip">Prettier hooks</span>
+          <span class="stack-chip">TSC hooks</span>
+          <span class="stack-chip">Cursor (tab only)</span>
+        </div>
+        <div class="expand-hint">Click to expand</div>
+        <div class="profile-detail">
+          <div class="profile-detail-inner">
+            <h4>Model Strategy</h4>
+            <p>Opus until 50% cap, then manually switches to Sonnet "when Opus is having one of its moments."</p>
+            <h4>Notable Achievement</h4>
+            <p>Successfully edited an 18,000-line React component — says no other agent could handle it.</p>
+            <h4>PR Reviews</h4>
+            <p>Custom claude-code-review.yml focused only on bugs and security — stripped all verbose style comments.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Russ Poldrack -->
+      <div class="profile-card reveal" onclick="this.classList.toggle('expanded')">
+        <div class="profile-header">
+          <div>
+            <div class="profile-name">Russ Poldrack</div>
+            <div class="profile-role">Stanford Professor</div>
+          </div>
+          <span class="profile-tag opus">Context Cycle</span>
+        </div>
+        <p class="profile-summary">Created the Context Refresh Cycle: /summ+commit → /clear → /freshstart. Five-file system: PRD.md, CLAUDE.md, PLANNING.md, TASKS.md, SCRATCHPAD.md.</p>
+        <div class="profile-stack">
+          <span class="stack-chip primary">Claude Code</span>
+          <span class="stack-chip primary">Opus 4.1</span>
+          <span class="stack-chip">pytest</span>
+          <span class="stack-chip">Custom commands</span>
+        </div>
+        <div class="expand-hint">Click to expand</div>
+        <div class="profile-detail">
+          <div class="profile-detail-inner">
+            <h4>Context Refresh Cycle</h4>
+            <ul>
+              <li>/summ+commit — update TASKS.md and SCRATCHPAD.md, then commit</li>
+              <li>/clear — reset context window</li>
+              <li>/freshstart — read PLANNING.md, CLAUDE.md, TASKS.md, SCRATCHPAD.md</li>
+            </ul>
+            <h4>Cautionary Tale</h4>
+            <p>GPU acceleration project failed after days of iteration — domain-specific hardware knowledge (CUDA's BUF algorithm) can't be substituted by AI iteration.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ====== MCP SERVERS ====== -->
+  <section id="mcp">
+    <div class="section-label reveal" data-num="03">Integration Layer</div>
+    <h2 class="reveal">Most Popular MCP Servers</h2>
+    <p class="section-desc reveal">Ranked by frequency of mention across all 30+ sources. These are the extensions that keep appearing in every power user's config.</p>
+
+    <div class="mcp-chart reveal" id="mcpChart">
+      <div class="mcp-row">
+        <span class="mcp-name">Playwright/Puppeteer</span>
+        <div class="mcp-bar-track"><div class="mcp-bar-fill" data-width="100%" style="background: linear-gradient(90deg, var(--cyan), var(--cyan-dim));"></div></div>
+        <span class="mcp-count">10+</span>
+      </div>
+      <div class="mcp-row">
+        <span class="mcp-name">GitHub</span>
+        <div class="mcp-bar-track"><div class="mcp-bar-fill" data-width="80%" style="background: linear-gradient(90deg, var(--cyan), var(--cyan-dim));"></div></div>
+        <span class="mcp-count">8+</span>
+      </div>
+      <div class="mcp-row">
+        <span class="mcp-name">Context7</span>
+        <div class="mcp-bar-track"><div class="mcp-bar-fill" data-width="60%" style="background: linear-gradient(90deg, var(--amber), var(--amber-dim));"></div></div>
+        <span class="mcp-count">6+</span>
+      </div>
+      <div class="mcp-row">
+        <span class="mcp-name">Sentry</span>
+        <div class="mcp-bar-track"><div class="mcp-bar-fill" data-width="50%" style="background: linear-gradient(90deg, var(--amber), var(--amber-dim));"></div></div>
+        <span class="mcp-count">5+</span>
+      </div>
+      <div class="mcp-row">
+        <span class="mcp-name">Chrome DevTools</span>
+        <div class="mcp-bar-track"><div class="mcp-bar-fill" data-width="50%" style="background: linear-gradient(90deg, var(--amber), var(--amber-dim));"></div></div>
+        <span class="mcp-count">5+</span>
+      </div>
+      <div class="mcp-row">
+        <span class="mcp-name">Linear</span>
+        <div class="mcp-bar-track"><div class="mcp-bar-fill" data-width="40%" style="background: linear-gradient(90deg, var(--violet), var(--violet-dim));"></div></div>
+        <span class="mcp-count">4+</span>
+      </div>
+      <div class="mcp-row">
+        <span class="mcp-name">Slack</span>
+        <div class="mcp-bar-track"><div class="mcp-bar-fill" data-width="40%" style="background: linear-gradient(90deg, var(--violet), var(--violet-dim));"></div></div>
+        <span class="mcp-count">4+</span>
+      </div>
+      <div class="mcp-row">
+        <span class="mcp-name">Jira</span>
+        <div class="mcp-bar-track"><div class="mcp-bar-fill" data-width="30%" style="background: linear-gradient(90deg, var(--violet), var(--violet-dim));"></div></div>
+        <span class="mcp-count">3+</span>
+      </div>
+      <div class="mcp-row">
+        <span class="mcp-name">Memory</span>
+        <div class="mcp-bar-track"><div class="mcp-bar-fill" data-width="30%" style="background: linear-gradient(90deg, var(--violet), var(--violet-dim));"></div></div>
+        <span class="mcp-count">3+</span>
+      </div>
+      <div class="mcp-row">
+        <span class="mcp-name">Supabase</span>
+        <div class="mcp-bar-track"><div class="mcp-bar-fill" data-width="30%" style="background: linear-gradient(90deg, var(--violet), var(--violet-dim));"></div></div>
+        <span class="mcp-count">3+</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="quote-block reveal">
+    <p>100% of code added in the last 30 days was written by Claude Code itself — approximately 259 PRs and 40,000 lines of code.</p>
+    <span class="quote-attr">— Boris Cherny, on how the Claude Code team builds Claude Code</span>
+  </div>
+
+  <!-- ====== WORKFLOWS ====== -->
+  <section id="workflows">
+    <div class="section-label reveal" data-num="04">Patterns</div>
+    <h2 class="reveal">Universal Workflow Principles</h2>
+    <p class="section-desc reveal">Seven patterns that appeared in every power user's setup, regardless of tools.</p>
+
+    <div class="principles-list">
+      <div class="principle reveal">
+        <div class="principle-num">01</div>
+        <div>
+          <h4>Plan Mode First</h4>
+          <p>Shift+Tab before executing. Boris Cherny: "the most important thing you can do." Can 2-3x success rates.</p>
+        </div>
+      </div>
+      <div class="principle reveal">
+        <div class="principle-num">02</div>
+        <div>
+          <h4>CLAUDE.md as Configuration Backbone</h4>
+          <p>Layered: global + project + directory. Start minimal. Add rules only when failures repeat. 50-100 lines per file max.</p>
+        </div>
+      </div>
+      <div class="principle reveal">
+        <div class="principle-num">03</div>
+        <div>
+          <h4>Fresh Context Per Task</h4>
+          <p>/clear between tasks. New sessions. Handoff documents for continuity. "Treat context like milk: fresh and condensed."</p>
+        </div>
+      </div>
+      <div class="principle reveal">
+        <div class="principle-num">04</div>
+        <div>
+          <h4>Commit After Every Change</h4>
+          <p>Git as save points. Worktrees for parallel work. Put "commit after every change" in CLAUDE.md for easy rewind.</p>
+        </div>
+      </div>
+      <div class="principle reveal">
+        <div class="principle-num">05</div>
+        <div>
+          <h4>Verify Everything</h4>
+          <p>Treat AI output as unreviewed junior developer code. Playwright MCP for browser testing. Automated tests as safety net.</p>
+        </div>
+      </div>
+      <div class="principle reveal">
+        <div class="principle-num">06</div>
+        <div>
+          <h4>Sub-Agents for Parallelism</h4>
+          <p>Dedicated agents for code review, security review, research, testing. Isolated context windows prevent implementation bias.</p>
+        </div>
+      </div>
+      <div class="principle reveal">
+        <div class="principle-num">07</div>
+        <div>
+          <h4>Match Model to Task</h4>
+          <p>Opus for complex architecture. Sonnet for everyday coding. Haiku for boilerplate. Multiple users run 2-3 models simultaneously.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== ORCHESTRATION ====== -->
+  <section id="orchestration">
+    <div class="section-label reveal" data-num="05">The Frontier</div>
+    <h2 class="reveal">Orchestration Tools</h2>
+    <p class="section-desc reveal">For when one Claude Code instance isn't enough. These tools coordinate fleets of AI agents.</p>
+
+    <div class="orch-grid">
+      <a href="gas-town.html" class="orch-card reveal">
+        <h4>Gas Town</h4>
+        <span class="orch-author">Steve Yegge</span>
+        <p>"Kubernetes for AI agents." Mayor + 20 workers in tmux. Beads for persistence. $100/hr. brew install gastown</p>
+        <span class="deep-dive-link">Deep Dive →</span>
+      </a>
+      <a href="multiclaude.html" class="orch-card reveal">
+        <h4>Multiclaude</h4>
+        <span class="orch-author">Dan Lorenc</span>
+        <p>"Brownian ratchet" — always pushing forward. Supervisor + subagents. Auto-merge if CI passes. Singleplayer or multiplayer mode.</p>
+        <span class="deep-dive-link">Deep Dive →</span>
+      </a>
+      <a href="compound-engineering.html" class="orch-card reveal">
+        <h4>Compound Engineering</h4>
+        <span class="orch-author">Kieran Klaassen / EveryInc</span>
+        <p>Plan → Work → Assess → Compound. Open-source plugin. Converts to Cursor/Kiro format. Most-referenced methodology.</p>
+        <span class="deep-dive-link">Deep Dive →</span>
+      </a>
+      <a href="claude-squad.html" class="orch-card reveal">
+        <h4>Claude Squad</h4>
+        <span class="orch-author">smtg-ai</span>
+        <p>Terminal app managing multiple Claude Code / Codex / Aider instances in separate workspaces.</p>
+        <span class="deep-dive-link">Deep Dive →</span>
+      </a>
+      <a href="conductor.html" class="orch-card reveal">
+        <h4>Conductor</h4>
+        <span class="orch-author">Melty Labs</span>
+        <p>Native Mac app. Visual dashboard with git worktree isolation, checkpoints, and rollback. Used by Addy Osmani.</p>
+        <span class="deep-dive-link">Deep Dive →</span>
+      </a>
+      <a href="tsk.html" class="orch-card reveal">
+        <h4>TSK</h4>
+        <span class="orch-author">dtormoen</span>
+        <p>Rust CLI delegating tasks to agents in sandboxed Docker containers. Safety-first.</p>
+        <span class="deep-dive-link">Deep Dive →</span>
+      </a>
+      <a href="container-use.html" class="orch-card reveal">
+        <h4>Container Use</h4>
+        <span class="orch-author">Dagger</span>
+        <p>Docker-based dev environments for coding agents. Isolated workspaces for safe parallel execution.</p>
+        <span class="deep-dive-link">Deep Dive →</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ====== COST ====== -->
+  <section id="cost">
+    <div class="section-label reveal" data-num="06">Economics</div>
+    <h2 class="reveal">Cost Reality</h2>
+    <p class="section-desc reveal">What practitioners actually spend. The range is enormous — from $0.11/session to $100/hour.</p>
+
+    <table class="cost-table reveal">
+      <thead>
+        <tr>
+          <th>Setup</th>
+          <th>Monthly Cost</th>
+          <th>Who</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Claude Code Pro (hits limits in ~1hr)</td>
+          <td>$20/mo</td>
+          <td>Casual users</td>
+        </tr>
+        <tr>
+          <td>Claude Code Max</td>
+          <td>$100/mo</td>
+          <td>Dzianis, Steve Sewell, most power users</td>
+        </tr>
+        <tr>
+          <td>Cursor Pro + Claude Code Max</td>
+          <td>~$120/mo</td>
+          <td>Dual-tool setup (most common)</td>
+        </tr>
+        <tr>
+          <td>API direct (avg daily)</td>
+          <td>~$180/mo</td>
+          <td>Boris's internal stats (~$6/day)</td>
+        </tr>
+        <tr>
+          <td>Claude Code Max x3 (multi-agent)</td>
+          <td>$300/mo</td>
+          <td>Steve Yegge</td>
+        </tr>
+        <tr>
+          <td>a16z estimate (10K context, 3 queries/hr)</td>
+          <td>~$833/mo</td>
+          <td>Projected heavy enterprise usage</td>
+        </tr>
+        <tr>
+          <td>Gas Town at full speed</td>
+          <td>~$100/hr</td>
+          <td>Steve Yegge (spikes)</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="quote-block reveal">
+    <p>It's not about getting work done faster, it's about being able to ship projects that I wouldn't have been able to justify spending time on at all.</p>
+    <span class="quote-attr">— Simon Willison</span>
+  </div>
+
+  <footer>
+    <p>Compiled from 30+ sources across YouTube, podcasts, blogs, and GitHub &middot; February 2026</p>
+  </footer>
+
+</main>
+
+<script>
+// ============================================================
+// SCROLL REVEAL
+// ============================================================
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+// ============================================================
+// NAV SHOW/HIDE
+// ============================================================
+const nav = document.getElementById('nav');
+let lastScroll = 0;
+window.addEventListener('scroll', () => {
+  const current = window.scrollY;
+  nav.classList.toggle('visible', current > 400);
+  lastScroll = current;
+});
+
+// ============================================================
+// MCP BAR ANIMATION
+// ============================================================
+const barObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const bars = entry.target.querySelectorAll('.mcp-bar-fill');
+      bars.forEach((bar, i) => {
+        setTimeout(() => {
+          bar.style.width = bar.dataset.width;
+        }, i * 80);
+      });
+      barObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.3 });
+
+barObserver.observe(document.getElementById('mcpChart'));
+</script>
+
+</body>
+</html>

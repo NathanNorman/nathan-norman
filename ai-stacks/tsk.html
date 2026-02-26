@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TSK — AI Agent Task Manager & Sandbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-deep: #060a14;
+  --bg-base: #0a0e1a;
+  --bg-surface: #0f1629;
+  --bg-elevated: #151d33;
+  --bg-card: #111827;
+  --border-subtle: rgba(100, 200, 255, 0.08);
+  --border-accent: rgba(0, 240, 255, 0.2);
+  --cyan: #00f0ff;
+  --cyan-dim: #00a8b3;
+  --cyan-glow: rgba(0, 240, 255, 0.15);
+  --amber: #ff9f1c;
+  --amber-dim: #b36f14;
+  --amber-glow: rgba(255, 159, 28, 0.12);
+  --violet: #8b5cf6;
+  --violet-dim: #6d45c7;
+  --green: #34d399;
+  --green-dim: #059669;
+  --red: #f87171;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+  --text-dim: #334155;
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-body: 'Outfit', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(0, 240, 255, 0.25);
+  color: #fff;
+}
+
+a { color: var(--cyan); text-decoration: none; transition: color 0.2s; }
+a:hover { color: #fff; }
+
+/* ============================================================
+   ANIMATED BACKGROUND GRID
+   ============================================================ */
+.grid-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 70%);
+}
+
+.grid-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(0, 240, 255, 0.04) 0%, transparent 50%),
+              radial-gradient(circle at 70% 60%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
+}
+
+/* ============================================================
+   SCANLINE OVERLAY
+   ============================================================ */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(6, 10, 20, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+nav .nav-back {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  transition: color 0.2s;
+}
+
+nav .nav-back:hover { color: var(--cyan); }
+
+nav .nav-brand {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cyan);
+  letter-spacing: 1px;
+}
+
+/* ============================================================
+   MAIN CONTAINER
+   ============================================================ */
+main {
+  position: relative;
+  z-index: 2;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ============================================================
+   HERO SECTION
+   ============================================================ */
+.hero {
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 120px 0 80px;
+}
+
+.hero-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.2s forwards;
+}
+
+.hero-label::before {
+  content: '//';
+  margin-right: 8px;
+  color: var(--text-muted);
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(48px, 7vw, 80px);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -2px;
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.4s forwards;
+}
+
+.hero h1 .accent {
+  background: linear-gradient(135deg, var(--amber) 0%, var(--red) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-subtitle {
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  max-width: 620px;
+  line-height: 1.7;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.6s forwards;
+}
+
+.hero-meta {
+  margin-top: 40px;
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.8s forwards;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-stat .num {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--amber);
+}
+
+.hero-stat .label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   SECTION STYLING
+   ============================================================ */
+section {
+  padding: 100px 0 60px;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 16px;
+}
+
+.section-label::before {
+  content: attr(data-num);
+  color: var(--text-dim);
+  margin-right: 12px;
+}
+
+section h2 {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 700;
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+  line-height: 1.1;
+}
+
+.section-desc {
+  font-size: 17px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  max-width: 640px;
+  margin-bottom: 40px;
+  line-height: 1.7;
+}
+
+/* ============================================================
+   CONTENT CARDS
+   ============================================================ */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 16px;
+  transition: border-color 0.3s;
+}
+
+.card:hover {
+  border-color: var(--border-accent);
+}
+
+.card h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.card p, .card li {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.card ul {
+  list-style: none;
+  padding: 0;
+}
+
+.card li {
+  padding: 4px 0;
+}
+
+.card li::before {
+  content: '>';
+  font-family: var(--font-mono);
+  color: var(--amber-dim);
+  margin-right: 8px;
+}
+
+/* ============================================================
+   FEATURE GRID
+   ============================================================ */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.feature-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 24px;
+  transition: border-color 0.3s;
+}
+
+.feature-card:hover { border-color: var(--border-accent); }
+
+.feature-card h4 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.feature-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.feature-icon {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.feature-icon.core { background: rgba(255, 159, 28, 0.1); color: var(--amber); }
+.feature-icon.safety { background: rgba(52, 211, 153, 0.1); color: var(--green); }
+.feature-icon.power { background: rgba(139, 92, 246, 0.1); color: var(--violet); }
+
+/* ============================================================
+   CODE BLOCK
+   ============================================================ */
+.code-block {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
+.code-block code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.8;
+}
+
+.code-block .comment { color: var(--text-muted); }
+.code-block .cmd { color: var(--cyan); }
+.code-block .flag { color: var(--amber); }
+.code-block .str { color: var(--green); }
+
+/* ============================================================
+   COMMAND TABLE
+   ============================================================ */
+.cmd-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+.cmd-table th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.cmd-table td {
+  font-size: 14px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(100, 200, 255, 0.04);
+  color: var(--text-secondary);
+}
+
+.cmd-table tr:hover td { background: rgba(0, 240, 255, 0.02); }
+
+.cmd-table td:first-child {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--amber);
+  white-space: nowrap;
+}
+
+/* ============================================================
+   QUOTE BLOCK
+   ============================================================ */
+.quote-block {
+  background: var(--bg-surface);
+  border-left: 3px solid var(--amber);
+  border-radius: 0 12px 12px 0;
+  padding: 32px 40px;
+  margin: 48px 0;
+  position: relative;
+}
+
+.quote-block::before {
+  content: '\201C';
+  position: absolute;
+  top: 16px;
+  left: 14px;
+  font-family: var(--font-display);
+  font-size: 48px;
+  color: var(--amber-dim);
+  opacity: 0.3;
+  line-height: 1;
+}
+
+.quote-block p {
+  font-size: 18px;
+  font-weight: 300;
+  font-style: italic;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
+.quote-block .quote-attr {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-style: normal;
+  color: var(--text-muted);
+  margin-top: 12px;
+  display: block;
+}
+
+/* ============================================================
+   ARCHITECTURE DIAGRAM
+   ============================================================ */
+.arch-diagram {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 32px;
+  margin: 24px 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 2;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.arch-diagram .highlight { color: var(--amber); font-weight: 600; }
+.arch-diagram .dim { color: var(--text-muted); }
+.arch-diagram .accent { color: var(--cyan); }
+
+/* ============================================================
+   WORKFLOW STEPS
+   ============================================================ */
+.steps {
+  display: grid;
+  gap: 2px;
+  counter-reset: step;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  align-items: start;
+}
+
+.step-num {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--amber-dim);
+  text-align: right;
+}
+
+.step h4 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.step p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer {
+  padding: 80px 0 40px;
+  text-align: center;
+}
+
+footer p {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+footer a {
+  color: var(--text-muted);
+  transition: color 0.2s;
+}
+
+footer a:hover { color: var(--cyan); }
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  main { padding: 0 16px; }
+  section { padding: 60px 0 40px; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .hero { padding: 100px 0 60px; min-height: auto; }
+  .hero-meta { gap: 20px; }
+  .quote-block { padding: 24px 28px; }
+  .arch-diagram { font-size: 11px; padding: 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="scanlines"></div>
+
+<nav>
+  <a href="index.html" class="nav-back">&larr; Back to All AI Stacks</a>
+  <span class="nav-brand">TSK // DEEP DIVE</span>
+</nav>
+
+<main>
+
+  <!-- ====== HERO ====== -->
+  <section class="hero">
+    <div class="hero-label">Orchestration Tool Deep Dive</div>
+    <h1><span class="accent">TSK</span><br>Agent Task Manager</h1>
+    <p class="hero-subtitle">A Rust CLI tool that lets you delegate development tasks to AI agents running in sandboxed Docker or Podman environments. Get back git branches for human review.</p>
+    <div class="hero-meta">
+      <div class="hero-stat">
+        <span class="num">Rust</span>
+        <span class="label">Built with</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">2</span>
+        <span class="label">Supported agents</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">7</span>
+        <span class="label">Built-in stacks</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">dtormoen</span>
+        <span class="label">Creator</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== WHAT IS IT ====== -->
+  <section>
+    <div class="section-label reveal" data-num="01">Overview</div>
+    <h2 class="reveal">What Is TSK?</h2>
+    <p class="section-desc reveal">TSK enables a "lead engineer + AI team" model. You assign tasks using templates, agents run autonomously in parallel isolated containers, and you get back git branches containing their work for review.</p>
+
+    <div class="card reveal">
+      <h3>The Core Idea</h3>
+      <p>Instead of running a single AI coding agent in your terminal and watching it work, TSK lets you fire off multiple tasks to multiple agents simultaneously. Each agent works inside its own Docker or Podman container with filesystem and network isolation. When it finishes, the result appears as a git branch in your repository &mdash; ready for standard code review.</p>
+    </div>
+
+    <div class="card reveal">
+      <h3>Supported Agents</h3>
+      <ul>
+        <li><strong>Claude Code</strong> (Anthropic) &mdash; default agent</li>
+        <li><strong>Codex</strong> (OpenAI) &mdash; via <code>--agent codex</code> flag</li>
+      </ul>
+      <p style="margin-top: 12px;">You can even run both agents on the same task simultaneously for comparison: <code>--agent codex,claude</code></p>
+    </div>
+  </section>
+
+  <!-- ====== ARCHITECTURE ====== -->
+  <section>
+    <div class="section-label reveal" data-num="02">How It Works</div>
+    <h2 class="reveal">Architecture</h2>
+    <p class="section-desc reveal">TSK builds multi-layered container images and manages the full lifecycle from task assignment to branch creation.</p>
+
+    <div class="arch-diagram reveal"><span class="dim">Container Image (4 layers):</span>
+
+  <span class="highlight">1. Base</span>       <span class="dim">OS + basic dev tools (git, etc.)</span>
+  <span class="highlight">2. Stack</span>      <span class="dim">Language-specific: go, rust, python, node, java, lua</span>
+  <span class="highlight">3. Agent</span>      <span class="dim">Installs Claude Code or Codex</span>
+  <span class="highlight">4. Project</span>    <span class="dim">Custom setup commands (optional)</span>
+
+<span class="dim">Network Isolation:</span>
+
+  <span class="accent">Squid Proxy</span> <span class="dim">controls internet access per container</span>
+  <span class="dim">Tasks with different proxy configs get separate proxies</span>
+  <span class="dim">Identical configs share a single proxy container</span>
+
+<span class="dim">Data Flow:</span>
+
+  <span class="accent">Your Repo</span> &rarr; <span class="highlight">Copy to Container</span> &rarr; <span class="accent">Agent Works</span> &rarr; <span class="highlight">Git Branch Created</span> &rarr; <span class="accent">Review & Merge</span></div>
+
+    <div class="feature-grid">
+      <div class="feature-card reveal">
+        <span class="feature-icon safety">Isolation</span>
+        <h4>Filesystem Sandboxing</h4>
+        <p>Each agent gets a copy of your repo inside a container. No agent can access your host filesystem or interfere with other agents.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon safety">Network</span>
+        <h4>Squid Proxy Control</h4>
+        <p>Network access is routed through a Squid forward proxy. You can allow specific domains or deny all internet access entirely.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon core">Git-Native</span>
+        <h4>Branch-Based Output</h4>
+        <p>Results come back as git branches. Review with your normal tools &mdash; GitHub PRs, git diff, whatever you already use.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== INSTALLATION ====== -->
+  <section>
+    <div class="section-label reveal" data-num="03">Getting Started</div>
+    <h2 class="reveal">Installation & Setup</h2>
+
+    <div class="card reveal">
+      <h3>Requirements</h3>
+      <ul>
+        <li><strong>Rust</strong> (via rustup.rs) + Cargo</li>
+        <li><strong>Docker</strong> or <strong>Podman</strong></li>
+        <li><strong>Git</strong></li>
+        <li>A supported coding agent installed (Claude Code or Codex)</li>
+      </ul>
+    </div>
+
+    <div class="code-block reveal">
+<code><span class="comment"># Install from crates.io</span>
+<span class="cmd">cargo install</span> tsk-ai
+
+<span class="comment"># Or build from source</span>
+<span class="cmd">gh repo clone</span> dtormoen/tsk
+<span class="cmd">cd</span> tsk
+<span class="cmd">cargo install</span> <span class="flag">--path</span> .
+
+<span class="comment"># Build the container images for your project</span>
+<span class="cmd">tsk docker build</span>
+
+<span class="comment"># (Optional) Preview the generated Dockerfile</span>
+<span class="cmd">tsk docker build</span> <span class="flag">--dry-run</span></code>
+    </div>
+
+    <div class="card reveal">
+      <h3>Claude Code Skills (Optional)</h3>
+      <p>TSK publishes skills to the Claude Code marketplace following the Agent Skills open standard:</p>
+      <div class="code-block">
+<code><span class="cmd">/plugin marketplace add</span> dtormoen/tsk
+<span class="cmd">/plugin install</span> tsk-help@dtormoen/tsk
+<span class="cmd">/plugin install</span> tsk-config@dtormoen/tsk
+<span class="cmd">/plugin install</span> tsk-add@dtormoen/tsk</code>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== KEY FEATURES ====== -->
+  <section>
+    <div class="section-label reveal" data-num="04">Capabilities</div>
+    <h2 class="reveal">Key Features</h2>
+    <p class="section-desc reveal">TSK is one of the most feature-complete agent orchestration tools available, with deep support for task templating, chaining, queuing, and multi-agent comparison.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card reveal">
+        <span class="feature-icon core">Core</span>
+        <h4>Task Templating</h4>
+        <p>Markdown templates with <code>{{PROMPT}}</code> placeholders. Encode repetitive instructions once, reuse across tasks. Built-in <code>feat</code> and <code>doc</code> templates.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon core">Core</span>
+        <h4>Task Chaining</h4>
+        <p>Sequential agent pipelines via <code>--parent</code>. Child tasks wait for parents, then start from the parent's final commit. Chains of any length.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon core">Core</span>
+        <h4>Parallel Server Mode</h4>
+        <p>Run <code>tsk server start --workers 4</code> to queue tasks from another terminal. TUI dashboard with split-pane view: task list + log viewer.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon power">Power</span>
+        <h4>Multi-Agent Comparison</h4>
+        <p><code>--agent codex,claude</code> runs both agents on the same task. Compare approaches side-by-side. Or use <code>--agent claude,claude</code> for exploration.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon power">Power</span>
+        <h4>Interactive Shell</h4>
+        <p><code>tsk shell</code> drops you into a sandboxed container with your repo. Work interactively with full isolation. Perfect with tmux or zellij.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon power">Power</span>
+        <h4>Custom Stacks</h4>
+        <p>7 built-in language stacks plus the ability to define entirely new ones via <code>stack_config.&lt;name&gt;.setup</code> in your config.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon safety">Config</span>
+        <h4>Three Config Levels</h4>
+        <p>Project <code>.tsk/tsk.toml</code> (checked in), user <code>~/.config/tsk/tsk.toml</code>, and built-in defaults. Clear priority chain.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon safety">Config</span>
+        <h4>Volume Mounts</h4>
+        <p>Bind mounts, named volumes, and read-only mounts. Share caches, forward host ports, inject environment variables.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== COMMANDS ====== -->
+  <section>
+    <div class="section-label reveal" data-num="05">Reference</div>
+    <h2 class="reveal">Usage & Commands</h2>
+
+    <div class="card reveal">
+      <h3>Task Commands</h3>
+      <table class="cmd-table">
+        <thead>
+          <tr><th>Command</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>tsk run</td><td>Execute a task immediately in a sandboxed container</td></tr>
+          <tr><td>tsk shell</td><td>Start an interactive sandbox shell</td></tr>
+          <tr><td>tsk add</td><td>Queue a task (supports <code>--parent</code> for chaining)</td></tr>
+          <tr><td>tsk list</td><td>View task status and branches</td></tr>
+          <tr><td>tsk cancel</td><td>Cancel running or queued tasks</td></tr>
+          <tr><td>tsk retry</td><td>Retry failed tasks</td></tr>
+          <tr><td>tsk delete</td><td>Delete completed/failed tasks</td></tr>
+          <tr><td>tsk clean</td><td>Clean up completed tasks</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card reveal">
+      <h3>Server Commands</h3>
+      <table class="cmd-table">
+        <thead>
+          <tr><th>Command</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>tsk server start</td><td>Start the TSK daemon (with optional <code>--workers N</code>)</td></tr>
+          <tr><td>tsk server stop</td><td>Stop the running daemon</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card reveal">
+      <h3>Configuration Commands</h3>
+      <table class="cmd-table">
+        <thead>
+          <tr><th>Command</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>tsk docker build</td><td>Build required container images</td></tr>
+          <tr><td>tsk template list</td><td>View available task templates</td></tr>
+          <tr><td>tsk template show</td><td>Display a template's content</td></tr>
+          <tr><td>tsk template edit</td><td>Edit a template in $EDITOR</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ====== EXAMPLE WORKFLOW ====== -->
+  <section>
+    <div class="section-label reveal" data-num="06">In Practice</div>
+    <h2 class="reveal">Example Workflow</h2>
+    <p class="section-desc reveal">A realistic scenario: you need a new API endpoint, tests for it, and documentation &mdash; all built by agents.</p>
+
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">01</div>
+        <div>
+          <h4>Start the server</h4>
+          <p><code>tsk server start --workers 3</code> &mdash; launches the TUI dashboard with 3 worker slots.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">02</div>
+        <div>
+          <h4>Queue the API task</h4>
+          <p><code>tsk add -t feat -n add-users-api -p "Add a REST API endpoint for users with CRUD operations"</code></p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">03</div>
+        <div>
+          <h4>Chain the tests</h4>
+          <p><code>tsk add -t feat -n add-users-tests -p "Add integration tests for the users API" --parent &lt;task-id&gt;</code> &mdash; waits for the API task to finish, then starts from its final commit.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">04</div>
+        <div>
+          <h4>Queue docs in parallel</h4>
+          <p><code>tsk add -t doc -n users-api-docs -p "Document the new users API endpoints"</code> &mdash; runs immediately alongside the first task since it has no parent.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">05</div>
+        <div>
+          <h4>Monitor in the TUI</h4>
+          <p>Watch all three tasks in the split-pane dashboard. Navigate with arrow keys, view logs in real-time, cancel with <code>c</code> if needed.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">06</div>
+        <div>
+          <h4>Review the branches</h4>
+          <p><code>tsk list</code> shows the resulting branches. Check them out, review the diffs, and merge via your normal workflow.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="quote-block reveal">
+      <p>The GitHub Issues integration is particularly powerful: pipe issue content directly to TSK via <code>gh issue view &lt;number&gt; | tsk add -t issue-bot -n fix-my-issue</code></p>
+      <span class="quote-attr">&mdash; TSK documentation</span>
+    </div>
+  </section>
+
+  <!-- ====== CONFIGURATION ====== -->
+  <section>
+    <div class="section-label reveal" data-num="07">Configuration</div>
+    <h2 class="reveal">Configuration Deep Dive</h2>
+
+    <div class="card reveal">
+      <h3>Priority Chain</h3>
+      <p>CLI flags > user project overrides > project .tsk/tsk.toml > user defaults > auto-detection > built-in defaults</p>
+    </div>
+
+    <div class="code-block reveal">
+<code><span class="comment"># ~/.config/tsk/tsk.toml (user-level)</span>
+container_engine = <span class="str">"docker"</span>  <span class="comment"># or "podman"</span>
+
+[server]
+auto_clean_enabled = <span class="str">true</span>
+auto_clean_age_days = <span class="str">7.0</span>
+
+[defaults]
+agent = <span class="str">"claude"</span>
+stack = <span class="str">"default"</span>
+memory_gb = <span class="str">12.0</span>
+cpu = <span class="str">8</span>
+
+[project.my-go-service]
+stack = <span class="str">"go"</span>
+memory_gb = <span class="str">24.0</span>
+cpu = <span class="str">16</span>
+host_ports = [<span class="str">5432</span>, <span class="str">6379</span>]
+volumes = [
+  { host = <span class="str">"~/.cache/go-mod"</span>, container = <span class="str">"/go/pkg/mod"</span> },
+]</code>
+    </div>
+
+    <div class="code-block reveal">
+<code><span class="comment"># .tsk/tsk.toml (project-level, checked into version control)</span>
+stack = <span class="str">"rust"</span>
+memory_gb = <span class="str">16.0</span>
+host_ports = [<span class="str">5432</span>]
+
+[stack_config.rust]
+setup = <span class="str">'''
+RUN cargo install cargo-nextest
+'''</span></code>
+    </div>
+
+    <div class="card reveal">
+      <h3>Network Control via Squid</h3>
+      <p>Custom proxy configuration can be defined inline or via a file path:</p>
+      <div class="code-block">
+<code>[defaults]
+squid_conf = <span class="str">'''
+http_port 3128
+acl allowed_domains dstdomain .example.com .myapi.dev
+http_access allow allowed_domains
+http_access deny all
+'''</span></code>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== LIMITATIONS ====== -->
+  <section>
+    <div class="section-label reveal" data-num="08">Trade-offs</div>
+    <h2 class="reveal">Limitations & Considerations</h2>
+
+    <div class="feature-grid">
+      <div class="feature-card reveal">
+        <h4>Rust Dependency</h4>
+        <p>Requires a Rust toolchain to install. Not as simple as <code>brew install</code> or <code>npm install -g</code> for developers not already in the Rust ecosystem.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h4>Container Overhead</h4>
+        <p>Each task runs in its own container with a full copy of your repo. Resource-intensive for large repositories or many parallel workers.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h4>Two Agents Only</h4>
+        <p>Currently supports Claude Code and Codex. No support for Cursor, Aider, Gemini CLI, or other coding agents yet.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h4>No Cloud Mode</h4>
+        <p>Runs entirely locally. No remote execution, no shared dashboards, no team coordination beyond the git branches it produces.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h4>Docker/Podman Required</h4>
+        <p>Container runtime is mandatory. No lightweight mode for quick tasks that don't need full isolation.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h4>Build Time</h4>
+        <p>Initial <code>tsk docker build</code> can be slow as it builds multi-layered images. Subsequent runs benefit from layer caching.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== LINKS ====== -->
+  <section>
+    <div class="section-label reveal" data-num="09">Resources</div>
+    <h2 class="reveal">Links & Resources</h2>
+
+    <div class="card reveal">
+      <h3>Official</h3>
+      <ul>
+        <li><a href="https://github.com/dtormoen/tsk" target="_blank">GitHub Repository</a> &mdash; github.com/dtormoen/tsk</li>
+        <li><a href="https://crates.io/crates/tsk-ai" target="_blank">Crates.io Package</a> &mdash; <code>cargo install tsk-ai</code></li>
+        <li><a href="https://agentskills.io" target="_blank">Agent Skills Marketplace</a> &mdash; Claude Code skills standard</li>
+      </ul>
+    </div>
+
+    <div class="card reveal">
+      <h3>Mentioned In</h3>
+      <ul>
+        <li><a href="https://github.com/hesreallyhim/awesome-claude-code" target="_blank">awesome-claude-code</a> &mdash; curated list of Claude Code tools</li>
+        <li><a href="https://awesomeclaude.ai/awesome-claude-code" target="_blank">Awesome Claude AI</a> &mdash; visual directory</li>
+      </ul>
+    </div>
+
+    <div class="card reveal">
+      <h3>Data Storage</h3>
+      <table class="cmd-table">
+        <thead>
+          <tr><th>Path</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>~/.local/share/tsk/tasks.db</td><td>SQLite database for task queue</td></tr>
+          <tr><td>~/.local/share/tsk/tasks/</td><td>Task working directories</td></tr>
+          <tr><td>~/.config/tsk/tsk.toml</td><td>User configuration</td></tr>
+          <tr><td>~/.config/tsk/templates/</td><td>Custom task templates</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p><a href="index.html">&larr; Back to All AI Stacks</a> &middot; TSK Deep Dive &middot; February 2026</p>
+  </footer>
+
+</main>
+
+<script>
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+</script>
+
+</body>
+</html>

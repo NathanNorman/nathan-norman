@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gas Town — Deep Dive | AI Stacks 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-deep: #060a14;
+  --bg-base: #0a0e1a;
+  --bg-surface: #0f1629;
+  --bg-elevated: #151d33;
+  --bg-card: #111827;
+  --border-subtle: rgba(100, 200, 255, 0.08);
+  --border-accent: rgba(0, 240, 255, 0.2);
+  --cyan: #00f0ff;
+  --cyan-dim: #00a8b3;
+  --cyan-glow: rgba(0, 240, 255, 0.15);
+  --amber: #ff9f1c;
+  --amber-dim: #b36f14;
+  --amber-glow: rgba(255, 159, 28, 0.12);
+  --violet: #8b5cf6;
+  --violet-dim: #6d45c7;
+  --green: #34d399;
+  --green-dim: #059669;
+  --red: #f87171;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+  --text-dim: #334155;
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-body: 'Outfit', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(0, 240, 255, 0.25);
+  color: #fff;
+}
+
+a { color: var(--cyan); text-decoration: none; transition: color 0.2s; }
+a:hover { color: #fff; }
+
+/* ============================================================
+   ANIMATED BACKGROUND GRID
+   ============================================================ */
+.grid-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 70%);
+}
+
+.grid-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(0, 240, 255, 0.04) 0%, transparent 50%),
+              radial-gradient(circle at 70% 60%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
+}
+
+/* ============================================================
+   SCANLINE OVERLAY
+   ============================================================ */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(6, 10, 20, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+nav .nav-back {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  letter-spacing: 0.5px;
+  transition: color 0.2s;
+}
+
+nav .nav-back:hover { color: var(--cyan); }
+
+nav .nav-brand {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cyan);
+  letter-spacing: 1px;
+}
+
+/* ============================================================
+   MAIN CONTAINER
+   ============================================================ */
+main {
+  position: relative;
+  z-index: 2;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ============================================================
+   HERO SECTION
+   ============================================================ */
+.hero {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 120px 0 80px;
+  position: relative;
+}
+
+.hero-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.2s forwards;
+}
+
+.hero-label::before {
+  content: '//';
+  margin-right: 8px;
+  color: var(--text-muted);
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(48px, 8vw, 88px);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -2px;
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.4s forwards;
+}
+
+.hero h1 .accent {
+  background: linear-gradient(135deg, var(--amber) 0%, var(--red) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-attribution {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.5s forwards;
+}
+
+.hero-subtitle {
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  max-width: 640px;
+  line-height: 1.7;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.6s forwards;
+}
+
+.hero-meta {
+  margin-top: 48px;
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.8s forwards;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-stat .num {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--amber);
+}
+
+.hero-stat .label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   SECTION STYLING
+   ============================================================ */
+section {
+  padding: 100px 0 60px;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 16px;
+}
+
+.section-label::before {
+  content: attr(data-num);
+  color: var(--text-dim);
+  margin-right: 12px;
+}
+
+section h2 {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 700;
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+  line-height: 1.1;
+}
+
+.section-desc {
+  font-size: 17px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  max-width: 640px;
+  margin-bottom: 48px;
+  line-height: 1.7;
+}
+
+/* ============================================================
+   CONTENT CARD
+   ============================================================ */
+.content-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 16px;
+  transition: border-color 0.3s;
+}
+
+.content-card:hover {
+  border-color: var(--border-accent);
+}
+
+.content-card h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.content-card p {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 12px;
+}
+
+.content-card p:last-child { margin-bottom: 0; }
+
+/* ============================================================
+   ROLE GRID (Architecture)
+   ============================================================ */
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.role-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 24px;
+  transition: border-color 0.3s;
+}
+
+.role-card:hover { border-color: var(--border-accent); }
+
+.role-card .role-icon {
+  font-size: 28px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.role-card h4 {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.role-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.role-card .role-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.role-tag.persistent { background: rgba(0, 240, 255, 0.1); color: var(--cyan); }
+.role-tag.ephemeral { background: rgba(255, 159, 28, 0.1); color: var(--amber); }
+.role-tag.system { background: rgba(139, 92, 246, 0.1); color: var(--violet); }
+.role-tag.tracking { background: rgba(52, 211, 153, 0.1); color: var(--green); }
+
+/* ============================================================
+   K8S COMPARISON TABLE
+   ============================================================ */
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 24px;
+}
+
+.comparison-table th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.comparison-table td {
+  font-size: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(100, 200, 255, 0.04);
+  color: var(--text-secondary);
+}
+
+.comparison-table tr:hover td { background: rgba(0, 240, 255, 0.02); }
+
+.comparison-table td:first-child {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--cyan-dim);
+  font-size: 13px;
+}
+
+.comparison-table td:nth-child(2) {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--amber-dim);
+  font-size: 13px;
+}
+
+/* ============================================================
+   BEADS SECTION
+   ============================================================ */
+.beads-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.bead-feature {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.bead-feature h4 {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 8px;
+}
+
+.bead-feature p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   CODE BLOCK
+   ============================================================ */
+.code-block {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
+.code-block code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.8;
+  white-space: pre;
+}
+
+.code-block .comment { color: var(--text-muted); }
+.code-block .cmd { color: var(--cyan); }
+.code-block .flag { color: var(--amber); }
+.code-block .string { color: var(--green); }
+
+/* ============================================================
+   PREREQ LIST
+   ============================================================ */
+.prereq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.prereq-item {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.prereq-item .prereq-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.prereq-item .prereq-detail {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.prereq-item .prereq-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.prereq-badge.required { background: rgba(248, 113, 113, 0.15); color: var(--red); }
+.prereq-badge.recommended { background: rgba(255, 159, 28, 0.1); color: var(--amber); }
+.prereq-badge.optional { background: rgba(100, 200, 255, 0.08); color: var(--text-muted); }
+
+/* ============================================================
+   WORKFLOW STEPS
+   ============================================================ */
+.workflow-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 24px;
+  counter-reset: step;
+}
+
+.wf-step {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 20px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  counter-increment: step;
+  align-items: start;
+}
+
+.wf-step-num {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--amber-dim);
+  text-align: right;
+}
+
+.wf-step h4 {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.wf-step p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.wf-step .wf-cmd {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--cyan);
+  background: var(--bg-elevated);
+  padding: 6px 12px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 8px;
+}
+
+/* ============================================================
+   CONFIG TABLE
+   ============================================================ */
+.config-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 24px;
+}
+
+.config-table th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.config-table td {
+  font-size: 13px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(100, 200, 255, 0.04);
+  color: var(--text-secondary);
+  vertical-align: top;
+}
+
+.config-table tr:hover td { background: rgba(0, 240, 255, 0.02); }
+
+.config-table td:first-child {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--cyan-dim);
+}
+
+/* ============================================================
+   COST SECTION
+   ============================================================ */
+.cost-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.cost-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.cost-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+
+.cost-card.cost-sub::before { background: linear-gradient(90deg, var(--cyan), var(--violet)); }
+.cost-card.cost-token::before { background: linear-gradient(90deg, var(--amber), var(--red)); }
+.cost-card.cost-total::before { background: linear-gradient(90deg, var(--red), var(--amber)); }
+
+.cost-card .cost-amount {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.cost-card.cost-sub .cost-amount { color: var(--cyan); }
+.cost-card.cost-token .cost-amount { color: var(--amber); }
+.cost-card.cost-total .cost-amount { color: var(--red); }
+
+.cost-card .cost-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.cost-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   QUOTE BLOCK
+   ============================================================ */
+.quote-block {
+  background: var(--bg-surface);
+  border-left: 3px solid var(--amber);
+  border-radius: 0 12px 12px 0;
+  padding: 32px 40px;
+  margin: 48px 0;
+  position: relative;
+}
+
+.quote-block::before {
+  content: '\201C';
+  position: absolute;
+  top: 16px;
+  left: 14px;
+  font-family: var(--font-display);
+  font-size: 48px;
+  color: var(--amber-dim);
+  opacity: 0.3;
+  line-height: 1;
+}
+
+.quote-block p {
+  font-size: 18px;
+  font-weight: 300;
+  font-style: italic;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
+.quote-block .quote-attr {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-style: normal;
+  color: var(--text-muted);
+  margin-top: 12px;
+  display: block;
+}
+
+/* ============================================================
+   LIMITATIONS
+   ============================================================ */
+.limitations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.limitation {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--red);
+  border-radius: 0 8px 8px 0;
+  padding: 20px 24px;
+}
+
+.limitation h4 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.limitation p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   LINKS GRID
+   ============================================================ */
+.links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.link-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 20px 24px;
+  text-decoration: none;
+  transition: border-color 0.3s, transform 0.3s;
+  display: block;
+}
+
+.link-card:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-2px);
+}
+
+.link-card .link-type {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.link-card .link-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.link-card .link-url {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--cyan-dim);
+  word-break: break-all;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer {
+  padding: 80px 0 40px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+footer a {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  transition: color 0.2s;
+}
+
+footer a:hover { color: var(--cyan); }
+
+footer p {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  main { padding: 0 16px; }
+  section { padding: 60px 0 40px; }
+  .role-grid { grid-template-columns: 1fr; }
+  .prereq-grid { grid-template-columns: 1fr; }
+  .cost-cards { grid-template-columns: 1fr; }
+  .links-grid { grid-template-columns: 1fr; }
+  .hero-meta { gap: 24px; }
+  .quote-block { padding: 24px 28px; }
+  .wf-step { grid-template-columns: 40px 1fr; gap: 12px; }
+  .comparison-table { font-size: 12px; }
+  .beads-features { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="scanlines"></div>
+
+<nav>
+  <a href="index.html" class="nav-back">&larr; Back to All AI Stacks</a>
+  <span class="nav-brand">GAS TOWN // DEEP DIVE</span>
+</nav>
+
+<main>
+
+  <!-- ====== HERO ====== -->
+  <section class="hero">
+    <div class="hero-label">Deep Dive &mdash; Orchestration</div>
+    <h1><span class="accent">Gas Town</span></h1>
+    <div class="hero-attribution">by Steve Yegge &middot; Ex-Google, Ex-Amazon, Ex-Sourcegraph</div>
+    <p class="hero-subtitle">Kubernetes for AI coding agents. A Mayor coordinates 20&ndash;30 Claude Code workers in parallel tmux sessions, with persistent git-backed work tracking via Beads.</p>
+    <div class="hero-meta">
+      <div class="hero-stat">
+        <span class="num">20-30</span>
+        <span class="label">Parallel Agents</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">10K+</span>
+        <span class="label">GitHub Stars</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">~$100/hr</span>
+        <span class="label">At Full Speed</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">Go</span>
+        <span class="label">Written In</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== WHAT IS IT ====== -->
+  <section id="what">
+    <div class="section-label reveal" data-num="01">Overview</div>
+    <h2 class="reveal">What Is Gas Town?</h2>
+    <p class="section-desc reveal">Not another AI coding assistant. An orchestration system that turns one developer into a factory floor of coordinated AI workers.</p>
+
+    <div class="content-card reveal">
+      <p>Gas Town is a multi-agent workspace manager for Claude Code. Instead of one conversation with one AI, you run a <strong>Mayor</strong> agent that coordinates an entire fleet of worker agents &mdash; each in its own tmux terminal, its own git worktree, working on a distinct task in parallel.</p>
+      <p>The core problem it solves: when you scale from 1 agent to 10+, you lose the ability to track what each is doing. Context gets lost on restart. Work states vanish from agent memory. Merge conflicts multiply. Gas Town treats these as infrastructure problems, borrowing from Kubernetes-style orchestration: persistent state, reconciliation loops, and a declarative control plane.</p>
+      <p>Steve Yegge describes it as targeting developers at "level 6+" in his 8-stage progression model &mdash; people already running multiple parallel CLI agents who need centralized management. If you are not already juggling multiple Claude Code sessions daily, Gas Town will feel counterproductive.</p>
+    </div>
+
+    <table class="comparison-table reveal">
+      <thead>
+        <tr>
+          <th>Kubernetes</th>
+          <th>Gas Town</th>
+          <th>Shared Concept</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Control plane</td>
+          <td>Mayor agent</td>
+          <td>Central coordination</td>
+        </tr>
+        <tr>
+          <td>Pods (ephemeral)</td>
+          <td>Polecats (ephemeral)</td>
+          <td>Sessions are cattle, not pets</td>
+        </tr>
+        <tr>
+          <td>etcd (persistent state)</td>
+          <td>Beads (git-backed)</td>
+          <td>Source of truth survives restarts</td>
+        </tr>
+        <tr>
+          <td>Reconciliation loop</td>
+          <td>Deacon patrol</td>
+          <td>Desired state vs. actual state</td>
+        </tr>
+        <tr>
+          <td>Node monitoring</td>
+          <td>Witness</td>
+          <td>Health checks on workers</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="quote-block reveal">
+    <p>If you have ever thought "I wish I had 100 Claude Codes," Gas Town is for you.</p>
+    <span class="quote-attr">&mdash; DoltHub, "A Day in Gas Town"</span>
+  </div>
+
+  <!-- ====== ARCHITECTURE ====== -->
+  <section id="architecture">
+    <div class="section-label reveal" data-num="02">Architecture</div>
+    <h2 class="reveal">The Mayor/Worker Model</h2>
+    <p class="section-desc reveal">A hierarchy of seven specialized agent roles, each with a distinct responsibility. Sessions are ephemeral; identities and work state persist in git.</p>
+
+    <div class="role-grid">
+      <div class="role-card reveal">
+        <span class="role-tag persistent">Persistent</span>
+        <h4>Mayor</h4>
+        <p>Your primary interface. A Claude Code instance with full workspace context. You tell it what to build; it decomposes work, creates convoys, and delegates to workers. Start every session here with <code>gt mayor attach</code>.</p>
+      </div>
+      <div class="role-card reveal">
+        <span class="role-tag ephemeral">Ephemeral</span>
+        <h4>Polecats</h4>
+        <p>Worker agents with persistent identity but ephemeral sessions. Spawned by the Mayor for specific tasks. They code in isolated git worktrees, push branches, open PRs. When they crash, the next session picks up from the last checkpoint.</p>
+      </div>
+      <div class="role-card reveal">
+        <span class="role-tag system">System</span>
+        <h4>Refinery</h4>
+        <p>Manages the merge queue. When 20 agents are all producing branches, something has to prevent collisions. The Refinery serializes merges and handles conflicts.</p>
+      </div>
+      <div class="role-card reveal">
+        <span class="role-tag system">System</span>
+        <h4>Witness</h4>
+        <p>Health monitor for worker agents. Detects stuck or crashed sessions. Feeds status back to the Mayor and Deacon for recovery decisions.</p>
+      </div>
+      <div class="role-card reveal">
+        <span class="role-tag system">System</span>
+        <h4>Deacon</h4>
+        <p>Runs patrol loops &mdash; the reconciliation engine. Periodically checks whether desired state (tasks assigned) matches actual state (tasks completed). Nudges idle agents within 30&ndash;60 seconds.</p>
+      </div>
+      <div class="role-card reveal">
+        <span class="role-tag system">System</span>
+        <h4>Dogs</h4>
+        <p>Handle maintenance tasks: cleanup, housekeeping, and background operations that keep the town running smoothly without human intervention.</p>
+      </div>
+      <div class="role-card reveal">
+        <span class="role-tag persistent">Persistent</span>
+        <h4>Crew</h4>
+        <p>Your personal workspace within a rig. Where you do hands-on work alongside the agents &mdash; reviewing output, making design decisions, and collaborating on architecture.</p>
+      </div>
+    </div>
+
+    <div class="content-card reveal" style="margin-top: 24px;">
+      <h3>Nondeterministic Idempotence</h3>
+      <p>Unlike Temporal's deterministic replay (which Yegge tried and abandoned in his v1 prototype), Gas Town achieves durability differently. If an agent crashes mid-step, the next session resumes from that point. The agent may take a completely different approach the second time &mdash; the <em>path</em> is nondeterministic &mdash; but the outcome converges because the workflow definition persists and each step has explicit acceptance criteria.</p>
+      <p>This is the key architectural insight: nothing is permanently lost, even though work can be chaotic in the moment.</p>
+    </div>
+  </section>
+
+  <div class="quote-block reveal">
+    <p>Gas Town was like riding a wild stallion that needed to be tamed.</p>
+    <span class="quote-attr">&mdash; DoltHub engineer, after first day testing Gas Town</span>
+  </div>
+
+  <!-- ====== BEADS ====== -->
+  <section id="beads">
+    <div class="section-label reveal" data-num="03">Data Plane</div>
+    <h2 class="reveal">The Beads Ecosystem</h2>
+    <p class="section-desc reveal">Beads is the distributed, git-backed graph issue tracker that serves as Gas Town's memory, control plane, and work tracking system. Both a standalone tool and Gas Town's backbone.</p>
+
+    <div class="content-card reveal">
+      <p>Beads replaces ad-hoc markdown planning files with a structured, queryable dependency graph. Every task, bug, and work item is a "bead" with a hash-based ID (e.g., <code>bd-a3f8</code>) that prevents merge collisions across multi-agent workflows. The terms "bead" and "issue" are used interchangeably.</p>
+      <p>Backed by <strong>Dolt</strong> &mdash; a version-controlled SQL database &mdash; Beads gets cell-level merge, native branching, and sync via Dolt remotes. Work is expressed as <strong>"molecules"</strong>: chained sequences of small tasks. Each step declares dependencies and acceptance criteria.</p>
+    </div>
+
+    <div class="beads-features reveal">
+      <div class="bead-feature">
+        <h4>Agent-Optimized</h4>
+        <p>JSON output, dependency tracking, auto-ready task detection. Built for machines to read and write, not humans to browse.</p>
+      </div>
+      <div class="bead-feature">
+        <h4>Zero Conflict</h4>
+        <p>Hash-based IDs prevent merge collisions when 20+ agents create issues simultaneously across branches.</p>
+      </div>
+      <div class="bead-feature">
+        <h4>Compaction</h4>
+        <p>Semantic "memory decay" that summarizes closed tasks. Conserves context window space during long sessions.</p>
+      </div>
+      <div class="bead-feature">
+        <h4>Hierarchical IDs</h4>
+        <p>Three-level structure: <code>bd-a3f8</code> (epic) &rarr; <code>bd-a3f8.1</code> (task) &rarr; <code>bd-a3f8.1.1</code> (subtask).</p>
+      </div>
+      <div class="bead-feature">
+        <h4>Messaging</h4>
+        <p>Dedicated message issue type supporting threading and ephemeral lifecycle. Agents communicate through mail beads.</p>
+      </div>
+      <div class="bead-feature">
+        <h4>Graph Links</h4>
+        <p>Relationship types: <code>relates_to</code>, <code>duplicates</code>, <code>supersedes</code>, <code>replies_to</code>. Full dependency graph.</p>
+      </div>
+    </div>
+
+    <div class="code-block reveal">
+      <code><span class="comment"># Essential Beads commands</span>
+<span class="cmd">bd ready</span>              <span class="comment"># List tasks with no open blockers</span>
+<span class="cmd">bd create</span> <span class="string">"Fix auth bug"</span> <span class="flag">-p 0</span>   <span class="comment"># Create priority-0 task</span>
+<span class="cmd">bd update</span> bd-a3f8 <span class="flag">--claim</span>      <span class="comment"># Atomically claim a task</span>
+<span class="cmd">bd dep add</span> bd-a3f8.1 bd-a3f8    <span class="comment"># Link dependency</span>
+<span class="cmd">bd show</span> bd-a3f8             <span class="comment"># Show details + audit trail</span>
+<span class="cmd">bd issues</span> <span class="flag">--status</span> open     <span class="comment"># Filter by status</span></code>
+    </div>
+  </section>
+
+  <!-- ====== INSTALLATION ====== -->
+  <section id="installation">
+    <div class="section-label reveal" data-num="04">Setup</div>
+    <h2 class="reveal">Installation & Prerequisites</h2>
+    <p class="section-desc reveal">Gas Town has a real dependency chain. This is infrastructure software, not a quick npm install.</p>
+
+    <div class="prereq-grid reveal">
+      <div class="prereq-item">
+        <span class="prereq-badge required">Required</span>
+        <div>
+          <div class="prereq-name">Go 1.23+</div>
+          <div class="prereq-detail">go.dev/dl</div>
+        </div>
+      </div>
+      <div class="prereq-item">
+        <span class="prereq-badge required">Required</span>
+        <div>
+          <div class="prereq-name">Git 2.25+</div>
+          <div class="prereq-detail">Worktree support</div>
+        </div>
+      </div>
+      <div class="prereq-item">
+        <span class="prereq-badge required">Required</span>
+        <div>
+          <div class="prereq-name">Dolt 1.82.4+</div>
+          <div class="prereq-detail">Version-controlled SQL DB</div>
+        </div>
+      </div>
+      <div class="prereq-item">
+        <span class="prereq-badge required">Required</span>
+        <div>
+          <div class="prereq-name">Beads (bd) 0.55.4+</div>
+          <div class="prereq-detail">brew install beads</div>
+        </div>
+      </div>
+      <div class="prereq-item">
+        <span class="prereq-badge required">Required</span>
+        <div>
+          <div class="prereq-name">Claude Code CLI</div>
+          <div class="prereq-detail">Default agent runtime</div>
+        </div>
+      </div>
+      <div class="prereq-item">
+        <span class="prereq-badge required">Required</span>
+        <div>
+          <div class="prereq-name">sqlite3</div>
+          <div class="prereq-detail">Usually pre-installed</div>
+        </div>
+      </div>
+      <div class="prereq-item">
+        <span class="prereq-badge recommended">Recommended</span>
+        <div>
+          <div class="prereq-name">tmux 3.0+</div>
+          <div class="prereq-detail">Full multi-agent experience</div>
+        </div>
+      </div>
+      <div class="prereq-item">
+        <span class="prereq-badge optional">Optional</span>
+        <div>
+          <div class="prereq-name">Codex CLI</div>
+          <div class="prereq-detail">Alternative runtime</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block reveal">
+      <code><span class="comment"># Install Gas Town</span>
+<span class="cmd">brew install</span> gastown           <span class="comment"># Homebrew (recommended)</span>
+<span class="cmd">npm install -g</span> @gastown/gt     <span class="comment"># npm alternative</span>
+<span class="cmd">go install</span> github.com/steveyegge/gastown/cmd/gt@latest  <span class="comment"># from source</span>
+
+<span class="comment"># Initialize workspace</span>
+<span class="cmd">gt install</span> ~/gt <span class="flag">--git</span>          <span class="comment"># Create town with git init</span>
+<span class="cmd">cd</span> ~/gt
+
+<span class="comment"># Add a project</span>
+<span class="cmd">gt rig add</span> myproject <span class="string">https://github.com/you/repo.git</span>
+
+<span class="comment"># Create your crew workspace</span>
+<span class="cmd">gt crew add</span> yourname <span class="flag">--rig</span> myproject
+
+<span class="comment"># Start the Mayor</span>
+<span class="cmd">gt mayor attach</span>                <span class="comment"># Enter the Mayor's office</span></code>
+    </div>
+  </section>
+
+  <!-- ====== HOW IT WORKS ====== -->
+  <section id="workflow">
+    <div class="section-label reveal" data-num="05">Workflow</div>
+    <h2 class="reveal">How It Works</h2>
+    <p class="section-desc reveal">A step-by-step walkthrough of a typical Gas Town session, from giving the Mayor a directive to reviewing completed work.</p>
+
+    <div class="workflow-steps">
+      <div class="wf-step reveal">
+        <div class="wf-step-num">01</div>
+        <div>
+          <h4>Attach to the Mayor</h4>
+          <p>Open a terminal and connect to the Mayor's tmux session. This is your single point of interaction with the entire fleet.</p>
+          <span class="wf-cmd">gt mayor attach</span>
+        </div>
+      </div>
+      <div class="wf-step reveal">
+        <div class="wf-step-num">02</div>
+        <div>
+          <h4>Give a Natural Language Directive</h4>
+          <p>Tell the Mayor what you want to build or fix. "Add OAuth support to the API" or "Fix the 4 failing integration tests." The Mayor decomposes this into discrete, scoped tasks.</p>
+        </div>
+      </div>
+      <div class="wf-step reveal">
+        <div class="wf-step-num">03</div>
+        <div>
+          <h4>Mayor Creates a Convoy</h4>
+          <p>A convoy bundles related beads (issues) into a trackable work unit. Each bead has acceptance criteria and dependency links. The convoy is the unit of coordination.</p>
+          <span class="wf-cmd">gt convoy create "Auth System" gt-x7k2m gt-p9n4q --notify</span>
+        </div>
+      </div>
+      <div class="wf-step reveal">
+        <div class="wf-step-num">04</div>
+        <div>
+          <h4>Workers Spawn Automatically</h4>
+          <p>Polecats spin up in separate tmux sessions, each with its own git worktree. They claim tasks atomically, code, run tests, commit, and push branches. 20+ agents can run simultaneously.</p>
+          <span class="wf-cmd">gt sling gt-x7k2m myproject</span>
+        </div>
+      </div>
+      <div class="wf-step reveal">
+        <div class="wf-step-num">05</div>
+        <div>
+          <h4>Monitor Progress</h4>
+          <p>Watch the live activity feed or check convoy status. The Witness monitors agent health. The Deacon nudges idle agents. You can also switch tmux panes to watch individual workers.</p>
+          <span class="wf-cmd">gt feed</span> &nbsp; <span class="wf-cmd">gt convoy list</span> &nbsp; <span class="wf-cmd">gt feed --problems</span>
+        </div>
+      </div>
+      <div class="wf-step reveal">
+        <div class="wf-step-num">06</div>
+        <div>
+          <h4>Work Persists in Hooks</h4>
+          <p>Agent state is stored in git-backed hooks (worktrees), not in agent memory. If a worker crashes or hits context limits, the next session picks up from the last checkpoint. Nothing is permanently lost.</p>
+        </div>
+      </div>
+      <div class="wf-step reveal">
+        <div class="wf-step-num">07</div>
+        <div>
+          <h4>Review and Merge</h4>
+          <p>Workers open PRs. The Refinery manages the merge queue. The Mayor consolidates status and presents a summary. You review, approve, and the cycle continues.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="quote-block reveal">
+    <p>The bottleneck is no longer the agents themselves. It's keeping them fed with work.</p>
+    <span class="quote-attr">&mdash; Nate's Newsletter, on running 10&ndash;20 parallel Gas Town agents</span>
+  </div>
+
+  <!-- ====== CONFIGURATION ====== -->
+  <section id="config">
+    <div class="section-label reveal" data-num="06">Configuration</div>
+    <h2 class="reveal">Configuration</h2>
+    <p class="section-desc reveal">Gas Town supports multiple AI runtimes and per-rig configuration. Key options for tuning the system.</p>
+
+    <div class="content-card reveal">
+      <h3>Runtime Configuration</h3>
+      <p>Per-rig settings live in <code>settings/config.json</code>. Gas Town ships with built-in presets for multiple runtimes.</p>
+    </div>
+
+    <table class="config-table reveal">
+      <thead>
+        <tr>
+          <th>Command</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>gt config agent list</td>
+          <td>Show available agent presets (claude, gemini, codex, cursor, auggie, amp)</td>
+        </tr>
+        <tr>
+          <td>gt config agent set NAME "cmd"</td>
+          <td>Define a custom agent preset, e.g., <code>gt config agent set claude-glm "claude-glm --model glm-4"</code></td>
+        </tr>
+        <tr>
+          <td>gt config default-agent NAME</td>
+          <td>Set the default runtime for new workers</td>
+        </tr>
+        <tr>
+          <td>gt config show</td>
+          <td>Display current configuration</td>
+        </tr>
+        <tr>
+          <td>gt mayor start --agent NAME</td>
+          <td>Start the Mayor with a specific agent alias</td>
+        </tr>
+        <tr>
+          <td>gt sling ID RIG --agent NAME</td>
+          <td>Override runtime for a specific task assignment</td>
+        </tr>
+        <tr>
+          <td>gt prime</td>
+          <td>Context recovery inside an existing session (re-injects role and state)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="content-card reveal" style="margin-top: 16px;">
+      <h3>Workflow Modes</h3>
+      <p><strong>Mayor Workflow</strong> (recommended): Full orchestration. Mayor decomposes, delegates, monitors. Best for complex multi-issue work.</p>
+      <p><strong>Minimal Mode</strong> (no tmux): Run individual runtime instances manually. Gas Town just tracks state via convoys. Good for getting started.</p>
+      <p><strong>Beads Formula Workflow</strong>: Predefined, repeatable TOML-based processes. Each step declares <code>needs</code> dependencies. Think CI pipelines for agent work.</p>
+      <p><strong>Manual Convoy</strong>: Direct control over work distribution. Create convoys by hand, assign to agents explicitly.</p>
+    </div>
+  </section>
+
+  <!-- ====== COST ====== -->
+  <section id="cost">
+    <div class="section-label reveal" data-num="07">Economics</div>
+    <h2 class="reveal">Cost</h2>
+    <p class="section-desc reveal">Running 20+ parallel Claude instances is expensive. Here are real numbers from practitioners.</p>
+
+    <div class="cost-cards reveal">
+      <div class="cost-card cost-sub">
+        <div class="cost-amount">$300/mo</div>
+        <div class="cost-label">Subscriptions (baseline)</div>
+        <p>Yegge runs 3 concurrent Claude Max accounts ($100/mo each) to maintain throughput. This is the floor &mdash; just the subscription cost before any API overages.</p>
+      </div>
+      <div class="cost-card cost-token">
+        <div class="cost-amount">~$100/hr</div>
+        <div class="cost-label">At Full Speed</div>
+        <p>Running 12&ndash;30 parallel agents burns tokens rapidly. One early adopter reported approximately $100/hour in API credits during peak orchestration. Roughly 10x a single Claude Code session.</p>
+      </div>
+      <div class="cost-card cost-total">
+        <div class="cost-amount">10x</div>
+        <div class="cost-label">Cost Multiplier</div>
+        <p>Compared to a standard single-agent Claude Code session. The cost scales linearly with agent count. You are trading money for parallelism and throughput.</p>
+      </div>
+    </div>
+
+    <div class="content-card reveal" style="margin-top: 16px;">
+      <h3>Is It Worth It?</h3>
+      <p>Yegge's position: the bottleneck has shifted from agent capability to work supply. If you can keep 20 agents fed with well-scoped tasks, the throughput is genuinely real &mdash; Gas Town can run overnight unattended. The question is whether your project benefits from that parallelism enough to justify the cost. Greenfield projects with clear decomposition benefit most. Complex existing codebases with tight coupling benefit least.</p>
+    </div>
+  </section>
+
+  <!-- ====== KEY QUOTES ====== -->
+  <section id="quotes">
+    <div class="section-label reveal" data-num="08">In His Words</div>
+    <h2 class="reveal">Key Quotes</h2>
+    <p class="section-desc reveal">Steve Yegge on vibe coding, agent orchestration, and where software development is headed.</p>
+
+    <div class="quote-block reveal">
+      <p>Trust equals predictability, not capability. It takes roughly 2,000 hours of daily use before you can reliably predict LLM behavior.</p>
+      <span class="quote-attr">&mdash; Steve Yegge, Latent Space podcast</span>
+    </div>
+
+    <div class="quote-block reveal">
+      <p>If you're still using an IDE to develop code by January 1st, you're a bad engineer.</p>
+      <span class="quote-attr">&mdash; Steve Yegge, AI Engineer Summit</span>
+    </div>
+
+    <div class="quote-block reveal">
+      <p>Joel Spolsky's "never rewrite" rule is now obsolete for a growing class of codebases. Rewriting from scratch is now faster than refactoring.</p>
+      <span class="quote-attr">&mdash; Steve Yegge, on the economics of AI-generated code</span>
+    </div>
+
+    <div class="quote-block reveal">
+      <p>Current tools &mdash; Claude Code, Cursor &mdash; are already obsolete. The future is agent orchestration dashboards. Factory farming of code.</p>
+      <span class="quote-attr">&mdash; Steve Yegge, Latent Space podcast</span>
+    </div>
+
+    <div class="quote-block reveal">
+      <p>Gas Town isn't super vertically scalable. A town is about machine-sized. Gas Town scales by having lots of towns, much like Git scales by having lots of repos.</p>
+      <span class="quote-attr">&mdash; Steve Yegge, "The Future of Coding Agents"</span>
+    </div>
+  </section>
+
+  <!-- ====== EVOLUTION ====== -->
+  <section id="evolution">
+    <div class="section-label reveal" data-num="09">Evolution</div>
+    <h2 class="reveal">From Vibecoder to VC to Gas Town</h2>
+    <p class="section-desc reveal">Gas Town is v3 of Yegge's orchestration vision. Each iteration taught hard lessons about what works.</p>
+
+    <div class="content-card reveal">
+      <h3>v1: Vibecoder (TypeScript + Temporal)</h3>
+      <p>350K lines of TypeScript. Built on Temporal, the gold standard for workflow orchestration. Proved cumbersome &mdash; the workflows being orchestrated turned out to be micro-workflows, since you have to severely decompose tasks for LLMs to reliably follow them. Temporal's deterministic replay was too heavy for this pattern.</p>
+    </div>
+
+    <div class="content-card reveal">
+      <h3>v2: VC (Go, Simple Event Loop)</h3>
+      <p>Complete rewrite in Go. Dropped Temporal for a simple event loop. AI-supervised issue workflow: claim issue, assess strategy, execute, analyze output, run quality gates, decide next steps. Achieved 90.9% quality gate pass rate over 24 missions. Self-hosted &mdash; the system improves its own codebase. Beads v0.12.0 (SQLite-backed) delivered 100x performance over the prior shell-based CLI.</p>
+    </div>
+
+    <div class="content-card reveal">
+      <h3>v3: Gas Town (Go, Full Orchestration)</h3>
+      <p>The current system. Adds the Mayor/worker hierarchy, tmux-based multi-agent sessions, Convoys for work tracking, the Refinery merge queue, and the full Beads ecosystem backed by Dolt. 100% vibe coded &mdash; ~130K lines of Go, roughly half tests. Tens of thousands of users on Beads alone. MIT licensed.</p>
+    </div>
+  </section>
+
+  <!-- ====== LIMITATIONS ====== -->
+  <section id="limitations">
+    <div class="section-label reveal" data-num="10">Honest Assessment</div>
+    <h2 class="reveal">Limitations & Trade-offs</h2>
+    <p class="section-desc reveal">Yegge himself is transparent about these. Gas Town is powerful but not for everyone.</p>
+
+    <div class="limitations-list">
+      <div class="limitation reveal">
+        <h4>Expensive at Scale</h4>
+        <p>~$100/hour at full speed. Requires multiple Claude Max subscriptions. The cost-benefit ratio only makes sense if your project genuinely benefits from parallel throughput.</p>
+      </div>
+      <div class="limitation reveal">
+        <h4>Expert-Only Tool</h4>
+        <p>Targets developers already running 10+ parallel CLI agents daily. Yegge's own progression model puts this at "level 6+" out of 8. Most developers will find it counterproductive.</p>
+      </div>
+      <div class="limitation reveal">
+        <h4>Chaotic Parallelism</h4>
+        <p>Bugs can get fixed multiple times by different agents. Designs occasionally go missing. Workers may autonomously merge PRs despite failing tests. It is described as "managing a very fast, very junior dev team."</p>
+      </div>
+      <div class="limitation reveal">
+        <h4>YOLO Defaults</h4>
+        <p>Out of the box, agents can merge PRs without adequate human gates. Early adopters report needing to force-push to recover from premature merges. Requires careful configuration of guardrails.</p>
+      </div>
+      <div class="limitation reveal">
+        <h4>Better for Greenfield</h4>
+        <p>Complex existing codebases with tight coupling produce poor results. DoltHub's test on their established codebase: 4 PRs created, all eventually closed as inadequate. Greenfield projects with clear task decomposition benefit most.</p>
+      </div>
+      <div class="limitation reveal">
+        <h4>Horizontal Scaling Only</h4>
+        <p>A single town is "about machine-sized." Gas Town scales by having lots of towns &mdash; like Git scales by having lots of repos &mdash; which pushes the scaling problem onto the user.</p>
+      </div>
+      <div class="limitation reveal">
+        <h4>Security Requires Vigilance</h4>
+        <p>Agents can accidentally expose credentials or make costly errors. Never give agents access to sensitive accounts without controls. All AI output requires stringent review and QA.</p>
+      </div>
+      <div class="limitation reveal">
+        <h4>Heavy Dependency Chain</h4>
+        <p>Requires Go, Git 2.25+, Dolt, Beads, sqlite3, tmux, and a Claude Code subscription. This is not a self-contained tool &mdash; it is infrastructure.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== LINKS ====== -->
+  <section id="links">
+    <div class="section-label reveal" data-num="11">Resources</div>
+    <h2 class="reveal">Links & Resources</h2>
+    <p class="section-desc reveal">Primary sources used in this deep dive.</p>
+
+    <div class="links-grid">
+      <a href="https://github.com/steveyegge/gastown" class="link-card reveal" target="_blank" rel="noopener">
+        <div class="link-type">GitHub</div>
+        <div class="link-title">steveyegge/gastown</div>
+        <div class="link-url">github.com/steveyegge/gastown</div>
+      </a>
+      <a href="https://github.com/steveyegge/beads" class="link-card reveal" target="_blank" rel="noopener">
+        <div class="link-type">GitHub</div>
+        <div class="link-title">steveyegge/beads</div>
+        <div class="link-url">github.com/steveyegge/beads</div>
+      </a>
+      <a href="https://github.com/steveyegge/vc" class="link-card reveal" target="_blank" rel="noopener">
+        <div class="link-type">GitHub</div>
+        <div class="link-title">steveyegge/vc (VibeCoder v2)</div>
+        <div class="link-url">github.com/steveyegge/vc</div>
+      </a>
+      <a href="https://steve-yegge.medium.com/welcome-to-gas-town-4f25ee16dd04" class="link-card reveal" target="_blank" rel="noopener">
+        <div class="link-type">Blog Post</div>
+        <div class="link-title">Welcome to Gas Town</div>
+        <div class="link-url">steve-yegge.medium.com</div>
+      </a>
+      <a href="https://steve-yegge.medium.com/the-future-of-coding-agents-e9451a84207c" class="link-card reveal" target="_blank" rel="noopener">
+        <div class="link-type">Blog Post</div>
+        <div class="link-title">The Future of Coding Agents</div>
+        <div class="link-url">steve-yegge.medium.com</div>
+      </a>
+      <a href="https://steve-yegge.medium.com/introducing-beads-a-coding-agent-memory-system-637d7d92514a" class="link-card reveal" target="_blank" rel="noopener">
+        <div class="link-type">Blog Post</div>
+        <div class="link-title">Introducing Beads: A Coding Agent Memory System</div>
+        <div class="link-url">steve-yegge.medium.com</div>
+      </a>
+      <a href="https://steve-yegge.medium.com/beads-best-practices-2db636b9760c" class="link-card reveal" target="_blank" rel="noopener">
+        <div class="link-type">Blog Post</div>
+        <div class="link-title">Beads Best Practices</div>
+        <div class="link-url">steve-yegge.medium.com</div>
+      </a>
+      <a href="https://www.latent.space/p/steve-yegges-vibe-coding-manifesto" class="link-card reveal" target="_blank" rel="noopener">
+        <div class="link-type">Podcast</div>
+        <div class="link-title">Steve Yegge's Vibe Coding Manifesto (Latent Space)</div>
+        <div class="link-url">latent.space</div>
+      </a>
+      <a href="https://cloudnativenow.com/features/gas-town-what-kubernetes-for-ai-coding-agents-actually-looks-like/" class="link-card reveal" target="_blank" rel="noopener">
+        <div class="link-type">Article</div>
+        <div class="link-title">Gas Town: What Kubernetes for AI Agents Looks Like</div>
+        <div class="link-url">cloudnativenow.com</div>
+      </a>
+      <a href="https://www.dolthub.com/blog/2026-01-15-a-day-in-gas-town/" class="link-card reveal" target="_blank" rel="noopener">
+        <div class="link-type">Article</div>
+        <div class="link-title">A Day in Gas Town (DoltHub)</div>
+        <div class="link-url">dolthub.com</div>
+      </a>
+      <a href="https://twit.tv/posts/tech/what-gastown-how-steve-yegges-ai-coding-agents-are-changing-software-development" class="link-card reveal" target="_blank" rel="noopener">
+        <div class="link-type">Article</div>
+        <div class="link-title">What Is Gastown? (TWiT / Intelligent Machines)</div>
+        <div class="link-url">twit.tv</div>
+      </a>
+      <a href="https://shipyard.build/blog/claude-code-multi-agent/" class="link-card reveal" target="_blank" rel="noopener">
+        <div class="link-type">Article</div>
+        <div class="link-title">Multi-agent Orchestration for Claude Code</div>
+        <div class="link-url">shipyard.build</div>
+      </a>
+    </div>
+  </section>
+
+  <footer>
+    <a href="index.html">&larr; Back to All AI Stacks</a>
+    <p>AI Stacks 2026 &middot; Gas Town Deep Dive &middot; Compiled February 2026</p>
+  </footer>
+
+</main>
+
+<script>
+// ============================================================
+// SCROLL REVEAL
+// ============================================================
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+</script>
+
+</body>
+</html>

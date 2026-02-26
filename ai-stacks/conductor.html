@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conductor — Run a Team of Coding Agents on Your Mac</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-deep: #060a14;
+  --bg-base: #0a0e1a;
+  --bg-surface: #0f1629;
+  --bg-elevated: #151d33;
+  --bg-card: #111827;
+  --border-subtle: rgba(100, 200, 255, 0.08);
+  --border-accent: rgba(0, 240, 255, 0.2);
+  --cyan: #00f0ff;
+  --cyan-dim: #00a8b3;
+  --cyan-glow: rgba(0, 240, 255, 0.15);
+  --amber: #ff9f1c;
+  --amber-dim: #b36f14;
+  --amber-glow: rgba(255, 159, 28, 0.12);
+  --violet: #8b5cf6;
+  --violet-dim: #6d45c7;
+  --green: #34d399;
+  --green-dim: #059669;
+  --red: #f87171;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+  --text-dim: #334155;
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-body: 'Outfit', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(0, 240, 255, 0.25);
+  color: #fff;
+}
+
+a { color: var(--violet); text-decoration: none; transition: color 0.2s; }
+a:hover { color: #fff; }
+
+/* ============================================================
+   ANIMATED BACKGROUND GRID
+   ============================================================ */
+.grid-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 70%);
+}
+
+.grid-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(139, 92, 246, 0.04) 0%, transparent 50%),
+              radial-gradient(circle at 70% 60%, rgba(0, 240, 255, 0.03) 0%, transparent 50%);
+}
+
+/* ============================================================
+   SCANLINE OVERLAY
+   ============================================================ */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(6, 10, 20, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+nav .nav-back {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  transition: color 0.2s;
+}
+
+nav .nav-back:hover { color: var(--violet); }
+
+nav .nav-brand {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--violet);
+  letter-spacing: 1px;
+}
+
+/* ============================================================
+   MAIN CONTAINER
+   ============================================================ */
+main {
+  position: relative;
+  z-index: 2;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ============================================================
+   HERO SECTION
+   ============================================================ */
+.hero {
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 120px 0 80px;
+}
+
+.hero-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--violet);
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.2s forwards;
+}
+
+.hero-label::before {
+  content: '//';
+  margin-right: 8px;
+  color: var(--text-muted);
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(48px, 7vw, 80px);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -2px;
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.4s forwards;
+}
+
+.hero h1 .accent {
+  background: linear-gradient(135deg, var(--violet) 0%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-subtitle {
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  max-width: 620px;
+  line-height: 1.7;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.6s forwards;
+}
+
+.hero-meta {
+  margin-top: 40px;
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.8s forwards;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-stat .num {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--violet);
+}
+
+.hero-stat .label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   SECTION STYLING
+   ============================================================ */
+section {
+  padding: 100px 0 60px;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--violet);
+  margin-bottom: 16px;
+}
+
+.section-label::before {
+  content: attr(data-num);
+  color: var(--text-dim);
+  margin-right: 12px;
+}
+
+section h2 {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 700;
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+  line-height: 1.1;
+}
+
+.section-desc {
+  font-size: 17px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  max-width: 640px;
+  margin-bottom: 40px;
+  line-height: 1.7;
+}
+
+/* ============================================================
+   CONTENT CARDS
+   ============================================================ */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 16px;
+  transition: border-color 0.3s;
+}
+
+.card:hover {
+  border-color: var(--border-accent);
+}
+
+.card h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.card p, .card li {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.card ul {
+  list-style: none;
+  padding: 0;
+}
+
+.card li {
+  padding: 4px 0;
+}
+
+.card li::before {
+  content: '>';
+  font-family: var(--font-mono);
+  color: var(--violet-dim);
+  margin-right: 8px;
+}
+
+/* ============================================================
+   FEATURE GRID
+   ============================================================ */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.feature-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 24px;
+  transition: border-color 0.3s;
+}
+
+.feature-card:hover { border-color: var(--border-accent); }
+
+.feature-card h4 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.feature-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.feature-icon {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.feature-icon.ui { background: rgba(139, 92, 246, 0.1); color: var(--violet); }
+.feature-icon.core { background: rgba(0, 240, 255, 0.1); color: var(--cyan); }
+.feature-icon.workflow { background: rgba(255, 159, 28, 0.1); color: var(--amber); }
+.feature-icon.safety { background: rgba(52, 211, 153, 0.1); color: var(--green); }
+
+/* ============================================================
+   CODE BLOCK
+   ============================================================ */
+.code-block {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
+.code-block code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.8;
+}
+
+.code-block .comment { color: var(--text-muted); }
+.code-block .cmd { color: var(--violet); }
+.code-block .flag { color: var(--amber); }
+.code-block .str { color: var(--green); }
+.code-block .key { color: var(--cyan); }
+
+/* ============================================================
+   QUOTE BLOCK
+   ============================================================ */
+.quote-block {
+  background: var(--bg-surface);
+  border-left: 3px solid var(--violet);
+  border-radius: 0 12px 12px 0;
+  padding: 32px 40px;
+  margin: 48px 0;
+  position: relative;
+}
+
+.quote-block::before {
+  content: '\201C';
+  position: absolute;
+  top: 16px;
+  left: 14px;
+  font-family: var(--font-display);
+  font-size: 48px;
+  color: var(--violet-dim);
+  opacity: 0.3;
+  line-height: 1;
+}
+
+.quote-block p {
+  font-size: 18px;
+  font-weight: 300;
+  font-style: italic;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
+.quote-block .quote-attr {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-style: normal;
+  color: var(--text-muted);
+  margin-top: 12px;
+  display: block;
+}
+
+/* ============================================================
+   ARCHITECTURE DIAGRAM
+   ============================================================ */
+.arch-diagram {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 32px;
+  margin: 24px 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 2;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.arch-diagram .highlight { color: var(--violet); font-weight: 600; }
+.arch-diagram .dim { color: var(--text-muted); }
+.arch-diagram .accent { color: var(--cyan); }
+
+/* ============================================================
+   WORKFLOW STEPS
+   ============================================================ */
+.steps {
+  display: grid;
+  gap: 2px;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  align-items: start;
+}
+
+.step-num {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--violet-dim);
+  text-align: right;
+}
+
+.step h4 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.step p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   LIFECYCLE FLOW
+   ============================================================ */
+.lifecycle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 32px 0;
+}
+
+.lifecycle-step {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 16px 24px;
+  text-align: center;
+  flex: 1;
+  min-width: 120px;
+}
+
+.lifecycle-step h4 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.lifecycle-step p {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.lifecycle-arrow {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  color: var(--violet-dim);
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   TESTIMONIAL GRID
+   ============================================================ */
+.testimonial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.testimonial {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 24px;
+}
+
+.testimonial p {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.testimonial .author {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   COMPARISON TABLE
+   ============================================================ */
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 24px 0;
+}
+
+.compare-table th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.compare-table td {
+  font-size: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(100, 200, 255, 0.04);
+  color: var(--text-secondary);
+}
+
+.compare-table tr:hover td { background: rgba(0, 240, 255, 0.02); }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer {
+  padding: 80px 0 40px;
+  text-align: center;
+}
+
+footer p {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+footer a {
+  color: var(--text-muted);
+  transition: color 0.2s;
+}
+
+footer a:hover { color: var(--violet); }
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  main { padding: 0 16px; }
+  section { padding: 60px 0 40px; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .testimonial-grid { grid-template-columns: 1fr; }
+  .hero { padding: 100px 0 60px; min-height: auto; }
+  .hero-meta { gap: 20px; }
+  .quote-block { padding: 24px 28px; }
+  .arch-diagram { font-size: 11px; padding: 20px; }
+  .lifecycle { flex-direction: column; }
+  .lifecycle-arrow { transform: rotate(90deg); }
+}
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="scanlines"></div>
+
+<nav>
+  <a href="index.html" class="nav-back">&larr; Back to All AI Stacks</a>
+  <span class="nav-brand">CONDUCTOR // DEEP DIVE</span>
+</nav>
+
+<main>
+
+  <!-- ====== HERO ====== -->
+  <section class="hero">
+    <div class="hero-label">Orchestration Tool Deep Dive</div>
+    <h1><span class="accent">Conductor</span><br>Agent Orchestrator</h1>
+    <p class="hero-subtitle">A Mac app for orchestrating teams of coding agents. Create parallel Claude Code and Codex agents in isolated workspaces. See at a glance what they're working on, then review and merge.</p>
+    <div class="hero-meta">
+      <div class="hero-stat">
+        <span class="num">macOS</span>
+        <span class="label">Platform</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">v0.36</span>
+        <span class="label">Current version</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">5+</span>
+        <span class="label">Model providers</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">Melty Labs</span>
+        <span class="label">By</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== WHAT IS IT ====== -->
+  <section>
+    <div class="section-label reveal" data-num="01">Overview</div>
+    <h2 class="reveal">What Is Conductor?</h2>
+    <p class="section-desc reveal">Conductor is a native macOS desktop application that manages teams of AI coding agents. It provides a visual dashboard, isolated git worktree workspaces, a built-in diff viewer, and a full lifecycle from issue to pull request.</p>
+
+    <div class="card reveal">
+      <h3>The Core Idea</h3>
+      <p>While tools like TSK and Container Use provide containerized isolation via CLI, Conductor takes a GUI-first approach. It's a polished Mac app that feels like a native IDE companion &mdash; you add your repo, spin up parallel agent workspaces, and manage everything through a visual interface. Each workspace gets its own git worktree, so agents never interfere with each other or your working directory.</p>
+    </div>
+
+    <div class="card reveal">
+      <h3>Who Built It</h3>
+      <p>Conductor is made by <strong>Melty Labs</strong>. The team built Conductor using Conductor itself &mdash; a strong signal of dogfooding. It has gained endorsements from engineers at <strong>Linear, Vercel, Notion, Stripe, Life360, Blacksmith, Reducto</strong>, and <strong>Tigris Data</strong>. Addy Osmani (Google Chrome team) lists it as part of his stack.</p>
+    </div>
+
+    <div class="card reveal">
+      <h3>Supported Agents & Models</h3>
+      <ul>
+        <li><strong>Claude Code</strong> &mdash; primary agent, uses your existing Claude login</li>
+        <li><strong>OpenAI Codex</strong> &mdash; secondary agent</li>
+      </ul>
+      <p style="margin-top: 12px;"><strong>Model providers supported:</strong></p>
+      <ul>
+        <li>Anthropic (default)</li>
+        <li>OpenRouter</li>
+        <li>AWS Bedrock</li>
+        <li>Google Vertex</li>
+        <li>Vercel AI</li>
+      </ul>
+      <p style="margin-top: 12px;">No separate billing for AI usage &mdash; Conductor uses your existing API key, Claude Pro, or Claude Max plan.</p>
+    </div>
+  </section>
+
+  <div class="quote-block reveal">
+    <p>Gave this a try and holy shit. This is a new productivity unlock.</p>
+    <span class="quote-attr">&mdash; @nexxel, Founding Engineer at Supermemory</span>
+  </div>
+
+  <!-- ====== ARCHITECTURE ====== -->
+  <section>
+    <div class="section-label reveal" data-num="02">How It Works</div>
+    <h2 class="reveal">Architecture</h2>
+    <p class="section-desc reveal">Conductor combines a native Mac app with git worktrees to provide isolated, parallel workspaces managed through a visual interface.</p>
+
+    <div class="arch-diagram reveal"><span class="dim">Conductor App (macOS native)</span>
+  <span class="dim">|</span>
+  <span class="dim">+--</span> <span class="highlight">Repository Manager</span>
+  <span class="dim">|     Clone repos locally, manage multi-repo setups</span>
+  <span class="dim">|</span>
+  <span class="dim">+--</span> <span class="highlight">Workspace Engine</span>
+  <span class="dim">|     Each workspace = 1 git worktree + 1 agent instance</span>
+  <span class="dim">|     |</span>
+  <span class="dim">|     +--</span> <span class="accent">Workspace A</span> <span class="dim">[Claude Code, branch: feat/auth]</span>
+  <span class="dim">|     +--</span> <span class="accent">Workspace B</span> <span class="dim">[Claude Code, branch: fix/bug-123]</span>
+  <span class="dim">|     +--</span> <span class="accent">Workspace C</span> <span class="dim">[Codex, branch: feat/api-v2]</span>
+  <span class="dim">|</span>
+  <span class="dim">+--</span> <span class="highlight">Dashboard</span>
+  <span class="dim">|     At-a-glance status of all agents</span>
+  <span class="dim">|</span>
+  <span class="dim">+--</span> <span class="highlight">Diff Viewer</span> <span class="dim">+ GitHub sync</span>
+  <span class="dim">|</span>
+  <span class="dim">+--</span> <span class="highlight">Checkpoints</span> <span class="dim">(turn-by-turn snapshots with rollback)</span></div>
+
+    <div class="card reveal">
+      <h3>How It Works (3 Steps)</h3>
+      <div class="lifecycle">
+        <div class="lifecycle-step">
+          <h4>Add Your Repo</h4>
+          <p>Conductor clones it locally</p>
+        </div>
+        <span class="lifecycle-arrow">&rarr;</span>
+        <div class="lifecycle-step">
+          <h4>Deploy Agents</h4>
+          <p>Each gets an isolated worktree</p>
+        </div>
+        <span class="lifecycle-arrow">&rarr;</span>
+        <div class="lifecycle-step">
+          <h4>Conduct</h4>
+          <p>Monitor, review, merge</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== INSTALLATION ====== -->
+  <section>
+    <div class="section-label reveal" data-num="03">Getting Started</div>
+    <h2 class="reveal">Installation & Setup</h2>
+
+    <div class="card reveal">
+      <h3>Download</h3>
+      <p>Conductor is available as a free download for macOS from <a href="https://www.conductor.build" target="_blank">conductor.build</a>. There is no CLI-only mode &mdash; it's a native Mac app.</p>
+    </div>
+
+    <div class="card reveal">
+      <h3>Requirements</h3>
+      <ul>
+        <li><strong>macOS</strong> &mdash; the only supported platform</li>
+        <li><strong>Git</strong> &mdash; for worktree management</li>
+        <li><strong>Claude Code or Codex</strong> &mdash; with an existing subscription or API key</li>
+      </ul>
+    </div>
+
+    <div class="card reveal">
+      <h3>Project Configuration</h3>
+      <p>Conductor uses a <code>conductor.json</code> file in your project root for automation scripts. This file is designed to be committed and shared with your team.</p>
+      <div class="code-block">
+<code><span class="comment">// conductor.json</span>
+{
+  <span class="key">"scripts"</span>: {
+    <span class="key">"setup"</span>: <span class="str">"cp $CONDUCTOR_ROOT_PATH/.env.local .env.local && pnpm install"</span>,
+    <span class="key">"run"</span>: <span class="str">"pnpm dev"</span>,
+    <span class="key">"archive"</span>: <span class="str">""</span>
+  }
+}</code>
+      </div>
+      <p style="margin-top: 12px;">The <code>setup</code> script runs when a new workspace is created, copying environment files and installing dependencies. <code>$CONDUCTOR_ROOT_PATH</code> points to your project root.</p>
+    </div>
+
+    <div class="card reveal">
+      <h3>Migrating from Cursor</h3>
+      <p>Conductor can import your existing Cursor configuration, including MCP servers and rules. The migration workflow makes it straightforward to try Conductor without losing your existing setup.</p>
+    </div>
+  </section>
+
+  <!-- ====== KEY FEATURES ====== -->
+  <section>
+    <div class="section-label reveal" data-num="04">Capabilities</div>
+    <h2 class="reveal">Key Features</h2>
+    <p class="section-desc reveal">Conductor's strength is its polished GUI and integrated lifecycle management. It turns agent orchestration from a terminal exercise into a visual workflow.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card reveal">
+        <span class="feature-icon ui">GUI</span>
+        <h4>Visual Dashboard</h4>
+        <p>Multi-panel interface showing all agent workspaces at a glance. See status, current activity, and what needs attention without switching terminals.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon core">Core</span>
+        <h4>Parallel Workspaces</h4>
+        <p>Each agent runs in its own git worktree. Create new workspaces with Cmd+N. Fully isolated branches that never interfere with each other.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon ui">GUI</span>
+        <h4>Built-in Diff Viewer</h4>
+        <p>Visual code diff tool integrated directly into the app. See what each agent changed, sync with GitHub, and review before merging.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon workflow">Workflow</span>
+        <h4>Checkpoints</h4>
+        <p>View turn-by-turn changes in a workspace and revert to any previous turn. Like undo history but at the agent-conversation level.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon workflow">Workflow</span>
+        <h4>Scripts & Automation</h4>
+        <p>Automate repeated actions with scripts defined in <code>conductor.json</code>. Slash commands for quick in-chat actions. Shareable with teammates.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon workflow">Workflow</span>
+        <h4>Todos</h4>
+        <p>Track what needs to be done before merging. Integrated checklist per workspace for managing pre-merge requirements.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon core">Core</span>
+        <h4>MCP Support</h4>
+        <p>Connect to external tools and data sources via the Model Context Protocol. Brings the same extensibility as standalone Claude Code.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon safety">Multi</span>
+        <h4>Multi-Repo Support</h4>
+        <p>Work across multiple repositories simultaneously. Each workspace can target a different repo or different branch of the same repo.</p>
+      </div>
+      <div class="feature-card reveal">
+        <span class="feature-icon core">Core</span>
+        <h4>Local Execution</h4>
+        <p>Everything runs on your Mac. No cloud dependency, no remote execution. Conductor clones your repo and works entirely locally.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== DEVELOPMENT LIFECYCLE ====== -->
+  <section>
+    <div class="section-label reveal" data-num="05">Lifecycle</div>
+    <h2 class="reveal">The Conductor Development Lifecycle</h2>
+    <p class="section-desc reveal">From issue to pull request &mdash; Conductor provides an opinionated workflow for the full development cycle.</p>
+
+    <div class="lifecycle reveal">
+      <div class="lifecycle-step">
+        <h4>Issue</h4>
+        <p>Start from a ticket</p>
+      </div>
+      <span class="lifecycle-arrow">&rarr;</span>
+      <div class="lifecycle-step">
+        <h4>Workspace</h4>
+        <p>Isolated environment</p>
+      </div>
+      <span class="lifecycle-arrow">&rarr;</span>
+      <div class="lifecycle-step">
+        <h4>AI Edits</h4>
+        <p>Agent builds the feature</p>
+      </div>
+      <span class="lifecycle-arrow">&rarr;</span>
+      <div class="lifecycle-step">
+        <h4>Diff Review</h4>
+        <p>Visual code review</p>
+      </div>
+      <span class="lifecycle-arrow">&rarr;</span>
+      <div class="lifecycle-step">
+        <h4>Todos</h4>
+        <p>Pre-merge checklist</p>
+      </div>
+      <span class="lifecycle-arrow">&rarr;</span>
+      <div class="lifecycle-step">
+        <h4>PR</h4>
+        <p>Ship it</p>
+      </div>
+    </div>
+
+    <div class="card reveal">
+      <h3>Quickstart Frameworks</h3>
+      <p>Conductor provides quickstart templates for common frameworks:</p>
+      <ul>
+        <li><strong>Next.js + Vercel</strong> &mdash; with automated env file copying and pnpm setup</li>
+        <li><strong>Django</strong> &mdash; Python project scaffolding</li>
+        <li><strong>Rails</strong> &mdash; Ruby on Rails workspace setup</li>
+        <li><strong>Elixir + Phoenix</strong> &mdash; Elixir project support</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ====== EXAMPLE WORKFLOW ====== -->
+  <section>
+    <div class="section-label reveal" data-num="06">In Practice</div>
+    <h2 class="reveal">Example Workflow</h2>
+
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">01</div>
+        <div>
+          <h4>Add your repository</h4>
+          <p>Open Conductor, add your repo. It clones locally and sets up the workspace engine.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">02</div>
+        <div>
+          <h4>Create parallel workspaces</h4>
+          <p>Cmd+N to create a new workspace. Each gets an isolated git worktree. Name it after the feature or fix.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">03</div>
+        <div>
+          <h4>Assign tasks to agents</h4>
+          <p>Each workspace runs its own Claude Code or Codex instance. Describe the task and let the agent work.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">04</div>
+        <div>
+          <h4>Monitor from the dashboard</h4>
+          <p>The multi-panel view shows all workspaces. See which agents are active, which need attention, and what's completed.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">05</div>
+        <div>
+          <h4>Review with checkpoints</h4>
+          <p>View turn-by-turn changes. If the agent went off track, revert to a checkpoint and redirect. Use the diff viewer for code review.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">06</div>
+        <div>
+          <h4>Merge and ship</h4>
+          <p>Complete the todo checklist, review the final diff, merge the branch, and create a PR &mdash; all from within Conductor.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="quote-block reveal">
+    <p>The future. The last time I felt this strongly about a developer tool was Vercel and Supabase.</p>
+    <span class="quote-attr">&mdash; Zach Blume, Stripe</span>
+  </div>
+
+  <!-- ====== TESTIMONIALS ====== -->
+  <section>
+    <div class="section-label reveal" data-num="07">Reception</div>
+    <h2 class="reveal">What People Are Saying</h2>
+
+    <div class="testimonial-grid">
+      <div class="testimonial reveal">
+        <p>"Beautiful UI and handles all the git worktree stuff for you!"</p>
+        <span class="author">&mdash; Ian Nuttall</span>
+      </div>
+      <div class="testimonial reveal">
+        <p>"I feel like a true full stack engineer cross-platform."</p>
+        <span class="author">&mdash; Umar Qattan, Sr. SWE, Life360</span>
+      </div>
+      <div class="testimonial reveal">
+        <p>"Now I can't imagine building without @conductor_build."</p>
+        <span class="author">&mdash; Cole Bemis, Design Engineer, Notion</span>
+      </div>
+      <div class="testimonial reveal">
+        <p>"Is Conductor the new Cursor?"</p>
+        <span class="author">&mdash; Stammy, Head of Design, Sesame</span>
+      </div>
+      <div class="testimonial reveal">
+        <p>"Future of AI software-making."</p>
+        <span class="author">&mdash; Raphael Schaad, Founder of Cron, Design at Notion</span>
+      </div>
+      <div class="testimonial reveal">
+        <p>"Conductor.build makes it really easy to handle 10 agents running at once."</p>
+        <span class="author">&mdash; Elie Steinbock (video review)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== LIMITATIONS ====== -->
+  <section>
+    <div class="section-label reveal" data-num="08">Trade-offs</div>
+    <h2 class="reveal">Limitations & Considerations</h2>
+
+    <div class="feature-grid">
+      <div class="feature-card reveal">
+        <h4>macOS Only</h4>
+        <p>No Linux, no Windows, no web version. If your team uses mixed platforms, only Mac users can use Conductor.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h4>GUI-Only</h4>
+        <p>No CLI mode for scripting or automation. Cannot be integrated into CI/CD pipelines or run headlessly on servers.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h4>Closed Source</h4>
+        <p>Unlike TSK and Container Use, Conductor is proprietary. You cannot inspect, modify, or self-host the source code.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h4>No Container Isolation</h4>
+        <p>Uses git worktrees for isolation, not containers. Agents share your host filesystem and can install packages, modify system state, etc.</p>
+      </div>
+      <div class="feature-card reveal">
+        <h4>Two Agent Types</h4>
+        <p>Supports Claude Code and Codex. No support for Aider, Gemini CLI, or other coding agents (though this may expand).</p>
+      </div>
+      <div class="feature-card reveal">
+        <h4>Privacy Considerations</h4>
+        <p>Uses PostHog for analytics. While privacy documentation exists, some teams may have concerns about telemetry in a developer tool.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== COMPARISON ====== -->
+  <section>
+    <div class="section-label reveal" data-num="09">Comparison</div>
+    <h2 class="reveal">How It Compares</h2>
+    <p class="section-desc reveal">Conductor occupies a unique spot as the only GUI-native orchestrator. Here's how it stacks up.</p>
+
+    <div class="card reveal">
+      <table class="compare-table">
+        <thead>
+          <tr><th>Feature</th><th>Conductor</th><th>TSK</th><th>Container Use</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Interface</td><td>Native Mac app (GUI)</td><td>CLI + TUI</td><td>CLI</td></tr>
+          <tr><td>Isolation</td><td>Git worktrees</td><td>Docker containers</td><td>Dagger containers</td></tr>
+          <tr><td>Network control</td><td>None</td><td>Squid proxy ACLs</td><td>Container-level</td></tr>
+          <tr><td>Diff viewer</td><td>Built-in visual</td><td>Git diff</td><td>cu diff</td></tr>
+          <tr><td>Checkpoints</td><td>Turn-by-turn rollback</td><td>Git commits</td><td>Git commits</td></tr>
+          <tr><td>Task queue</td><td>Manual workspace creation</td><td>Server mode + queue</td><td>None</td></tr>
+          <tr><td>Task chaining</td><td>No</td><td>Yes (--parent)</td><td>No</td></tr>
+          <tr><td>Open source</td><td>No</td><td>Yes</td><td>Yes (Apache-2.0)</td></tr>
+          <tr><td>Platform</td><td>macOS only</td><td>Any (Rust + Docker)</td><td>Any (Go + Dagger)</td></tr>
+          <tr><td>Pricing</td><td>Free download</td><td>Free (open source)</td><td>Free (open source)</td></tr>
+          <tr><td>Model providers</td><td>5 (Anthropic, OpenRouter, Bedrock, Vertex, Vercel)</td><td>Via agent's own config</td><td>Via agent's own config</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ====== LINKS ====== -->
+  <section>
+    <div class="section-label reveal" data-num="10">Resources</div>
+    <h2 class="reveal">Links & Resources</h2>
+
+    <div class="card reveal">
+      <h3>Official</h3>
+      <ul>
+        <li><a href="https://www.conductor.build" target="_blank">Website</a> &mdash; conductor.build (download)</li>
+        <li><a href="https://docs.conductor.build" target="_blank">Documentation</a> &mdash; docs.conductor.build</li>
+        <li><a href="https://docs.conductor.build/changelog" target="_blank">Changelog</a> &mdash; release notes</li>
+      </ul>
+    </div>
+
+    <div class="card reveal">
+      <h3>Community & Media</h3>
+      <ul>
+        <li><a href="https://www.youtube.com/watch?v=b06w8JoOoRc" target="_blank">Elie Steinbock Video</a> &mdash; "How to 10x Your AI Coding with Parallel Agents"</li>
+        <li><a href="https://www.oreilly.com/radar/conductors-to-orchestrators-the-future-of-agentic-coding/" target="_blank">O'Reilly</a> &mdash; "Conductors to Orchestrators: The Future of Agentic Coding"</li>
+        <li><strong>X:</strong> <a href="https://x.com/conductor_build" target="_blank">@conductor_build</a></li>
+        <li><strong>Reddit:</strong> r/conductorbuild</li>
+        <li><strong>Contact:</strong> humans@conductor.build</li>
+      </ul>
+    </div>
+
+    <div class="card reveal">
+      <h3>Notable Users</h3>
+      <ul>
+        <li><strong>Addy Osmani</strong> (Google Chrome) &mdash; lists Conductor in his AI coding stack</li>
+        <li><strong>Elie Steinbock</strong> (Inbox Zero) &mdash; featured in YouTube video review</li>
+        <li>Engineers from Linear, Vercel, Notion, Stripe, Life360</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <p><a href="index.html">&larr; Back to All AI Stacks</a> &middot; Conductor Deep Dive &middot; February 2026</p>
+  </footer>
+
+</main>
+
+<script>
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+</script>
+
+</body>
+</html>

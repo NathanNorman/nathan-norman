@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compound Engineering — Deep Dive | AI Stacks 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-deep: #060a14;
+  --bg-base: #0a0e1a;
+  --bg-surface: #0f1629;
+  --bg-elevated: #151d33;
+  --bg-card: #111827;
+  --border-subtle: rgba(100, 200, 255, 0.08);
+  --border-accent: rgba(0, 240, 255, 0.2);
+  --cyan: #00f0ff;
+  --cyan-dim: #00a8b3;
+  --cyan-glow: rgba(0, 240, 255, 0.15);
+  --amber: #ff9f1c;
+  --amber-dim: #b36f14;
+  --amber-glow: rgba(255, 159, 28, 0.12);
+  --violet: #8b5cf6;
+  --violet-dim: #6d45c7;
+  --green: #34d399;
+  --green-dim: #059669;
+  --red: #f87171;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+  --text-dim: #334155;
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-body: 'Outfit', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(0, 240, 255, 0.25);
+  color: #fff;
+}
+
+a { color: var(--cyan); text-decoration: none; transition: color 0.2s; }
+a:hover { color: #fff; }
+
+/* ============================================================
+   ANIMATED BACKGROUND GRID
+   ============================================================ */
+.grid-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 70%);
+}
+
+.grid-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(0, 240, 255, 0.04) 0%, transparent 50%),
+              radial-gradient(circle at 70% 60%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
+}
+
+/* ============================================================
+   SCANLINE OVERLAY
+   ============================================================ */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+/* ============================================================
+   MAIN CONTAINER
+   ============================================================ */
+main {
+  position: relative;
+  z-index: 2;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(6, 10, 20, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+nav .nav-brand {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cyan);
+  letter-spacing: 1px;
+}
+
+nav .nav-back {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-decoration: none;
+  letter-spacing: 1px;
+  transition: color 0.2s;
+}
+
+nav .nav-back:hover { color: var(--cyan); }
+
+nav .nav-links {
+  display: flex;
+  gap: 24px;
+  list-style: none;
+}
+
+nav .nav-links a {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-decoration: none;
+  letter-spacing: 1px;
+  transition: color 0.2s;
+}
+
+nav .nav-links a:hover { color: var(--cyan); }
+
+@media (max-width: 768px) {
+  nav .nav-links { display: none; }
+}
+
+/* ============================================================
+   HERO SECTION
+   ============================================================ */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 120px 0 80px;
+  position: relative;
+}
+
+.hero-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.2s forwards;
+}
+
+.hero-label::before {
+  content: '//';
+  margin-right: 8px;
+  color: var(--text-muted);
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(42px, 7vw, 84px);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -2px;
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.4s forwards;
+}
+
+.hero h1 .accent {
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--violet) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-attribution {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.5s forwards;
+}
+
+.hero-attribution strong {
+  color: var(--amber);
+  font-weight: 600;
+}
+
+.hero-subtitle {
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  max-width: 640px;
+  line-height: 1.7;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.6s forwards;
+}
+
+.hero-meta {
+  margin-top: 48px;
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 0.8s forwards;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-stat .num {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--cyan);
+}
+
+.hero-stat .label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.scroll-indicator {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease-out 1s forwards;
+}
+
+.scroll-indicator span {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.scroll-indicator .arrow {
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(to bottom, var(--cyan), transparent);
+  animation: pulse-down 2s ease-in-out infinite;
+}
+
+@keyframes pulse-down {
+  0%, 100% { opacity: 0.3; transform: scaleY(0.6); }
+  50% { opacity: 1; transform: scaleY(1); }
+}
+
+/* ============================================================
+   SECTION STYLING
+   ============================================================ */
+section {
+  padding: 120px 0 80px;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 16px;
+}
+
+.section-label::before {
+  content: attr(data-num);
+  color: var(--text-dim);
+  margin-right: 12px;
+}
+
+section h2 {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5vw, 56px);
+  font-weight: 700;
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+  line-height: 1.1;
+}
+
+.section-desc {
+  font-size: 17px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  max-width: 640px;
+  margin-bottom: 56px;
+  line-height: 1.7;
+}
+
+/* ============================================================
+   QUOTE BLOCK
+   ============================================================ */
+.quote-block {
+  background: var(--bg-surface);
+  border-left: 3px solid var(--cyan);
+  border-radius: 0 12px 12px 0;
+  padding: 32px 40px;
+  margin: 48px 0;
+  position: relative;
+}
+
+.quote-block::before {
+  content: '\201C';
+  position: absolute;
+  top: 16px;
+  left: 14px;
+  font-family: var(--font-display);
+  font-size: 48px;
+  color: var(--cyan-dim);
+  opacity: 0.3;
+  line-height: 1;
+}
+
+.quote-block p {
+  font-size: 18px;
+  font-weight: 300;
+  font-style: italic;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
+.quote-block .quote-attr {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-style: normal;
+  color: var(--text-muted);
+  margin-top: 12px;
+}
+
+.quote-block.amber { border-left-color: var(--amber); }
+.quote-block.amber::before { color: var(--amber-dim); }
+.quote-block.violet { border-left-color: var(--violet); }
+.quote-block.violet::before { color: var(--violet-dim); }
+
+/* ============================================================
+   LOOP CARDS (4-step compound loop)
+   ============================================================ */
+.loop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.loop-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 32px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s, transform 0.3s;
+}
+
+.loop-card:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-2px);
+}
+
+.loop-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+
+.loop-card:nth-child(1)::before { background: linear-gradient(90deg, var(--cyan), var(--violet)); }
+.loop-card:nth-child(2)::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+.loop-card:nth-child(3)::before { background: linear-gradient(90deg, var(--amber), var(--red)); }
+.loop-card:nth-child(4)::before { background: linear-gradient(90deg, var(--violet), var(--amber)); }
+
+.loop-num {
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--bg-elevated);
+  -webkit-text-stroke: 1px var(--text-dim);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.loop-card:nth-child(1) .loop-num { -webkit-text-stroke-color: var(--cyan-dim); }
+.loop-card:nth-child(2) .loop-num { -webkit-text-stroke-color: var(--green-dim); }
+.loop-card:nth-child(3) .loop-num { -webkit-text-stroke-color: var(--amber-dim); }
+.loop-card:nth-child(4) .loop-num { -webkit-text-stroke-color: var(--violet-dim); }
+
+.loop-effort {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+
+.loop-card:nth-child(1) .loop-effort { background: rgba(0, 240, 255, 0.1); color: var(--cyan); }
+.loop-card:nth-child(2) .loop-effort { background: rgba(52, 211, 153, 0.1); color: var(--green); }
+.loop-card:nth-child(3) .loop-effort { background: rgba(255, 159, 28, 0.1); color: var(--amber); }
+.loop-card:nth-child(4) .loop-effort { background: rgba(139, 92, 246, 0.1); color: var(--violet); }
+
+.loop-card h3 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.loop-card p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.loop-card ul {
+  list-style: none;
+  padding: 0;
+}
+
+.loop-card li {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  padding: 3px 0;
+}
+
+.loop-card li::before {
+  content: '>';
+  font-family: var(--font-mono);
+  color: var(--cyan-dim);
+  margin-right: 8px;
+}
+
+/* ============================================================
+   COMMAND REFERENCE TABLE
+   ============================================================ */
+.cmd-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cmd-table th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.cmd-table td {
+  font-size: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(100, 200, 255, 0.04);
+  color: var(--text-secondary);
+  vertical-align: top;
+}
+
+.cmd-table tr:hover td { background: rgba(0, 240, 255, 0.02); }
+
+.cmd-table .cmd-name {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--cyan);
+  white-space: nowrap;
+}
+
+.cmd-table .cmd-category {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.cmd-category.core { background: rgba(0, 240, 255, 0.1); color: var(--cyan); }
+.cmd-category.auto { background: rgba(139, 92, 246, 0.1); color: var(--violet); }
+.cmd-category.util { background: rgba(255, 159, 28, 0.1); color: var(--amber); }
+.cmd-category.meta { background: rgba(52, 211, 153, 0.1); color: var(--green); }
+
+/* ============================================================
+   AGENT/SKILL CARDS
+   ============================================================ */
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.agent-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 24px;
+  transition: border-color 0.3s;
+}
+
+.agent-card:hover { border-color: var(--border-accent); }
+
+.agent-card h4 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.agent-card .agent-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.agent-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.agent-card ul {
+  list-style: none;
+  padding: 0;
+  margin-top: 8px;
+}
+
+.agent-card li {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  padding: 2px 0;
+}
+
+.agent-card li::before {
+  content: '>';
+  font-family: var(--font-mono);
+  color: var(--cyan-dim);
+  margin-right: 8px;
+}
+
+/* ============================================================
+   CONVERSION GRID
+   ============================================================ */
+.convert-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.convert-chip {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 16px 20px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: border-color 0.3s;
+}
+
+.convert-chip:hover { border-color: var(--border-accent); }
+
+.convert-chip .convert-flag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--violet);
+  background: rgba(139, 92, 246, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* ============================================================
+   INSTALL STEPS
+   ============================================================ */
+.install-block {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 20px;
+}
+
+.install-block h4 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.install-block .code-block {
+  background: var(--bg-elevated);
+  border-radius: 6px;
+  padding: 16px 20px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--cyan);
+  line-height: 1.8;
+  overflow-x: auto;
+  border-left: 2px solid var(--cyan-dim);
+}
+
+.install-block .code-block .comment {
+  color: var(--text-dim);
+}
+
+.install-block p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-top: 12px;
+}
+
+/* ============================================================
+   WORKFLOW WALKTHROUGH
+   ============================================================ */
+.workflow-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wf-step {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 20px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  align-items: start;
+}
+
+.wf-step-num {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--cyan-dim);
+  text-align: right;
+}
+
+.wf-step h4 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.wf-step p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.wf-step .wf-cmd {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--cyan);
+  background: var(--bg-elevated);
+  padding: 4px 10px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 8px;
+}
+
+/* ============================================================
+   BELIEFS TABLE
+   ============================================================ */
+.beliefs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.belief-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 24px;
+  transition: border-color 0.3s;
+}
+
+.belief-card:hover { border-color: var(--border-accent); }
+
+.belief-card .old-belief {
+  font-size: 13px;
+  color: var(--red);
+  text-decoration: line-through;
+  opacity: 0.7;
+  margin-bottom: 8px;
+}
+
+.belief-card .new-belief {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+/* ============================================================
+   STAGES
+   ============================================================ */
+.stages-track {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.stage-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 20px;
+  min-width: 180px;
+  flex: 1;
+  transition: border-color 0.3s;
+  position: relative;
+}
+
+.stage-card:hover { border-color: var(--border-accent); }
+
+.stage-num {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.stage-card h4 {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.stage-card p {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.stage-card.active {
+  border-color: var(--cyan-dim);
+}
+
+.stage-card.active .stage-num { color: var(--cyan); }
+
+/* ============================================================
+   PRINCIPLES LIST
+   ============================================================ */
+.principles-list {
+  display: grid;
+  gap: 2px;
+  counter-reset: principle;
+}
+
+.principle {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  counter-increment: principle;
+  align-items: start;
+}
+
+.principle-num {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--cyan-dim);
+  text-align: right;
+}
+
+.principle h4 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.principle p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   LINKS GRID
+   ============================================================ */
+.links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.link-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.3s;
+  text-decoration: none;
+}
+
+.link-card:hover { border-color: var(--border-accent); }
+
+.link-card h4 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.link-card .link-type {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.link-card p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ============================================================
+   FILE TREE
+   ============================================================ */
+.file-tree {
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  padding: 20px 24px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  border-left: 2px solid var(--violet-dim);
+  max-width: 500px;
+}
+
+.file-tree .dir { color: var(--amber); }
+.file-tree .file { color: var(--text-secondary); }
+.file-tree .important { color: var(--cyan); font-weight: 600; }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer {
+  padding: 80px 0 40px;
+  text-align: center;
+}
+
+footer p {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+footer a {
+  color: var(--cyan-dim);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+footer a:hover { color: var(--cyan); }
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  main { padding: 0 16px; }
+  section { padding: 80px 0 40px; }
+  .loop-grid { grid-template-columns: 1fr; }
+  .agent-grid { grid-template-columns: 1fr; }
+  .convert-grid { grid-template-columns: 1fr 1fr; }
+  .stages-track { flex-direction: column; }
+  .beliefs-grid { grid-template-columns: 1fr; }
+  .hero-meta { gap: 24px; }
+  .cmd-table { font-size: 12px; }
+  .cmd-table td, .cmd-table th { padding: 10px 8px; }
+}
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="scanlines"></div>
+
+<nav>
+  <a href="index.html" class="nav-back">&larr; Back to All AI Stacks</a>
+  <span class="nav-brand">COMPOUND ENGINEERING // DEEP DIVE</span>
+  <ul class="nav-links">
+    <li><a href="#philosophy">Philosophy</a></li>
+    <li><a href="#loop">The Loop</a></li>
+    <li><a href="#commands">Commands</a></li>
+    <li><a href="#agents">Agents</a></li>
+    <li><a href="#conversion">Cross-Tool</a></li>
+    <li><a href="#install">Install</a></li>
+    <li><a href="#workflow">Workflow</a></li>
+  </ul>
+</nav>
+
+<main>
+
+  <!-- ====== HERO ====== -->
+  <section class="hero">
+    <div class="hero-label">Deep Dive &mdash; February 2026</div>
+    <h1><span class="accent">Compound</span><br>Engineering</h1>
+    <p class="hero-attribution">By <strong>Kieran Klaassen</strong> &mdash; GM of Cora at <strong>Every</strong> (every.to)</p>
+    <p class="hero-subtitle">A methodology and open-source plugin where each unit of engineering work makes subsequent work easier &mdash; not harder. Plan, work, assess, compound, repeat.</p>
+    <div class="hero-meta">
+      <div class="hero-stat">
+        <span class="num">29</span>
+        <span class="label">Specialized agents</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">22</span>
+        <span class="label">Slash commands</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">19</span>
+        <span class="label">Skills</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">9.6K</span>
+        <span class="label">GitHub stars</span>
+      </div>
+    </div>
+    <div class="scroll-indicator">
+      <span>Scroll</span>
+      <div class="arrow"></div>
+    </div>
+  </section>
+
+  <!-- ====== PHILOSOPHY ====== -->
+  <section id="philosophy">
+    <div class="section-label reveal" data-num="01">The Thesis</div>
+    <h2 class="reveal">The Philosophy</h2>
+    <p class="section-desc reveal">Traditional codebases accumulate complexity. Compound engineering inverts this: every feature makes the next feature easier to build. The system that produces code is more valuable than any individual piece of code.</p>
+
+    <div class="quote-block reveal">
+      <p>Each unit of engineering work should make subsequent units easier &mdash; not harder.</p>
+      <span class="quote-attr">&mdash; Core principle of Compound Engineering</span>
+    </div>
+
+    <div class="beliefs-grid">
+      <div class="belief-card reveal">
+        <p class="old-belief">Code must be hand-written</p>
+        <p class="new-belief">What matters is maintainable code solving the right problem &mdash; not who or what typed it.</p>
+      </div>
+      <div class="belief-card reveal">
+        <p class="old-belief">Writing code is the core job</p>
+        <p class="new-belief">Shipping value is the job. Code is one input. Plans are the new code.</p>
+      </div>
+      <div class="belief-card reveal">
+        <p class="old-belief">Every line needs manual review</p>
+        <p class="new-belief">Automated systems can catch the same issues. Build safety nets, not review processes.</p>
+      </div>
+      <div class="belief-card reveal">
+        <p class="old-belief">Solutions must originate from the engineer</p>
+        <p class="new-belief">The engineer's role shifts to adding taste and context judgment. Extract your taste into the system.</p>
+      </div>
+      <div class="belief-card reveal">
+        <p class="old-belief">First attempts should be good</p>
+        <p class="new-belief">First attempts have a 95% garbage rate. Second attempts are still 50%. Iteration is the point.</p>
+      </div>
+      <div class="belief-card reveal">
+        <p class="old-belief">More typing = more learning</p>
+        <p class="new-belief">Reviewing 10 AI implementations teaches more patterns than hand-typing two.</p>
+      </div>
+    </div>
+
+    <div class="quote-block amber reveal" style="margin-top: 48px;">
+      <p>Claude Code opens 100 percent of my pull requests, and I haven't typed a function in weeks. It's turned me from a programmer into an engineering manager overnight.</p>
+      <span class="quote-attr">&mdash; Kieran Klaassen</span>
+    </div>
+
+    <div style="margin-top: 48px;">
+      <h3 style="font-family: var(--font-display); font-size: 20px; font-weight: 700; margin-bottom: 16px;" class="reveal">The 50/50 Rule</h3>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 640px; line-height: 1.7;" class="reveal">Traditional teams allocate 90% of time to features and 10% to everything else. Compound engineering flips this: <strong style="color: var(--text-primary);">50% building features, 50% improving the system</strong> &mdash; institutional knowledge, review agents, documentation. An hour spent creating a review agent saves ten hours of review over the next year.</p>
+    </div>
+  </section>
+
+  <!-- ====== THE 4-STEP LOOP ====== -->
+  <section id="loop">
+    <div class="section-label reveal" data-num="02">The Core Loop</div>
+    <h2 class="reveal">Plan &rarr; Work &rarr; Assess &rarr; Compound</h2>
+    <p class="section-desc reveal">80% of time goes to Plan + Assess. 20% goes to Work + Compound. The fourth step &mdash; Compound &mdash; is what separates this from ordinary AI-assisted development.</p>
+
+    <div class="loop-grid">
+      <div class="loop-card reveal">
+        <div class="loop-num">01</div>
+        <span class="loop-effort">~40% of effort</span>
+        <h3>Plan</h3>
+        <p>Agents research the codebase, commit history, and external best practices in parallel. Produces a written document covering objective, architecture, approach, and success criteria.</p>
+        <ul>
+          <li>Three parallel research agents: repo analyst, framework docs researcher, best practices researcher</li>
+          <li>Spec-flow-analyzer catches edge cases</li>
+          <li>Enable ultrathink to spawn 40+ parallel research agents</li>
+          <li>Builds a shared mental model between you and the agent</li>
+        </ul>
+      </div>
+
+      <div class="loop-card reveal">
+        <div class="loop-num">02</div>
+        <span class="loop-effort">~10% of effort</span>
+        <h3>Work</h3>
+        <p>Agent converts the plan into a to-do list and builds incrementally. MCP tools like Playwright let the agent use the app as it builds &mdash; writing code, walking through the UI, spotting issues.</p>
+        <ul>
+          <li>Git worktrees for isolated parallel development</li>
+          <li>Progress tracking with task completion status</li>
+          <li>Quality checks spawn 5+ reviewer agents automatically</li>
+          <li>Linting, type-checking, PR creation built in</li>
+        </ul>
+      </div>
+
+      <div class="loop-card reveal">
+        <div class="loop-num">03</div>
+        <span class="loop-effort">~40% of effort</span>
+        <h3>Assess</h3>
+        <p>14 specialized agents review in parallel, each checking from a different angle: security, performance, architecture, data integrity, code quality, deployment readiness.</p>
+        <ul>
+          <li>P1 (must fix), P2 (should fix), P3 (nice to fix) triage</li>
+          <li>Security sentinel checks OWASP top 10</li>
+          <li>Performance oracle catches N+1 queries</li>
+          <li>Code simplicity reviewer ensures minimalism</li>
+        </ul>
+      </div>
+
+      <div class="loop-card reveal">
+        <div class="loop-num">04</div>
+        <span class="loop-effort">~10% of effort</span>
+        <h3>Compound</h3>
+        <p>The money step. Learnings from any prior step get recorded for future agent use. Six parallel subagents extract, classify, and document solutions.</p>
+        <ul>
+          <li>Creates searchable markdown with YAML frontmatter</li>
+          <li>Updates CLAUDE.md with new patterns and rules</li>
+          <li>Knowledge auto-distributed to the whole team</li>
+          <li>Test: "Would the system catch this automatically next time?"</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="quote-block violet reveal" style="margin-top: 48px;">
+      <p>The plan and review steps should comprise 80 percent of an engineer's time.</p>
+      <span class="quote-attr">&mdash; Every.to guide on Compound Engineering</span>
+    </div>
+  </section>
+
+  <!-- ====== COMMANDS REFERENCE ====== -->
+  <section id="commands">
+    <div class="section-label reveal" data-num="03">Commands Reference</div>
+    <h2 class="reveal">22 Slash Commands</h2>
+    <p class="section-desc reveal">The plugin ships with workflow commands (prefixed <code style="color: var(--cyan);">workflows:</code> to avoid collisions) and utility commands for autonomous operation.</p>
+
+    <table class="cmd-table reveal">
+      <thead>
+        <tr>
+          <th>Command</th>
+          <th>Category</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="cmd-name">/workflows:brainstorm</td>
+          <td><span class="cmd-category core">Core Loop</span></td>
+          <td>Explore requirements and approaches before planning. Runs lightweight repo research, asks clarifying questions, proposes approaches.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/workflows:plan</td>
+          <td><span class="cmd-category core">Core Loop</span></td>
+          <td>Turn feature ideas into detailed implementation plans. Spawns three parallel research agents plus spec-flow-analyzer.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/workflows:work</td>
+          <td><span class="cmd-category core">Core Loop</span></td>
+          <td>Execute plans with git worktrees and task tracking. Four phases: quick start, execute, quality check, ship it.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/workflows:review</td>
+          <td><span class="cmd-category core">Core Loop</span></td>
+          <td>Multi-agent code review. Spawns 14 specialized agents in parallel checking security, performance, architecture, and more.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/workflows:compound</td>
+          <td><span class="cmd-category core">Core Loop</span></td>
+          <td>Document solved problems to compound team knowledge. Six parallel subagents extract and categorize learnings.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/lfg</td>
+          <td><span class="cmd-category auto">Autonomous</span></td>
+          <td>Full autonomous engineering workflow: plan &rarr; deepen-plan &rarr; work &rarr; review &rarr; resolve &rarr; browser tests &rarr; feature video &rarr; compound. Spawns 50+ agents.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/slfg</td>
+          <td><span class="cmd-category auto">Autonomous</span></td>
+          <td>Full autonomous workflow with swarm mode for parallel execution across multiple worktrees simultaneously.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/deepen-plan</td>
+          <td><span class="cmd-category auto">Autonomous</span></td>
+          <td>Enhance plans with parallel research agents for each section. Adds depth to existing plans.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/changelog</td>
+          <td><span class="cmd-category util">Utility</span></td>
+          <td>Create engaging changelogs for recent merges. Auto-generates from git history.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/triage</td>
+          <td><span class="cmd-category util">Utility</span></td>
+          <td>Triage and prioritize issues. Presents each finding for human decision: approve, skip, or customize priority.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/resolve_parallel</td>
+          <td><span class="cmd-category util">Utility</span></td>
+          <td>Resolve TODO comments in parallel across the codebase.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/resolve_pr_parallel</td>
+          <td><span class="cmd-category util">Utility</span></td>
+          <td>Resolve PR review comments in parallel. Addresses each comment and implements fixes.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/resolve_todo_parallel</td>
+          <td><span class="cmd-category util">Utility</span></td>
+          <td>Resolve todos in parallel, clearing technical debt efficiently.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/create-agent-skill</td>
+          <td><span class="cmd-category meta">Meta</span></td>
+          <td>Create or edit Claude Code skills interactively.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/generate_command</td>
+          <td><span class="cmd-category meta">Meta</span></td>
+          <td>Generate new slash commands from descriptions.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/heal-skill</td>
+          <td><span class="cmd-category meta">Meta</span></td>
+          <td>Fix skill documentation issues automatically.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/sync</td>
+          <td><span class="cmd-category meta">Meta</span></td>
+          <td>Sync Claude Code config across machines.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/test-browser</td>
+          <td><span class="cmd-category util">Utility</span></td>
+          <td>Run browser tests on PR-affected pages using agent-browser CLI.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/xcode-test</td>
+          <td><span class="cmd-category util">Utility</span></td>
+          <td>Build and test iOS apps on simulator.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/feature-video</td>
+          <td><span class="cmd-category util">Utility</span></td>
+          <td>Record video walkthroughs and add to PR description.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/reproduce-bug</td>
+          <td><span class="cmd-category util">Utility</span></td>
+          <td>Reproduce bugs using logs and console output.</td>
+        </tr>
+        <tr>
+          <td class="cmd-name">/report-bug</td>
+          <td><span class="cmd-category meta">Meta</span></td>
+          <td>Report a bug in the plugin itself.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ====== AGENTS & SKILLS ====== -->
+  <section id="agents">
+    <div class="section-label reveal" data-num="04">Skills &amp; Agents</div>
+    <h2 class="reveal">29 Agents, 19 Skills</h2>
+    <p class="section-desc reveal">Agents are specialized subagents spawned for specific tasks. Skills provide just-in-time context &mdash; injecting relevant documentation, patterns, or constraints only when needed, keeping context windows lean.</p>
+
+    <h3 style="font-family: var(--font-display); font-size: 20px; font-weight: 700; margin-bottom: 20px;" class="reveal">Agents by Category</h3>
+
+    <div class="agent-grid">
+      <div class="agent-card reveal">
+        <h4>Review Agents</h4>
+        <span class="agent-count">15 agents</span>
+        <p>Specialized code review from every angle, run in parallel during /workflows:review.</p>
+        <ul>
+          <li>security-sentinel &mdash; OWASP top 10 vulnerabilities</li>
+          <li>performance-oracle &mdash; N+1 queries, indexes, caching</li>
+          <li>architecture-strategist &mdash; architectural decisions</li>
+          <li>code-simplicity-reviewer &mdash; final pass for minimalism</li>
+          <li>data-integrity-guardian &mdash; migrations and data safety</li>
+          <li>kieran-rails-reviewer &mdash; Rails strict conventions</li>
+          <li>kieran-python-reviewer &mdash; Python strict conventions</li>
+          <li>kieran-typescript-reviewer &mdash; TypeScript conventions</li>
+          <li>dhh-rails-reviewer &mdash; DHH/37signals style</li>
+          <li>deployment-verification-agent &mdash; Go/No-Go checklists</li>
+        </ul>
+      </div>
+
+      <div class="agent-card reveal">
+        <h4>Research Agents</h4>
+        <span class="agent-count">5 agents</span>
+        <p>Gather information from the codebase, documentation, and external sources during the Plan phase.</p>
+        <ul>
+          <li>repo-research-analyst &mdash; repository structure</li>
+          <li>framework-docs-researcher &mdash; framework documentation</li>
+          <li>best-practices-researcher &mdash; industry standards</li>
+          <li>learnings-researcher &mdash; institutional knowledge</li>
+          <li>git-history-analyzer &mdash; code evolution</li>
+        </ul>
+      </div>
+
+      <div class="agent-card reveal">
+        <h4>Design Agents</h4>
+        <span class="agent-count">3 agents</span>
+        <p>Bridge the gap between design mockups and implementation.</p>
+        <ul>
+          <li>figma-design-sync &mdash; sync with Figma designs</li>
+          <li>design-iterator &mdash; iterative UI refinement</li>
+          <li>design-implementation-reviewer &mdash; verify UI vs mockup</li>
+        </ul>
+      </div>
+
+      <div class="agent-card reveal">
+        <h4>Workflow Agents</h4>
+        <span class="agent-count">5 agents</span>
+        <p>Automate recurring development tasks.</p>
+        <ul>
+          <li>bug-reproduction-validator &mdash; reproduce and validate bugs</li>
+          <li>pr-comment-resolver &mdash; address PR review comments</li>
+          <li>spec-flow-analyzer &mdash; find gaps in specifications</li>
+          <li>lint &mdash; linting for Ruby and ERB files</li>
+          <li>every-style-editor &mdash; enforce style guide compliance</li>
+        </ul>
+      </div>
+
+      <div class="agent-card reveal">
+        <h4>Docs Agent</h4>
+        <span class="agent-count">1 agent</span>
+        <p>Documentation generation following established patterns.</p>
+        <ul>
+          <li>ankane-readme-writer &mdash; Ankane-style READMEs for Ruby gems</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 style="font-family: var(--font-display); font-size: 20px; font-weight: 700; margin: 48px 0 20px;" class="reveal">Key Skills</h3>
+
+    <div class="agent-grid">
+      <div class="agent-card reveal">
+        <h4>Orchestration</h4>
+        <span class="agent-count">Multi-agent coordination</span>
+        <ul>
+          <li>orchestrating-swarms &mdash; comprehensive swarm guide</li>
+          <li>git-worktree &mdash; parallel development management</li>
+          <li>resolve-pr-parallel &mdash; parallel PR comment resolution</li>
+        </ul>
+      </div>
+
+      <div class="agent-card reveal">
+        <h4>Development</h4>
+        <span class="agent-count">Code patterns and style</span>
+        <ul>
+          <li>dhh-rails-style &mdash; DHH/37signals coding style</li>
+          <li>dspy-ruby &mdash; type-safe LLM apps with DSPy.rb</li>
+          <li>agent-native-architecture &mdash; prompt-native patterns</li>
+          <li>frontend-design &mdash; production-grade interfaces</li>
+        </ul>
+      </div>
+
+      <div class="agent-card reveal">
+        <h4>Content &amp; Tools</h4>
+        <span class="agent-count">Productivity and automation</span>
+        <ul>
+          <li>brainstorming &mdash; collaborative dialogue exploration</li>
+          <li>compound-docs &mdash; capture solved problems</li>
+          <li>skill-creator &mdash; guide for creating Claude Code skills</li>
+          <li>agent-browser &mdash; CLI browser automation</li>
+          <li>gemini-imagegen &mdash; image generation via Gemini</li>
+          <li>rclone &mdash; upload files to cloud storage</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="margin-top: 48px;">
+      <h3 style="font-family: var(--font-display); font-size: 20px; font-weight: 700; margin-bottom: 16px;" class="reveal">Plugin File Structure</h3>
+      <div class="file-tree reveal">
+        <span class="dir">your-project/</span><br>
+        &nbsp;&nbsp;<span class="important">CLAUDE.md</span> &mdash; agent instructions, preferences, patterns<br>
+        &nbsp;&nbsp;<span class="dir">docs/</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">brainstorms/</span> &mdash; /workflows:brainstorm output<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">solutions/</span> &mdash; /workflows:compound output<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">plans/</span> &mdash; /workflows:plan output<br>
+        &nbsp;&nbsp;<span class="dir">todos/</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">001-ready-p1-fix-auth.md</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">002-pending-p2-add-tests.md</span>
+      </div>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-top: 12px; max-width: 500px; line-height: 1.6;" class="reveal">CLAUDE.md is the most critical file &mdash; agents read it every session. docs/solutions/ builds searchable institutional knowledge that compounds over time.</p>
+    </div>
+  </section>
+
+  <!-- ====== CROSS-TOOL CONVERSION ====== -->
+  <section id="conversion">
+    <div class="section-label reveal" data-num="05">Cross-Tool</div>
+    <h2 class="reveal">Convert to Any Tool</h2>
+    <p class="section-desc reveal">The plugin includes an experimental Bun/TypeScript CLI that converts Claude Code plugins to other agentic coding tool formats. Write once, run everywhere.</p>
+
+    <div class="convert-grid reveal">
+      <div class="convert-chip">
+        <span class="convert-flag">--to cursor</span>
+        Cursor
+      </div>
+      <div class="convert-chip">
+        <span class="convert-flag">--to opencode</span>
+        OpenCode
+      </div>
+      <div class="convert-chip">
+        <span class="convert-flag">--to codex</span>
+        Codex
+      </div>
+      <div class="convert-chip">
+        <span class="convert-flag">--to copilot</span>
+        GitHub Copilot
+      </div>
+      <div class="convert-chip">
+        <span class="convert-flag">--to gemini</span>
+        Gemini CLI
+      </div>
+      <div class="convert-chip">
+        <span class="convert-flag">--to kiro</span>
+        Kiro CLI
+      </div>
+      <div class="convert-chip">
+        <span class="convert-flag">--to droid</span>
+        Factory Droid
+      </div>
+      <div class="convert-chip">
+        <span class="convert-flag">--to pi</span>
+        Pi
+      </div>
+    </div>
+
+    <div style="margin-top: 32px;" class="reveal">
+      <div class="install-block">
+        <h4>How Conversion Works</h4>
+        <div class="code-block">
+          <span class="comment"># Install to Cursor format</span><br>
+          bunx @every-env/compound-plugin install compound-engineering --to cursor<br><br>
+          <span class="comment"># Sync personal config to other tools</span><br>
+          bunx @every-env/compound-plugin sync --target opencode
+        </div>
+        <p>Agents become tool-specific rules files. Commands become tool-specific command formats. Skills are symlinked (not copied). MCP servers are translated to each tool's configuration schema. Personal skills from ~/.claude/skills/ are synced as symlinks for consistency.</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;" class="reveal">
+      <div class="agent-card">
+        <h4>Cursor Output</h4>
+        <span class="agent-count">.cursor/ directory</span>
+        <ul>
+          <li>Agents &rarr; .cursor/rules/.mdc (Agent Requested mode)</li>
+          <li>Commands &rarr; .cursor/commands/.md</li>
+          <li>Skills &rarr; .cursor/skills/ (identical standard)</li>
+          <li>MCP servers &rarr; .cursor/mcp.json</li>
+        </ul>
+      </div>
+      <div class="agent-card">
+        <h4>Copilot Output</h4>
+        <span class="agent-count">.github/ directory</span>
+        <ul>
+          <li>Agents get frontmatter with tools: ["*"]</li>
+          <li>MCP env vars prefixed COPILOT_MCP_</li>
+          <li>infer: true enabled for all agents</li>
+        </ul>
+      </div>
+      <div class="agent-card">
+        <h4>Gemini Output</h4>
+        <span class="agent-count">.gemini/ directory</span>
+        <ul>
+          <li>Namespaced commands become directory structure</li>
+          <li>workflows:plan &rarr; commands/workflows/plan.toml</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== INSTALLATION ====== -->
+  <section id="install">
+    <div class="section-label reveal" data-num="06">Getting Started</div>
+    <h2 class="reveal">Installation &amp; Setup</h2>
+    <p class="section-desc reveal">Install the plugin in Claude Code, then start using the compound loop immediately. The bundled Context7 MCP server provides framework documentation lookup.</p>
+
+    <div class="install-block reveal">
+      <h4>Claude Code (Primary)</h4>
+      <div class="code-block">
+        <span class="comment"># Add the marketplace and install the plugin</span><br>
+        /plugin marketplace add https://github.com/EveryInc/compound-engineering-plugin<br>
+        /plugin install compound-engineering
+      </div>
+    </div>
+
+    <div class="install-block reveal">
+      <h4>Cursor</h4>
+      <div class="code-block">
+        <span class="comment"># Use the Cursor-specific install command</span><br>
+        /add-plugin compound-engineering
+      </div>
+    </div>
+
+    <div class="install-block reveal">
+      <h4>Other Tools (via CLI conversion)</h4>
+      <div class="code-block">
+        <span class="comment"># OpenCode</span><br>
+        bunx @every-env/compound-plugin install compound-engineering --to opencode<br><br>
+        <span class="comment"># Codex</span><br>
+        bunx @every-env/compound-plugin install compound-engineering --to codex<br><br>
+        <span class="comment"># GitHub Copilot</span><br>
+        bunx @every-env/compound-plugin install compound-engineering --to copilot
+      </div>
+    </div>
+
+    <div class="install-block reveal">
+      <h4>Context7 MCP Server (if not auto-loading)</h4>
+      <div class="code-block">
+        <span class="comment"># Add to .claude/settings.json or ~/.claude/settings.json</span><br>
+        {<br>
+        &nbsp;&nbsp;"mcpServers": {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;"context7": {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"type": "http",<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"url": "https://mcp.context7.com/mcp"<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+        &nbsp;&nbsp;}<br>
+        }
+      </div>
+      <p>The Context7 MCP server provides framework documentation lookup for 100+ frameworks including Rails, React, Next.js, Vue, Django, and Laravel.</p>
+    </div>
+
+    <div class="install-block reveal">
+      <h4>Browser Automation (Optional)</h4>
+      <div class="code-block">
+        <span class="comment"># Install agent-browser for /test-browser and /feature-video</span><br>
+        npm install -g agent-browser<br>
+        agent-browser install <span class="comment"># Downloads Chromium</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== EXAMPLE WORKFLOW ====== -->
+  <section id="workflow">
+    <div class="section-label reveal" data-num="07">In Practice</div>
+    <h2 class="reveal">Example Workflow</h2>
+    <p class="section-desc reveal">A real session walkthrough using the /lfg command &mdash; from idea to production-ready PR with 50+ agents.</p>
+
+    <div class="workflow-steps">
+      <div class="wf-step reveal">
+        <div class="wf-step-num">01</div>
+        <div>
+          <h4>Kick Off</h4>
+          <p>You describe your feature in plain language. The /lfg command takes over, starting the full compound loop autonomously.</p>
+          <span class="wf-cmd">/lfg Add user notifications for comment replies</span>
+        </div>
+      </div>
+      <div class="wf-step reveal">
+        <div class="wf-step-num">02</div>
+        <div>
+          <h4>Research Phase</h4>
+          <p>Three parallel agents research your codebase, framework documentation, and industry best practices. They produce a detailed implementation plan covering architecture, affected files, and success criteria.</p>
+          <span class="wf-cmd">/workflows:plan (auto-triggered)</span>
+        </div>
+      </div>
+      <div class="wf-step reveal">
+        <div class="wf-step-num">03</div>
+        <div>
+          <h4>Plan Deepening</h4>
+          <p>Additional research agents enrich each section of the plan with parallel research. The system pauses here for your approval before proceeding.</p>
+          <span class="wf-cmd">/deepen-plan (auto-triggered)</span>
+        </div>
+      </div>
+      <div class="wf-step reveal">
+        <div class="wf-step-num">04</div>
+        <div>
+          <h4>Implementation</h4>
+          <p>Agent sets up a git worktree, creates a branch, and implements the plan step by step. It writes code, runs tests, and iterates on failures. MCP tools let it navigate the UI to verify its work.</p>
+          <span class="wf-cmd">/workflows:work (auto-triggered)</span>
+        </div>
+      </div>
+      <div class="wf-step reveal">
+        <div class="wf-step-num">05</div>
+        <div>
+          <h4>Multi-Agent Review</h4>
+          <p>14 specialized review agents analyze the code in parallel: security sentinel, performance oracle, architecture strategist, code simplicity reviewer, and more. Findings are triaged into P1/P2/P3 priorities.</p>
+          <span class="wf-cmd">/workflows:review (auto-triggered)</span>
+        </div>
+      </div>
+      <div class="wf-step reveal">
+        <div class="wf-step-num">06</div>
+        <div>
+          <h4>Fix &amp; Verify</h4>
+          <p>Issues found during review are resolved automatically. Browser tests validate the feature works end-to-end. A feature video is recorded and attached to the PR description.</p>
+          <span class="wf-cmd">/resolve_parallel + /test-browser + /feature-video</span>
+        </div>
+      </div>
+      <div class="wf-step reveal">
+        <div class="wf-step-num">07</div>
+        <div>
+          <h4>Compound</h4>
+          <p>Six parallel subagents extract learnings: what worked, what patterns emerged, what should be documented. Results are written to docs/solutions/ and CLAUDE.md is updated. Next time, the system knows more.</p>
+          <span class="wf-cmd">/workflows:compound (auto-triggered)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="quote-block reveal" style="margin-top: 48px;">
+      <p>Features that took a week to code ship in an afternoon of thoughtful delegation.</p>
+      <span class="quote-attr">&mdash; Kieran Klaassen</span>
+    </div>
+  </section>
+
+  <!-- ====== ADOPTION STAGES ====== -->
+  <section id="stages">
+    <div class="section-label reveal" data-num="08">Adoption</div>
+    <h2 class="reveal">Five Stages of Compound Engineering</h2>
+    <p class="section-desc reveal">Skipping stages doesn't work &mdash; each builds the mental models required for the next.</p>
+
+    <div class="stages-track reveal">
+      <div class="stage-card">
+        <div class="stage-num">0</div>
+        <h4>Manual</h4>
+        <p>Line-by-line, no AI. Traditional development.</p>
+      </div>
+      <div class="stage-card">
+        <div class="stage-num">1</div>
+        <h4>Chat-Based</h4>
+        <p>Copy-paste snippets, full control, you type everything.</p>
+      </div>
+      <div class="stage-card">
+        <div class="stage-num">2</div>
+        <h4>Agentic + Review</h4>
+        <p>AI modifies files, you approve each action line-by-line.</p>
+      </div>
+      <div class="stage-card active">
+        <div class="stage-num">3</div>
+        <h4>Plan-First</h4>
+        <p>Step away during implementation. Review the final PR, not each line.</p>
+      </div>
+      <div class="stage-card">
+        <div class="stage-num">4</div>
+        <h4>Idea to PR</h4>
+        <p>Agent handles everything on a single machine. You ideate, review, merge.</p>
+      </div>
+      <div class="stage-card">
+        <div class="stage-num">5</div>
+        <h4>Parallel Cloud</h4>
+        <p>Multiple agents, multiple features, from anywhere. Full swarm mode.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== THREE QUESTIONS ====== -->
+  <section>
+    <div class="section-label reveal" data-num="09">Quality Control</div>
+    <h2 class="reveal">Three Questions for Any AI Output</h2>
+    <p class="section-desc reveal">Ask these of every plan and implementation to surface hidden issues.</p>
+
+    <div class="principles-list">
+      <div class="principle reveal">
+        <div class="principle-num">01</div>
+        <div>
+          <h4>"What was the hardest decision you made here?"</h4>
+          <p>Surfaces tricky tradeoffs the agent navigated. If the answer is "nothing was hard," the agent likely missed something.</p>
+        </div>
+      </div>
+      <div class="principle reveal">
+        <div class="principle-num">02</div>
+        <div>
+          <h4>"What alternatives did you reject, and why?"</h4>
+          <p>Reveals the option space the agent considered. Ensures the chosen path was deliberate, not default.</p>
+        </div>
+      </div>
+      <div class="principle reveal">
+        <div class="principle-num">03</div>
+        <div>
+          <h4>"What are you least confident about?"</h4>
+          <p>Gets the AI to flag its own weaknesses. The areas of lowest confidence are where human review matters most.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== KEY QUOTES ====== -->
+  <section>
+    <div class="section-label reveal" data-num="10">Key Quotes</div>
+    <h2 class="reveal">In Their Words</h2>
+
+    <div class="quote-block reveal">
+      <p>A system that produces code is more valuable than any individual piece of code.</p>
+      <span class="quote-attr">&mdash; Every.to guide on Compound Engineering</span>
+    </div>
+
+    <div class="quote-block amber reveal">
+      <p>You have to unlearn coding. Stop thinking in terms of files and functions.</p>
+      <span class="quote-attr">&mdash; Kieran Klaassen</span>
+    </div>
+
+    <div class="quote-block violet reveal">
+      <p>Ship more value. Type less code.</p>
+      <span class="quote-attr">&mdash; Core principle of Compound Engineering</span>
+    </div>
+
+    <div class="quote-block reveal">
+      <p>Plans are the new code.</p>
+      <span class="quote-attr">&mdash; Every.to guide on Compound Engineering</span>
+    </div>
+
+    <div class="quote-block amber reveal">
+      <p>You want to remove yourself as a micromanager of your own code.</p>
+      <span class="quote-attr">&mdash; Kieran Klaassen</span>
+    </div>
+
+    <div class="quote-block violet reveal">
+      <p>Not shocking but an extremely effective way to convert these intuited best-practices into something specific, concrete, and largely automatic.</p>
+      <span class="quote-attr">&mdash; Will Larson (lethain.com), on adopting Compound Engineering</span>
+    </div>
+  </section>
+
+  <!-- ====== LINKS & RESOURCES ====== -->
+  <section id="resources">
+    <div class="section-label reveal" data-num="11">Resources</div>
+    <h2 class="reveal">Links &amp; Resources</h2>
+    <p class="section-desc reveal">Primary sources, documentation, and community content around Compound Engineering.</p>
+
+    <div class="links-grid">
+      <a href="https://github.com/EveryInc/compound-engineering-plugin" class="link-card reveal" target="_blank" rel="noopener">
+        <span class="link-type">GitHub</span>
+        <h4>compound-engineering-plugin</h4>
+        <p>The open-source plugin repository. 9.6K stars, 756 forks, 32 contributors. MIT license.</p>
+      </a>
+      <a href="https://every.to/chain-of-thought/compound-engineering-how-every-codes-with-agents" class="link-card reveal" target="_blank" rel="noopener">
+        <span class="link-type">Article</span>
+        <h4>Compound Engineering: How Every Codes With Agents</h4>
+        <p>The original article by Dan Shipper introducing the methodology and how Every uses it internally.</p>
+      </a>
+      <a href="https://every.to/guides/compound-engineering" class="link-card reveal" target="_blank" rel="noopener">
+        <span class="link-type">Guide</span>
+        <h4>Every.to Compound Engineering Guide</h4>
+        <p>Comprehensive guide covering the loop, beliefs, stages of adoption, best practices, and the plugin reference.</p>
+      </a>
+      <a href="https://creatoreconomy.so/p/how-to-make-claude-code-better-every-time-kieran-klaassen" class="link-card reveal" target="_blank" rel="noopener">
+        <span class="link-type">Article</span>
+        <h4>How to Make Claude Code Better Every Time You Use It</h4>
+        <p>Peter Yang interviews Kieran Klaassen about the full compound engineering system.</p>
+      </a>
+      <a href="https://www.youtube.com/watch?v=g6z_4TMDiaE" class="link-card reveal" target="_blank" rel="noopener">
+        <span class="link-type">YouTube</span>
+        <h4>50-Minute Tutorial with Kieran Klaassen</h4>
+        <p>Full video walkthrough: the compound loop, live demos, skills, Playwright MCP, and the /lfg command.</p>
+      </a>
+      <a href="https://every.to/source-code/how-i-use-claude-code-to-ship-like-a-team-of-five" class="link-card reveal" target="_blank" rel="noopener">
+        <span class="link-type">Article</span>
+        <h4>How I Use Claude Code to Ship Like a Team of Five</h4>
+        <p>Kieran's original article on his workflow: 4+ parallel agents, git worktrees, 100% AI-written PRs.</p>
+      </a>
+      <a href="https://lethain.com/everyinc-compound-engineering/" class="link-card reveal" target="_blank" rel="noopener">
+        <span class="link-type">Analysis</span>
+        <h4>Learning from Every's Compound Engineering</h4>
+        <p>Will Larson's independent analysis. "Not shocking but extremely effective." Implementation took roughly an hour.</p>
+      </a>
+      <a href="https://creatoreconomy.so/p/full-tutorial-build-an-app-with-multiple" class="link-card reveal" target="_blank" rel="noopener">
+        <span class="link-type">Tutorial</span>
+        <h4>Build an App with Multiple AI Agents</h4>
+        <p>Full tutorial on building with Claude Code's multi-agent capabilities and the compound engineering plugin.</p>
+      </a>
+    </div>
+  </section>
+
+  <footer>
+    <p><a href="index.html">&larr; Back to All AI Stacks</a> &middot; Compiled from 15+ sources &middot; February 2026</p>
+  </footer>
+
+</main>
+
+<script>
+// ============================================================
+// SCROLL REVEAL
+// ============================================================
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+</script>
+
+</body>
+</html>
