@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GLM-5: The Open-Source Model That Fooled Everyone</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@0;1&display=swap');
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep: #06080f;
+  --bg-primary: #0a0e1a;
+  --bg-card: #0f1424;
+  --bg-card-hover: #141a2e;
+  --bg-surface: #1a2138;
+  --border: #1e2744;
+  --border-bright: #2a3558;
+  --text-primary: #e8eaf0;
+  --text-secondary: #8b93a8;
+  --text-muted: #5a6380;
+  --teal: #00e5c7;
+  --teal-dim: #00b89e;
+  --teal-glow: rgba(0, 229, 199, 0.15);
+  --teal-glow-strong: rgba(0, 229, 199, 0.3);
+  --orange: #ff6b35;
+  --orange-dim: #cc5529;
+  --orange-glow: rgba(255, 107, 53, 0.15);
+  --cyan: #38bdf8;
+  --purple: #a78bfa;
+  --pink: #f472b6;
+  --green: #4ade80;
+  --red: #ef4444;
+  --yellow: #fbbf24;
+  --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  --sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --serif: 'Instrument Serif', Georgia, serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-bright) var(--bg-deep);
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  line-height: 1.7;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--teal);
+  color: var(--bg-deep);
+}
+
+/* ═══════════════ NAV ═══════════════ */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(6, 8, 15, 0.85);
+  backdrop-filter: blur(20px) saturate(1.5);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+}
+
+nav .nav-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 52px;
+  overflow-x: auto;
+}
+
+nav a {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+nav a:hover {
+  color: var(--teal);
+  background: var(--teal-glow);
+}
+
+nav .nav-logo {
+  font-weight: 800;
+  font-size: 0.8rem;
+  color: var(--teal);
+  margin-right: 1.5rem;
+  letter-spacing: 0.08em;
+}
+
+/* ═══════════════ GLOBAL ═══════════════ */
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+section {
+  padding: 5rem 0;
+  position: relative;
+}
+
+section + section {
+  border-top: 1px solid var(--border);
+}
+
+.section-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-label::before {
+  content: '';
+  width: 12px;
+  height: 1px;
+  background: var(--teal);
+}
+
+h2 {
+  font-family: var(--sans);
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+h3 {
+  font-family: var(--sans);
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
+}
+
+p.desc {
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  max-width: 680px;
+  line-height: 1.75;
+}
+
+.accent { color: var(--teal); }
+.accent-orange { color: var(--orange); }
+.accent-purple { color: var(--purple); }
+.accent-cyan { color: var(--cyan); }
+.dim { color: var(--text-muted); }
+.mono { font-family: var(--mono); }
+
+/* ═══════════════ HERO ═══════════════ */
+#hero {
+  padding: 6rem 0 5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+#hero::before {
+  content: '';
+  position: absolute;
+  top: -200px;
+  right: -200px;
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, var(--teal-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+#hero::after {
+  content: '';
+  position: absolute;
+  bottom: -100px;
+  left: -100px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, var(--orange-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--orange);
+  background: var(--orange-glow);
+  border: 1px solid rgba(255, 107, 53, 0.25);
+  padding: 0.35rem 0.9rem;
+  border-radius: 20px;
+  margin-bottom: 1.5rem;
+}
+
+.hero-title {
+  font-family: var(--sans);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  margin-bottom: 1.25rem;
+  max-width: 900px;
+}
+
+.hero-title .teal { color: var(--teal); }
+
+.hero-subtitle {
+  font-size: 1.15rem;
+  color: var(--text-secondary);
+  max-width: 720px;
+  line-height: 1.7;
+  margin-bottom: 2.5rem;
+}
+
+.hero-subtitle em {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--text-primary);
+  font-size: 1.2em;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 800px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  padding: 1.25rem 1.5rem;
+  transition: background 0.2s;
+}
+
+.stat-card:hover { background: var(--bg-card-hover); }
+
+.stat-number {
+  font-family: var(--mono);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--teal);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 0.25rem;
+}
+
+.stat-detail {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.3rem;
+}
+
+/* ═══════════════ EVOLUTION ═══════════════ */
+.evolution-track {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  align-items: stretch;
+  gap: 0;
+  margin-top: 2rem;
+}
+
+.evo-stage {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.75rem;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.evo-stage:hover {
+  border-color: var(--border-bright);
+  background: var(--bg-card-hover);
+}
+
+.evo-stage .stage-era {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.evo-stage .stage-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.evo-stage .stage-desc {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.evo-stage .stage-example {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--bg-deep);
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  margin-top: 0.75rem;
+  border-left: 2px solid var(--border);
+}
+
+.evo-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.75rem;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+}
+
+.stage-past .stage-era { color: var(--text-muted); }
+.stage-present .stage-era { color: var(--orange); }
+.stage-future { border-color: var(--teal-glow-strong); }
+.stage-future .stage-era { color: var(--teal); }
+.stage-future .stage-title { color: var(--teal); }
+
+/* ═══════════════ DSA ═══════════════ */
+.dsa-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.dsa-concept {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2rem;
+}
+
+.dsa-concept h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dsa-concept .analogy {
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--orange);
+  border-radius: 4px;
+  padding: 1rem 1.25rem;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.dsa-concept .analogy .label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--orange);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.4rem;
+}
+
+.dsa-stages {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.dsa-stage {
+  background: var(--bg-card);
+  padding: 1.5rem;
+}
+
+.dsa-stage:hover { background: var(--bg-card-hover); }
+
+.dsa-stage .stage-num {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--teal);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.dsa-stage h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.dsa-stage p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.dsa-keystat {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  background: linear-gradient(135deg, rgba(0, 229, 199, 0.06) 0%, rgba(0, 229, 199, 0.02) 100%);
+  border: 1px solid rgba(0, 229, 199, 0.2);
+  border-radius: 8px;
+  padding: 1.25rem 1.75rem;
+}
+
+.dsa-keystat .big-num {
+  font-family: var(--mono);
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--teal);
+  white-space: nowrap;
+}
+
+.dsa-keystat .context {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ═══════════════ ATTENTION VISUAL ═══════════════ */
+.attention-visual {
+  display: grid;
+  grid-template-columns: 1fr 60px 1fr;
+  align-items: center;
+  gap: 0;
+  margin: 2rem 0;
+}
+
+.attn-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.attn-box .attn-title {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.attn-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+  margin: 0 auto;
+  max-width: 240px;
+}
+
+.attn-cell {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+
+.attn-full .attn-cell { background: var(--teal); opacity: 0.6; }
+.attn-full .attn-cell:nth-child(odd) { opacity: 0.4; }
+
+.attn-sparse .attn-cell { background: var(--border); opacity: 0.2; }
+.attn-sparse .attn-cell.active { background: var(--teal); opacity: 0.8; }
+
+.attn-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+}
+
+.attn-label {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.75rem;
+}
+
+.cost-tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  margin-top: 0.5rem;
+}
+
+.cost-bad {
+  color: var(--red);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.cost-good {
+  color: var(--green);
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+/* ═══════════════ PIPELINE ═══════════════ */
+.pipeline {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.pipeline-stage {
+  background: var(--bg-card);
+  padding: 1.5rem;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.pipeline-stage:hover { background: var(--bg-card-hover); }
+
+.pipeline-stage::after {
+  content: '→';
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  z-index: 1;
+}
+
+.pipeline-stage:last-child::after { display: none; }
+
+.pipeline-stage .p-num {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.pipeline-stage h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.pipeline-stage .p-stat {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--teal);
+  margin-bottom: 0.5rem;
+}
+
+.pipeline-stage p {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.rl-deep-dive {
+  margin-top: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.rl-card {
+  background: var(--bg-card);
+  padding: 1.25rem;
+  transition: background 0.2s;
+}
+
+.rl-card:hover { background: var(--bg-card-hover); }
+
+.rl-card .rl-icon {
+  font-size: 1.3rem;
+  margin-bottom: 0.5rem;
+}
+
+.rl-card h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.rl-card p {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.rl-card .reward {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--green);
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.15);
+  padding: 0.3rem 0.5rem;
+  border-radius: 3px;
+  margin-top: 0.5rem;
+  display: inline-block;
+}
+
+/* ═══════════════ BENCHMARKS ═══════════════ */
+.bench-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 2rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bench-table thead th {
+  background: var(--bg-surface);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0.8rem 1rem;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.bench-table thead th:first-child {
+  text-align: left;
+}
+
+.bench-table thead th.glm-col {
+  color: var(--teal);
+  background: rgba(0, 229, 199, 0.05);
+}
+
+.bench-table tbody td {
+  padding: 0.7rem 1rem;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.bench-table tbody td:first-child {
+  text-align: left;
+  font-family: var(--sans);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.bench-table tbody tr:last-child td { border-bottom: none; }
+
+.bench-table tbody tr:hover td { background: var(--bg-card-hover); }
+
+.bench-table td.glm-col {
+  color: var(--teal);
+  font-weight: 600;
+  background: rgba(0, 229, 199, 0.03);
+}
+
+.bench-table td.best {
+  position: relative;
+}
+
+.bench-table td.best::after {
+  content: '●';
+  color: var(--teal);
+  font-size: 0.5rem;
+  margin-left: 0.3rem;
+  vertical-align: super;
+}
+
+.bench-category {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--bg-deep);
+  padding: 0.5rem 1rem;
+}
+
+.bench-category td {
+  background: var(--bg-deep) !important;
+  color: var(--text-muted) !important;
+  font-family: var(--mono) !important;
+  font-size: 0.6rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  text-align: left !important;
+  padding: 0.5rem 1rem !important;
+}
+
+.bench-note {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* ═══════════════ PONY ALPHA ═══════════════ */
+.pony-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.pony-timeline {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.75rem;
+}
+
+.timeline-event {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  position: relative;
+}
+
+.timeline-event + .timeline-event {
+  border-top: 1px solid var(--border);
+}
+
+.timeline-event .te-time {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding-top: 0.15rem;
+}
+
+.timeline-event .te-content {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.timeline-event .te-content strong {
+  color: var(--text-primary);
+}
+
+.timeline-event.reveal .te-content {
+  color: var(--teal);
+  font-weight: 600;
+}
+
+.pony-guesses {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.75rem;
+}
+
+.pony-guesses h3 { margin-bottom: 1.25rem; }
+
+.guess-bar {
+  margin-bottom: 0.75rem;
+}
+
+.guess-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  margin-bottom: 0.3rem;
+}
+
+.guess-label .name { color: var(--text-secondary); }
+.guess-label .pct { font-family: var(--mono); font-size: 0.8rem; color: var(--text-muted); }
+
+.guess-track {
+  height: 24px;
+  background: var(--bg-deep);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.guess-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s ease;
+}
+
+.guess-claude .guess-fill { background: linear-gradient(90deg, #a78bfa, #7c3aed); }
+.guess-deepseek .guess-fill { background: linear-gradient(90deg, #38bdf8, #0284c7); }
+.guess-grok .guess-fill { background: linear-gradient(90deg, #f472b6, #db2777); }
+.guess-glm .guess-fill { background: linear-gradient(90deg, var(--teal-dim), var(--teal)); }
+.guess-other .guess-fill { background: linear-gradient(90deg, var(--text-muted), #5a6380); }
+
+.pony-quote {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, rgba(0, 229, 199, 0.05) 0%, rgba(255, 107, 53, 0.03) 100%);
+  border: 1px solid rgba(0, 229, 199, 0.15);
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  text-align: center;
+}
+
+.pony-quote .attribution {
+  font-family: var(--mono);
+  font-style: normal;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+/* ═══════════════ WHY IT MATTERS ═══════════════ */
+.impact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.impact-card {
+  background: var(--bg-card);
+  padding: 1.75rem;
+  transition: background 0.2s;
+}
+
+.impact-card:hover { background: var(--bg-card-hover); }
+
+.impact-card .ic-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.impact-card h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.impact-card p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.impact-card .chip {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  margin-top: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.chip-teal {
+  color: var(--teal);
+  background: var(--teal-glow);
+  border: 1px solid rgba(0, 229, 199, 0.2);
+}
+
+.chip-orange {
+  color: var(--orange);
+  background: var(--orange-glow);
+  border: 1px solid rgba(255, 107, 53, 0.2);
+}
+
+/* ═══════════════ FOOTER ═══════════════ */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 2rem 0;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+footer a {
+  color: var(--teal);
+  text-decoration: none;
+}
+
+/* ═══════════════ RESPONSIVE ═══════════════ */
+@media (max-width: 900px) {
+  .evolution-track {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  .evo-arrow { display: none; }
+  .dsa-grid { grid-template-columns: 1fr; }
+  .dsa-stages { grid-template-columns: 1fr; }
+  .pipeline { grid-template-columns: repeat(2, 1fr); }
+  .pipeline-stage::after { display: none; }
+  .pony-grid { grid-template-columns: 1fr; }
+  .impact-grid { grid-template-columns: 1fr; }
+  .bench-table { font-size: 0.75rem; }
+  .rl-deep-dive { grid-template-columns: 1fr; }
+  .attention-visual { grid-template-columns: 1fr; gap: 1rem; }
+  .attn-arrow { transform: rotate(90deg); }
+}
+
+/* ═══════════════ ANIMATIONS ═══════════════ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-badge { animation: fadeUp 0.6s ease both; }
+.hero-title { animation: fadeUp 0.6s ease 0.1s both; }
+.hero-subtitle { animation: fadeUp 0.6s ease 0.2s both; }
+.stat-grid { animation: fadeUp 0.6s ease 0.35s both; }
+</style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo" style="color: var(--text-muted); font-weight: 500; margin-right: 0.5rem;">&larr; Home</a>
+    <a href="#hero" class="nav-logo">GLM-5</a>
+    <a href="#evolution">Thesis</a>
+    <a href="#dsa">Architecture</a>
+    <a href="#pipeline">Training</a>
+    <a href="#benchmarks">Benchmarks</a>
+    <a href="#pony">Pony Alpha</a>
+    <a href="#impact">Why It Matters</a>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section id="hero">
+  <div class="container">
+    <div class="hero-badge">&#9670; arXiv 2602.15763v2 &mdash; Feb 2026</div>
+    <h1 class="hero-title">
+      The Open-Source Model<br>That <span class="teal">Fooled Everyone</span>
+    </h1>
+    <p class="hero-subtitle">
+      Zhipu AI released a 744B parameter model anonymously on OpenRouter as <em>&ldquo;Pony Alpha.&rdquo;</em>
+      The community thought it was Claude Sonnet 5, DeepSeek, or Grok.
+      It was a Chinese open-source model all along.
+    </p>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-number">744B</div>
+        <div class="stat-label">Total Parameters</div>
+        <div class="stat-detail">Mixture-of-Experts architecture</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">40B</div>
+        <div class="stat-label">Active Per Token</div>
+        <div class="stat-detail">256 experts, 8 routed per token</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">1M+</div>
+        <div class="stat-label">Context Window</div>
+        <div class="stat-detail">Via Dynamic Sparse Attention</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">14.5T</div>
+        <div class="stat-label">Training Tokens</div>
+        <div class="stat-detail">Multi-stage training pipeline</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ EVOLUTION ═══ -->
+<section id="evolution">
+  <div class="container">
+    <div class="section-label">The Big Idea</div>
+    <h2>From Vibe Coding to <span class="accent">Agentic Engineering</span></h2>
+    <p class="desc">
+      GLM-5&rsquo;s core thesis: most models can generate code snippets. That&rsquo;s &ldquo;vibe coding.&rdquo;
+      GLM-5 is trained to be a full engineer &mdash; it navigates codebases, uses tools, plans multi-step work, runs tests, and iterates on failures.
+      Think of it as the difference between someone who can write a SQL query vs. someone who can design and operate your entire data pipeline.
+    </p>
+
+    <div class="evolution-track">
+      <div class="evo-stage stage-past">
+        <div class="stage-era">2023&ndash;2024</div>
+        <div class="stage-title">Code Completion</div>
+        <div class="stage-desc">Model autocompletes the next line. Useful, but you&rsquo;re the driver.</div>
+        <div class="stage-example">&gt; def sort_list(arr):&crarr;<br>&nbsp;&nbsp;return sorted(arr) &check;</div>
+      </div>
+      <div class="evo-arrow">&rarr;</div>
+      <div class="evo-stage stage-present">
+        <div class="stage-era">2025</div>
+        <div class="stage-title">Vibe Coding</div>
+        <div class="stage-desc">Model generates entire functions/files from descriptions. You review and paste.</div>
+        <div class="stage-example">&gt; "write a FastAPI endpoint that&hellip;"<br>&nbsp;&nbsp;&#x2192; 40 lines of working code</div>
+      </div>
+      <div class="evo-arrow">&rarr;</div>
+      <div class="evo-stage stage-future">
+        <div class="stage-era">2026 &mdash; GLM-5</div>
+        <div class="stage-title">Agentic Engineering</div>
+        <div class="stage-desc">Model autonomously navigates repos, reads tests, edits files, runs builds, and iterates until the task is done. You review the PR.</div>
+        <div class="stage-example">&gt; "fix the flaky test in auth module"<br>&nbsp;&nbsp;&#x2192; reads 12 files, edits 3, runs CI &check;</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ DSA ═══ -->
+<section id="dsa">
+  <div class="container">
+    <div class="section-label">Key Innovation</div>
+    <h2>Dynamic Sparse Attention</h2>
+    <p class="desc">
+      Standard transformers attend to <strong>every token</strong> in the context &mdash; that&rsquo;s O(n&sup2;) compute.
+      At 1M tokens, that&rsquo;s a trillion attention operations. GLM-5 adds an <strong>indexer</strong> that learns which tokens matter for each query and only attends to those.
+    </p>
+
+    <!-- Visual: Full vs Sparse Attention -->
+    <div class="attention-visual">
+      <div class="attn-box">
+        <div class="attn-title" style="color: var(--red);">Standard: Full Attention</div>
+        <div class="attn-grid attn-full">
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+        </div>
+        <div class="attn-label">Every token attends to every other token</div>
+        <div class="cost-tag cost-bad">O(n&sup2;) &mdash; 1M tokens = disaster</div>
+      </div>
+      <div class="attn-arrow">&rarr;</div>
+      <div class="attn-box">
+        <div class="attn-title" style="color: var(--teal);">GLM-5: Sparse Attention (DSA)</div>
+        <div class="attn-grid attn-sparse">
+          <div class="attn-cell active"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell active"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell active"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell active"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell active"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell active"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell active"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell active"></div>
+          <div class="attn-cell active"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell active"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell active"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell active"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell active"></div><div class="attn-cell"></div><div class="attn-cell active"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell active"></div>
+          <div class="attn-cell active"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell active"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell active"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell active"></div><div class="attn-cell"></div><div class="attn-cell active"></div>
+        </div>
+        <div class="attn-label">Indexer selects only the tokens that matter</div>
+        <div class="cost-tag cost-good">O(n &middot; k) &mdash; 1M tokens = fine</div>
+      </div>
+    </div>
+
+    <div class="dsa-grid">
+      <div class="dsa-concept">
+        <h3><span class="accent">&#9679;</span> The Database Analogy</h3>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+          Standard attention is like running <code style="color:var(--orange);font-family:var(--mono);font-size:0.85em;">SELECT * FROM tokens</code> on every query &mdash; full table scan, every time. DSA adds a <strong>B-tree index</strong>: 32 extra attention heads that score which KV cache entries are worth reading. At inference time, you look up the index first, then only fetch the relevant rows.
+        </p>
+        <div class="analogy">
+          <div class="label">Your world analogy</div>
+          It&rsquo;s like Apache Iceberg&rsquo;s metadata pruning, but for attention. Just like Iceberg skips data files that don&rsquo;t match partition predicates, DSA skips token positions that the indexer scores as irrelevant. Same idea &mdash; metadata-driven pruning to avoid scanning everything.
+        </div>
+      </div>
+      <div class="dsa-concept">
+        <h3><span class="accent-orange">&#9679;</span> How the Indexer Works</h3>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+          Each attention layer gets 32 lightweight &ldquo;indexer heads&rdquo; that produce a relevance score for every KV cache position. TopK selection picks the highest-scoring positions. Only those tokens participate in the actual attention computation.
+        </p>
+        <div class="analogy">
+          <div class="label">Key detail</div>
+          The indexer heads are <strong>trained end-to-end</strong> with the model. They aren&rsquo;t heuristic &mdash; they learn what to attend to from the data itself. This is why it works better than fixed sparse patterns (like local-window or strided attention).
+        </div>
+      </div>
+
+      <div class="dsa-stages">
+        <div class="dsa-stage">
+          <div class="stage-num">Stage 1 &mdash; Full Attention</div>
+          <h4>Learn the Index</h4>
+          <p>Pre-train normally with full attention on 128K context. The indexer heads learn <em>what</em> to pay attention to by observing full attention patterns. Like building a query optimizer by first running full table scans.</p>
+        </div>
+        <div class="dsa-stage">
+          <div class="stage-num">Stage 2 &mdash; Warmup</div>
+          <h4>Gradual Sparsification</h4>
+          <p>Progressively reduce the selection ratio &mdash; from attending to 100% of tokens down to the target TopK. The model adapts to operating with less information, like gradually lowering a cache hit rate target.</p>
+        </div>
+        <div class="dsa-stage">
+          <div class="stage-num">Stage 3 &mdash; Sparse</div>
+          <h4>Full Sparse Mode</h4>
+          <p>Train with only TopK tokens per query at 1M+ context. The indexer is now fully trained. Context extends from 128K to 1M with minimal quality loss because it learned what actually matters.</p>
+        </div>
+      </div>
+
+      <div class="dsa-keystat">
+        <div class="big-num">128K &rarr; 1M+</div>
+        <div class="context">
+          Context window extension with <strong>minimal quality degradation</strong>. On the RULER benchmark (synthetic long-context evaluation), DSA maintains near-full-attention quality at 1M tokens where standard approaches collapse. The 32 indexer heads add only ~1.5% overhead to model parameters.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PIPELINE ═══ -->
+<section id="pipeline">
+  <div class="container">
+    <div class="section-label">Training</div>
+    <h2>The Four-Stage Pipeline</h2>
+    <p class="desc">
+      GLM-5&rsquo;s training isn&rsquo;t just &ldquo;throw data at a transformer.&rdquo; It&rsquo;s a carefully orchestrated pipeline &mdash;
+      each stage builds capabilities that the next stage depends on.
+      each phase transforms the model into something more capable.
+    </p>
+
+    <div class="pipeline">
+      <div class="pipeline-stage">
+        <div class="p-num">Phase 1</div>
+        <h4>Pre-Training</h4>
+        <div class="p-stat">14.5T tokens</div>
+        <p>Massive data ingestion. Web text, code, books, scientific papers. Builds the foundation &mdash; world knowledge, language patterns, basic reasoning. The raw ETL phase.</p>
+      </div>
+      <div class="pipeline-stage">
+        <div class="p-num">Phase 2</div>
+        <h4>Mid-Training</h4>
+        <div class="p-stat">Long-context + Reasoning</div>
+        <p>Extends context window, trains DSA indexer, adds chain-of-thought reasoning. This is where the model learns to think in steps rather than just predict next tokens.</p>
+      </div>
+      <div class="pipeline-stage">
+        <div class="p-num">Phase 3</div>
+        <h4>Post-Training SFT</h4>
+        <div class="p-stat">Curated instruction data</div>
+        <p>Supervised fine-tuning on high-quality instruction-response pairs. Teaches the model to follow directions, format outputs correctly, and use tools. The transformation phase.</p>
+      </div>
+      <div class="pipeline-stage">
+        <div class="p-num">Phase 4</div>
+        <h4>Reinforcement Learning</h4>
+        <div class="p-stat">The secret sauce &#x2193;</div>
+        <p>Three distinct RL stages that take the model from &ldquo;knows things&rdquo; to &ldquo;can actually do things.&rdquo; This is where GLM-5 diverges from most other models.</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 1.5rem;">
+      <h3 style="margin-bottom: 0.25rem;">Phase 4 Deep Dive: <span class="accent">Three Types of RL</span></h3>
+      <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">This is where the training gets interesting. Each RL type targets a different capability.</p>
+    </div>
+
+    <div class="rl-deep-dive">
+      <div class="rl-card">
+        <div class="rl-icon">&#x1D4E1;</div>
+        <h4>Standard RL</h4>
+        <p>Classic reasoning RL: give the model math/logic problems, reward correct answers. Uses a verifier model to check work. Improves step-by-step reasoning quality.</p>
+        <div class="reward">reward = correctness_score</div>
+      </div>
+      <div class="rl-card">
+        <div class="rl-icon">&#x2692;</div>
+        <h4>Agentic RL</h4>
+        <p>The model gets real SWE-bench coding tasks. It operates in a sandbox &mdash; reads files, edits code, runs tests. Reward is binary: <strong>did the tests pass?</strong> This trains genuine engineering behavior, not just code generation.</p>
+        <div class="reward">reward = tests_pass ? 1.0 : 0.0</div>
+      </div>
+      <div class="rl-card">
+        <div class="rl-icon">&#x25A3;</div>
+        <h4>Visual RL</h4>
+        <p>Model generates HTML/CSS/SVG to render UI. A vision model compares the rendering to a reference image. Reward is visual fidelity. Trains precise visual output &mdash; not just code that &ldquo;looks right&rdquo; as text.</p>
+        <div class="reward">reward = visual_similarity(render, ref)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ BENCHMARKS ═══ -->
+<section id="benchmarks">
+  <div class="container">
+    <div class="section-label">The Scoreboard</div>
+    <h2>Benchmark Comparison</h2>
+    <p class="desc">
+      GLM-5 is the best open-source model on most benchmarks and competitive with the top proprietary models. Numbers are from the paper, spot-checked against public leaderboards.
+    </p>
+
+    <table class="bench-table">
+      <thead>
+        <tr>
+          <th style="width:28%">Benchmark</th>
+          <th class="glm-col">GLM-5</th>
+          <th>Opus 4.5</th>
+          <th>GPT-5.2</th>
+          <th>DeepSeek V3.2</th>
+          <th>Gemini 3 Pro</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="bench-category"><td colspan="6">Reasoning</td></tr>
+        <tr>
+          <td>AIME 2025 (math)</td>
+          <td class="glm-col">80.3</td>
+          <td>65.0</td>
+          <td>78.0</td>
+          <td>73.0</td>
+          <td>84.0</td>
+        </tr>
+        <tr>
+          <td>HMMT Feb 2025 (math)</td>
+          <td class="glm-col best">97.9</td>
+          <td>&mdash;</td>
+          <td>&mdash;</td>
+          <td>&mdash;</td>
+          <td>81.2</td>
+        </tr>
+        <tr>
+          <td>HLE (hard reasoning)</td>
+          <td class="glm-col">24.2</td>
+          <td>14.8</td>
+          <td>22.2</td>
+          <td>14.0</td>
+          <td>21.6</td>
+        </tr>
+        <tr>
+          <td>GPQA Diamond (science)</td>
+          <td class="glm-col">74.7</td>
+          <td>68.7</td>
+          <td>73.7</td>
+          <td>68.4</td>
+          <td>71.0</td>
+        </tr>
+        <tr class="bench-category"><td colspan="6">Coding</td></tr>
+        <tr>
+          <td>SWE-bench Verified</td>
+          <td class="glm-col">77.8</td>
+          <td>80.9</td>
+          <td>81.6</td>
+          <td>72.6</td>
+          <td>63.8</td>
+        </tr>
+        <tr>
+          <td>Terminal-Bench</td>
+          <td class="glm-col best">44.3</td>
+          <td>38.4</td>
+          <td>38.9</td>
+          <td>30.9</td>
+          <td>39.7</td>
+        </tr>
+        <tr>
+          <td>LiveCodeBench (v6)</td>
+          <td class="glm-col">73.5</td>
+          <td>54.4</td>
+          <td>76.5</td>
+          <td>65.6</td>
+          <td>65.2</td>
+        </tr>
+        <tr class="bench-category"><td colspan="6">Agentic</td></tr>
+        <tr>
+          <td>BrowseComp</td>
+          <td class="glm-col best">62.0</td>
+          <td>60.6</td>
+          <td>58.8</td>
+          <td>14.2</td>
+          <td>40.6</td>
+        </tr>
+        <tr>
+          <td>MCP-Atlas (tool use)</td>
+          <td class="glm-col best">79.2</td>
+          <td>73.3</td>
+          <td>70.3</td>
+          <td>67.8</td>
+          <td>72.2</td>
+        </tr>
+        <tr>
+          <td>Tau-bench (airline)</td>
+          <td class="glm-col best">66.0</td>
+          <td>48.5</td>
+          <td>52.5</td>
+          <td>47.2</td>
+          <td>32.0</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="bench-note">
+      <span style="color: var(--teal);">&#9679;</span> = best score in row &nbsp;&nbsp;&bull;&nbsp;&nbsp; Dashes = not reported in paper &nbsp;&nbsp;&bull;&nbsp;&nbsp; All scores from GLM-5 technical report Table 1&ndash;4
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PONY ALPHA ═══ -->
+<section id="pony">
+  <div class="container">
+    <div class="section-label">The Easter Egg</div>
+    <h2>The <span class="accent-orange">Pony Alpha</span> Story</h2>
+    <p class="desc">
+      Before publishing the paper, Zhipu did something unusual: they released GLM-5 anonymously
+      on OpenRouter under the name &ldquo;Pony Alpha.&rdquo; No branding, no paper, no marketing.
+      Just a model endpoint. What happened next proved their point.
+    </p>
+
+    <div class="pony-grid">
+      <div class="pony-timeline">
+        <h3 style="margin-bottom: 1rem;">Timeline</h3>
+        <div class="timeline-event">
+          <div class="te-time">Feb 21</div>
+          <div class="te-content"><strong>&ldquo;Pony Alpha&rdquo;</strong> appears on OpenRouter with no documentation or attribution. Just an API endpoint.</div>
+        </div>
+        <div class="timeline-event">
+          <div class="te-time">Feb 22</div>
+          <div class="te-content">AI Twitter notices. Early users report it&rsquo;s <strong>surprisingly good</strong> at coding and reasoning. Speculation begins immediately.</div>
+        </div>
+        <div class="timeline-event">
+          <div class="te-time">Feb 23</div>
+          <div class="te-content">Threads go viral. &ldquo;This is definitely Anthropic testing Claude 5.&rdquo; &ldquo;It&rsquo;s DeepSeek V4.&rdquo; Community polls emerge.</div>
+        </div>
+        <div class="timeline-event">
+          <div class="te-time">Feb 24</div>
+          <div class="te-content">100K+ API calls. Users running benchmarks. Consistent top-tier performance across reasoning, coding, tool use.</div>
+        </div>
+        <div class="timeline-event reveal">
+          <div class="te-time">Feb 25</div>
+          <div class="te-content">Zhipu reveals: it was GLM-5 all along. Paper drops on arXiv. Open-source community erupts.</div>
+        </div>
+      </div>
+
+      <div class="pony-guesses">
+        <h3>Who Did They Think It Was?</h3>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.25rem;">Community speculation from X/Twitter polls and forum threads:</p>
+
+        <div class="guess-bar guess-claude">
+          <div class="guess-label"><span class="name">Claude Sonnet 5</span><span class="pct">~25%</span></div>
+          <div class="guess-track"><div class="guess-fill" style="width: 25%;"></div></div>
+        </div>
+        <div class="guess-bar guess-deepseek">
+          <div class="guess-label"><span class="name">DeepSeek V4</span><span class="pct">~20%</span></div>
+          <div class="guess-track"><div class="guess-fill" style="width: 20%;"></div></div>
+        </div>
+        <div class="guess-bar guess-grok">
+          <div class="guess-label"><span class="name">Grok 4</span><span class="pct">~10%</span></div>
+          <div class="guess-track"><div class="guess-fill" style="width: 10%;"></div></div>
+        </div>
+        <div class="guess-bar guess-glm">
+          <div class="guess-label"><span class="name">GLM-5 (correct)</span><span class="pct">~15%</span></div>
+          <div class="guess-track"><div class="guess-fill" style="width: 15%;"></div></div>
+        </div>
+        <div class="guess-bar guess-other">
+          <div class="guess-label"><span class="name">Other / Unknown</span><span class="pct">~30%</span></div>
+          <div class="guess-track"><div class="guess-fill" style="width: 30%;"></div></div>
+        </div>
+      </div>
+
+      <div class="pony-quote">
+        &ldquo;When you remove the brand name, all that&rsquo;s left is the quality of the output. Pony Alpha proved that open-source Chinese models
+        can compete at the absolute frontier &mdash; the community just didn&rsquo;t believe it until they couldn&rsquo;t see the label.&rdquo;
+        <div class="attribution">&mdash; from the GLM-5 technical report, Section 6</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ WHY IT MATTERS ═══ -->
+<section id="impact">
+  <div class="container">
+    <div class="section-label">So What</div>
+    <h2>Why This Matters</h2>
+    <p class="desc">
+      GLM-5 isn&rsquo;t just another model announcement. It represents a few structural shifts in how the AI landscape is evolving.
+    </p>
+
+    <div class="impact-grid">
+      <div class="impact-card">
+        <div class="ic-icon">&#x2693;</div>
+        <h4>Open Weights at the Frontier</h4>
+        <p>You can download the model, run it, fine-tune it, and deploy it on your own infrastructure. The gap between open-source and proprietary was 2+ years in 2023. It&rsquo;s now months. GLM-5 matches or beats Opus 4.5 on most benchmarks.</p>
+        <div class="chip chip-teal">Open-Weight</div>
+      </div>
+      <div class="impact-card">
+        <div class="ic-icon">&#x2699;</div>
+        <h4>Hardware Independence</h4>
+        <p>Zhipu adapted GLM-5 to run on <strong>7 different Chinese chip platforms</strong> (Huawei Ascend, Cambricon, etc.) &mdash; not just NVIDIA. If US export controls tighten further, this model can still be trained and served domestically.</p>
+        <div class="chip chip-orange">7 Chip Platforms</div>
+      </div>
+      <div class="impact-card">
+        <div class="ic-icon">&#x21BB;</div>
+        <h4>Agentic RL as the Future</h4>
+        <p>The &ldquo;agentic RL&rdquo; training paradigm &mdash; giving models real engineering tasks in sandboxes and rewarding passing tests &mdash; may become the standard for how all coding models are trained. It&rsquo;s more aligned with actual engineering than predicting next tokens.</p>
+        <div class="chip chip-teal">New Training Paradigm</div>
+      </div>
+      <div class="impact-card">
+        <div class="ic-icon">&#x2696;</div>
+        <h4>Brand Doesn&rsquo;t Equal Quality</h4>
+        <p>The Pony Alpha experiment is a clean demonstration that evaluation bias is real. When users didn&rsquo;t know the model&rsquo;s origin, they rated it as frontier-tier. The name on the label was the only thing that changed.</p>
+        <div class="chip chip-orange">Evaluation Bias</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="container">
+    <p>
+      Source: <a href="https://arxiv.org/abs/2602.15763" target="_blank">arXiv:2602.15763v2</a> &nbsp;&bull;&nbsp;
+      GLM-5 Technical Report, Zhipu AI &nbsp;&bull;&nbsp; Feb 2026
+    </p>
+    <p style="margin-top: 0.4rem; color: var(--text-muted);">
+      Explainer generated for context, not endorsement. All benchmark data from the paper.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
