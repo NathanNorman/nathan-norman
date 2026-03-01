@@ -4,38 +4,40 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GLM-5: The Open-Source Model That Fooled Everyone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@0;1&display=swap');
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg-deep: #06080f;
-  --bg-primary: #0a0e1a;
-  --bg-card: #0f1424;
-  --bg-card-hover: #141a2e;
-  --bg-surface: #1a2138;
-  --border: #1e2744;
-  --border-bright: #2a3558;
-  --text-primary: #e8eaf0;
-  --text-secondary: #8b93a8;
-  --text-muted: #5a6380;
-  --teal: #00e5c7;
-  --teal-dim: #00b89e;
-  --teal-glow: rgba(0, 229, 199, 0.15);
-  --teal-glow-strong: rgba(0, 229, 199, 0.3);
-  --orange: #ff6b35;
-  --orange-dim: #cc5529;
-  --orange-glow: rgba(255, 107, 53, 0.15);
-  --cyan: #38bdf8;
-  --purple: #a78bfa;
-  --pink: #f472b6;
-  --green: #4ade80;
-  --red: #ef4444;
-  --yellow: #fbbf24;
-  --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
-  --sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --serif: 'Instrument Serif', Georgia, serif;
+  --bg-deep: #faf8f5;
+  --bg-primary: #faf8f5;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f5f0eb;
+  --bg-surface: #f5f0eb;
+  --border: #e8e0d8;
+  --border-bright: #d4ccc4;
+  --text-primary: #2c2521;
+  --text-secondary: #6b5e55;
+  --text-muted: #9a8d84;
+  --teal: #c4632a;
+  --teal-dim: #a8521f;
+  --teal-glow: rgba(196, 99, 42, 0.06);
+  --teal-glow-strong: rgba(196, 99, 42, 0.15);
+  --orange: #c4632a;
+  --orange-dim: #a8521f;
+  --orange-glow: rgba(196, 99, 42, 0.08);
+  --cyan: #c4632a;
+  --purple: #8b6b4a;
+  --pink: #b85450;
+  --green: #5a8a5e;
+  --red: #c44a3f;
+  --yellow: #b8923a;
+  --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
 }
 
 html {
@@ -51,11 +53,33 @@ body {
   line-height: 1.7;
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 500px;
+  background: linear-gradient(180deg, rgba(196, 99, 42, 0.03) 0%, rgba(250, 248, 245, 0) 100%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 ::selection {
   background: var(--teal);
-  color: var(--bg-deep);
+  color: #fff;
 }
 
 /* ═══════════════ NAV ═══════════════ */
@@ -63,8 +87,9 @@ nav {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(6, 8, 15, 0.85);
-  backdrop-filter: blur(20px) saturate(1.5);
+  background: rgba(250, 248, 245, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   padding: 0 2rem;
 }
@@ -213,7 +238,7 @@ p.desc {
   text-transform: uppercase;
   color: var(--orange);
   background: var(--orange-glow);
-  border: 1px solid rgba(255, 107, 53, 0.25);
+  border: 1px solid rgba(196, 99, 42, 0.25);
   padding: 0.35rem 0.9rem;
   border-radius: 20px;
   margin-bottom: 1.5rem;
@@ -447,8 +472,8 @@ p.desc {
   display: flex;
   align-items: center;
   gap: 2rem;
-  background: linear-gradient(135deg, rgba(0, 229, 199, 0.06) 0%, rgba(0, 229, 199, 0.02) 100%);
-  border: 1px solid rgba(0, 229, 199, 0.2);
+  background: linear-gradient(135deg, rgba(196, 99, 42, 0.06) 0%, rgba(196, 99, 42, 0.02) 100%);
+  border: 1px solid rgba(196, 99, 42, 0.2);
   border-radius: 8px;
   padding: 1.25rem 1.75rem;
 }
@@ -540,14 +565,14 @@ p.desc {
 
 .cost-bad {
   color: var(--red);
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(196, 74, 63, 0.08);
+  border: 1px solid rgba(196, 74, 63, 0.2);
 }
 
 .cost-good {
   color: var(--green);
-  background: rgba(74, 222, 128, 0.1);
-  border: 1px solid rgba(74, 222, 128, 0.2);
+  background: rgba(90, 138, 94, 0.08);
+  border: 1px solid rgba(90, 138, 94, 0.2);
 }
 
 /* ═══════════════ PIPELINE ═══════════════ */
@@ -653,8 +678,8 @@ p.desc {
   font-family: var(--mono);
   font-size: 0.7rem;
   color: var(--green);
-  background: rgba(74, 222, 128, 0.08);
-  border: 1px solid rgba(74, 222, 128, 0.15);
+  background: rgba(90, 138, 94, 0.08);
+  border: 1px solid rgba(90, 138, 94, 0.15);
   padding: 0.3rem 0.5rem;
   border-radius: 3px;
   margin-top: 0.5rem;
@@ -693,7 +718,7 @@ p.desc {
 
 .bench-table thead th.glm-col {
   color: var(--teal);
-  background: rgba(0, 229, 199, 0.05);
+  background: rgba(196, 99, 42, 0.05);
 }
 
 .bench-table tbody td {
@@ -721,7 +746,7 @@ p.desc {
 .bench-table td.glm-col {
   color: var(--teal);
   font-weight: 600;
-  background: rgba(0, 229, 199, 0.03);
+  background: rgba(196, 99, 42, 0.03);
 }
 
 .bench-table td.best {
@@ -854,16 +879,16 @@ p.desc {
   transition: width 1s ease;
 }
 
-.guess-claude .guess-fill { background: linear-gradient(90deg, #a78bfa, #7c3aed); }
-.guess-deepseek .guess-fill { background: linear-gradient(90deg, #38bdf8, #0284c7); }
-.guess-grok .guess-fill { background: linear-gradient(90deg, #f472b6, #db2777); }
+.guess-claude .guess-fill { background: linear-gradient(90deg, #8b6b4a, #6b4f32); }
+.guess-deepseek .guess-fill { background: linear-gradient(90deg, #7a9a6e, #5a8a5e); }
+.guess-grok .guess-fill { background: linear-gradient(90deg, #b85450, #9a3f3c); }
 .guess-glm .guess-fill { background: linear-gradient(90deg, var(--teal-dim), var(--teal)); }
-.guess-other .guess-fill { background: linear-gradient(90deg, var(--text-muted), #5a6380); }
+.guess-other .guess-fill { background: linear-gradient(90deg, var(--text-muted), #b8ab9f); }
 
 .pony-quote {
   grid-column: 1 / -1;
-  background: linear-gradient(135deg, rgba(0, 229, 199, 0.05) 0%, rgba(255, 107, 53, 0.03) 100%);
-  border: 1px solid rgba(0, 229, 199, 0.15);
+  background: linear-gradient(135deg, rgba(196, 99, 42, 0.05) 0%, rgba(196, 99, 42, 0.02) 100%);
+  border: 1px solid rgba(196, 99, 42, 0.15);
   border-radius: 8px;
   padding: 1.5rem 2rem;
   font-family: var(--serif);
@@ -934,13 +959,13 @@ p.desc {
 .chip-teal {
   color: var(--teal);
   background: var(--teal-glow);
-  border: 1px solid rgba(0, 229, 199, 0.2);
+  border: 1px solid rgba(196, 99, 42, 0.2);
 }
 
 .chip-orange {
   color: var(--orange);
   background: var(--orange-glow);
-  border: 1px solid rgba(255, 107, 53, 0.2);
+  border: 1px solid rgba(196, 99, 42, 0.2);
 }
 
 /* ═══════════════ FOOTER ═══════════════ */

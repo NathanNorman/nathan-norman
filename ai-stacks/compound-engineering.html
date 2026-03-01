@@ -6,7 +6,7 @@
 <title>Compound Engineering — Deep Dive | AI Stacks 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
    RESET & BASE
@@ -14,31 +14,31 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg-deep: #060a14;
-  --bg-base: #0a0e1a;
-  --bg-surface: #0f1629;
-  --bg-elevated: #151d33;
-  --bg-card: #111827;
-  --border-subtle: rgba(100, 200, 255, 0.08);
-  --border-accent: rgba(0, 240, 255, 0.2);
-  --cyan: #00f0ff;
-  --cyan-dim: #00a8b3;
-  --cyan-glow: rgba(0, 240, 255, 0.15);
-  --amber: #ff9f1c;
-  --amber-dim: #b36f14;
-  --amber-glow: rgba(255, 159, 28, 0.12);
-  --violet: #8b5cf6;
-  --violet-dim: #6d45c7;
-  --green: #34d399;
-  --green-dim: #059669;
-  --red: #f87171;
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --text-muted: #475569;
-  --text-dim: #334155;
-  --font-display: 'Syne', sans-serif;
-  --font-mono: 'IBM Plex Mono', monospace;
-  --font-body: 'Outfit', sans-serif;
+  --bg-deep: #faf8f5;
+  --bg-base: #faf8f5;
+  --bg-surface: #f5f0eb;
+  --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
+  --border-subtle: rgba(196, 99, 42, 0.08);
+  --border-accent: rgba(196, 99, 42, 0.25);
+  --cyan: #c4632a;
+  --cyan-dim: #a8521f;
+  --cyan-glow: rgba(196, 99, 42, 0.06);
+  --amber: #b8923a;
+  --amber-dim: #8a6d2b;
+  --amber-glow: rgba(184, 146, 58, 0.08);
+  --violet: #8b6b4a;
+  --violet-dim: #6d5438;
+  --green: #5a8a5e;
+  --green-dim: #3d6b41;
+  --red: #c44a3f;
+  --text-primary: #2c2521;
+  --text-secondary: #6b5e55;
+  --text-muted: #9a8d84;
+  --text-dim: #bdb3a8;
+  --font-display: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --font-body: 'Source Serif 4', Georgia, 'Times New Roman', serif;
 }
 
 html { scroll-behavior: smooth; }
@@ -47,57 +47,42 @@ body {
   font-family: var(--font-body);
   background: var(--bg-deep);
   color: var(--text-primary);
-  line-height: 1.6;
+  line-height: 1.7;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 ::selection {
-  background: rgba(0, 240, 255, 0.25);
+  background: #c4632a;
   color: #fff;
 }
 
-a { color: var(--cyan); text-decoration: none; transition: color 0.2s; }
-a:hover { color: #fff; }
-
-/* ============================================================
-   ANIMATED BACKGROUND GRID
-   ============================================================ */
-.grid-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  background-image:
-    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
-  background-size: 60px 60px;
-  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 70%);
-}
-
-.grid-bg::after {
+body::after {
   content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 30% 20%, rgba(0, 240, 255, 0.04) 0%, transparent 50%),
-              radial-gradient(circle at 70% 60%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
-}
-
-/* ============================================================
-   SCANLINE OVERLAY
-   ============================================================ */
-.scanlines {
   position: fixed;
   inset: 0;
-  z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
   pointer-events: none;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.03) 2px,
-    rgba(0, 0, 0, 0.03) 4px
-  );
+  z-index: 9999;
 }
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 500px;
+  background: linear-gradient(180deg, rgba(196, 99, 42, 0.03) 0%, rgba(250, 248, 245, 0) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+
+a { color: var(--cyan); text-decoration: none; transition: color 0.2s; }
+a:hover { color: var(--cyan); }
+
 
 /* ============================================================
    MAIN CONTAINER
@@ -123,9 +108,9 @@ nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(6, 10, 20, 0.8);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(250, 248, 245, 0.88);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid #e8e0d8;
 }
 
 nav .nav-brand {
@@ -407,6 +392,7 @@ section h2 {
   position: relative;
   overflow: hidden;
   transition: border-color 0.3s, transform 0.3s;
+  box-shadow: 0 1px 3px rgba(60, 40, 20, 0.04), 0 1px 2px rgba(60, 40, 20, 0.06);
 }
 
 .loop-card:hover {
@@ -455,10 +441,10 @@ section h2 {
   margin-bottom: 16px;
 }
 
-.loop-card:nth-child(1) .loop-effort { background: rgba(0, 240, 255, 0.1); color: var(--cyan); }
-.loop-card:nth-child(2) .loop-effort { background: rgba(52, 211, 153, 0.1); color: var(--green); }
-.loop-card:nth-child(3) .loop-effort { background: rgba(255, 159, 28, 0.1); color: var(--amber); }
-.loop-card:nth-child(4) .loop-effort { background: rgba(139, 92, 246, 0.1); color: var(--violet); }
+.loop-card:nth-child(1) .loop-effort { background: rgba(196, 99, 42, 0.08); color: var(--cyan); }
+.loop-card:nth-child(2) .loop-effort { background: rgba(90, 138, 94, 0.08); color: var(--green); }
+.loop-card:nth-child(3) .loop-effort { background: rgba(184, 146, 58, 0.08); color: var(--amber); }
+.loop-card:nth-child(4) .loop-effort { background: rgba(139, 107, 74, 0.08); color: var(--violet); }
 
 .loop-card h3 {
   font-family: var(--font-display);
@@ -516,12 +502,12 @@ section h2 {
 .cmd-table td {
   font-size: 14px;
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(100, 200, 255, 0.04);
+  border-bottom: 1px solid rgba(196, 99, 42, 0.06);
   color: var(--text-secondary);
   vertical-align: top;
 }
 
-.cmd-table tr:hover td { background: rgba(0, 240, 255, 0.02); }
+.cmd-table tr:hover td { background: rgba(196, 99, 42, 0.03); }
 
 .cmd-table .cmd-name {
   font-family: var(--font-mono);
@@ -541,10 +527,10 @@ section h2 {
   white-space: nowrap;
 }
 
-.cmd-category.core { background: rgba(0, 240, 255, 0.1); color: var(--cyan); }
-.cmd-category.auto { background: rgba(139, 92, 246, 0.1); color: var(--violet); }
-.cmd-category.util { background: rgba(255, 159, 28, 0.1); color: var(--amber); }
-.cmd-category.meta { background: rgba(52, 211, 153, 0.1); color: var(--green); }
+.cmd-category.core { background: rgba(196, 99, 42, 0.08); color: var(--cyan); }
+.cmd-category.auto { background: rgba(139, 107, 74, 0.08); color: var(--violet); }
+.cmd-category.util { background: rgba(184, 146, 58, 0.08); color: var(--amber); }
+.cmd-category.meta { background: rgba(90, 138, 94, 0.08); color: var(--green); }
 
 /* ============================================================
    AGENT/SKILL CARDS
@@ -561,6 +547,7 @@ section h2 {
   border-radius: 10px;
   padding: 24px;
   transition: border-color 0.3s;
+  box-shadow: 0 1px 3px rgba(60, 40, 20, 0.04), 0 1px 2px rgba(60, 40, 20, 0.06);
 }
 
 .agent-card:hover { border-color: var(--border-accent); }
@@ -627,6 +614,7 @@ section h2 {
   align-items: center;
   gap: 10px;
   transition: border-color 0.3s;
+  box-shadow: 0 1px 3px rgba(60, 40, 20, 0.04), 0 1px 2px rgba(60, 40, 20, 0.06);
 }
 
 .convert-chip:hover { border-color: var(--border-accent); }
@@ -635,7 +623,7 @@ section h2 {
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--violet);
-  background: rgba(139, 92, 246, 0.1);
+  background: rgba(139, 107, 74, 0.08);
   padding: 2px 6px;
   border-radius: 3px;
 }
@@ -649,6 +637,7 @@ section h2 {
   border-radius: 12px;
   padding: 32px;
   margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(60, 40, 20, 0.04), 0 1px 2px rgba(60, 40, 20, 0.06);
 }
 
 .install-block h4 {
@@ -746,6 +735,7 @@ section h2 {
   border-radius: 10px;
   padding: 24px;
   transition: border-color 0.3s;
+  box-shadow: 0 1px 3px rgba(60, 40, 20, 0.04), 0 1px 2px rgba(60, 40, 20, 0.06);
 }
 
 .belief-card:hover { border-color: var(--border-accent); }
@@ -783,6 +773,7 @@ section h2 {
   flex: 1;
   transition: border-color 0.3s;
   position: relative;
+  box-shadow: 0 1px 3px rgba(60, 40, 20, 0.04), 0 1px 2px rgba(60, 40, 20, 0.06);
 }
 
 .stage-card:hover { border-color: var(--border-accent); }
@@ -873,6 +864,7 @@ section h2 {
   gap: 6px;
   transition: border-color 0.3s;
   text-decoration: none;
+  box-shadow: 0 1px 3px rgba(60, 40, 20, 0.04), 0 1px 2px rgba(60, 40, 20, 0.06);
 }
 
 .link-card:hover { border-color: var(--border-accent); }
@@ -978,9 +970,6 @@ footer a:hover { color: var(--cyan); }
 </style>
 </head>
 <body>
-
-<div class="grid-bg"></div>
-<div class="scanlines"></div>
 
 <nav>
   <a href="index.html" class="nav-back">&larr; Back to All AI Stacks</a>
