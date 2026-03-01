@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code on Windows: How to Set It Up So It Actually Works</title>
+<meta name="description" content="Claude Code is built for Unix-like systems. On Windows, you need WSL2. This guide walks you through the full setup from scratch.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #faf8f5;
+  --bg-warm: #f5f0eb;
+  --surface: #ffffff;
+  --border: #e8e0d8;
+  --border-light: #efe9e2;
+  --text: #2c2521;
+  --text-secondary: #6b5e55;
+  --text-muted: #9a8d84;
+  --accent: #c4632a;
+  --accent-hover: #a8521f;
+  --accent-faint: rgba(196, 99, 42, 0.06);
+  --accent-line: rgba(196, 99, 42, 0.25);
+  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --shadow-sm: 0 1px 3px rgba(60, 40, 20, 0.04), 0 1px 2px rgba(60, 40, 20, 0.06);
+  --shadow-md: 0 4px 16px rgba(60, 40, 20, 0.07), 0 2px 6px rgba(60, 40, 20, 0.04);
+  --shadow-lg: 0 8px 30px rgba(60, 40, 20, 0.08), 0 4px 10px rgba(60, 40, 20, 0.04);
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 17px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--bg);
+}
+
+body {
+  font-family: var(--serif);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.75;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Paper grain overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Warm gradient atmosphere */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 500px;
+  background: linear-gradient(180deg, rgba(196, 99, 42, 0.03) 0%, rgba(250, 248, 245, 0) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+::selection {
+  background: var(--accent);
+  color: #fff;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+a:hover { color: var(--accent-hover); }
+
+/* ═══════════════════════════════════════
+   NAV
+   ═══════════════════════════════════════ */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(250, 248, 245, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-light);
+  padding: 0 2rem;
+  transition: box-shadow 0.3s ease;
+}
+
+nav .nav-inner {
+  max-width: 780px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 52px;
+  overflow-x: auto;
+}
+
+nav a {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+nav a:hover {
+  color: var(--accent);
+  background: var(--accent-faint);
+}
+
+nav .nav-home {
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+nav .nav-title {
+  font-weight: 600;
+  font-size: 0.76rem;
+  color: var(--accent);
+  margin-right: 1rem;
+  letter-spacing: 0.01em;
+}
+
+/* ═══════════════════════════════════════
+   ARTICLE CONTAINER
+   ═══════════════════════════════════════ */
+.container {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 clamp(1.25rem, 4vw, 3rem);
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══════════════════════════════════════
+   HERO
+   ═══════════════════════════════════════ */
+.hero {
+  padding-top: 4.5rem;
+  padding-bottom: 3rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-badge {
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  background: var(--accent-faint);
+  border-radius: 2px;
+}
+
+.hero h1 {
+  font-family: var(--sans);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  color: var(--text);
+  margin-bottom: 1rem;
+}
+
+.hero .subtitle {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  max-width: 620px;
+}
+
+/* ═══════════════════════════════════════
+   ARTICLE CONTENT
+   ═══════════════════════════════════════ */
+article {
+  padding: clamp(2.5rem, 5vw, 4rem) 0;
+}
+
+article section {
+  margin-bottom: 3rem;
+}
+
+article section:last-child {
+  margin-bottom: 0;
+}
+
+article h2 {
+  font-family: var(--sans);
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: 1rem;
+  padding-top: 0.5rem;
+}
+
+article h3 {
+  font-family: var(--sans);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 2rem;
+  margin-bottom: 0.65rem;
+  letter-spacing: -0.01em;
+}
+
+article p {
+  font-size: 1.02rem;
+  color: var(--text);
+  margin-bottom: 1.25rem;
+  line-height: 1.85;
+}
+
+article p:last-child {
+  margin-bottom: 0;
+}
+
+/* Drop cap on first paragraph of article */
+article > section:first-child > p:first-of-type::first-letter {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 3.4em;
+  float: left;
+  line-height: 0.8;
+  margin-right: 0.1em;
+  margin-top: 0.08em;
+  color: var(--accent);
+}
+
+article strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+article em {
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════
+   HORIZONTAL RULES (section dividers)
+   ═══════════════════════════════════════ */
+article hr {
+  border: none;
+  height: 1px;
+  background: var(--border);
+  margin: 2.5rem 0;
+}
+
+/* ═══════════════════════════════════════
+   CODE BLOCKS
+   ═══════════════════════════════════════ */
+pre {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 3px 3px 0;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  box-shadow: var(--shadow-sm);
+}
+
+pre code {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: var(--text);
+  background: none;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  color: var(--accent);
+  background: var(--accent-faint);
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  border: 1px solid rgba(196, 99, 42, 0.1);
+}
+
+/* Language label on code blocks */
+pre[data-lang]::before {
+  content: attr(data-lang);
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+/* ═══════════════════════════════════════
+   BLOCKQUOTES (tips, notes)
+   ═══════════════════════════════════════ */
+blockquote {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 3px 3px 0;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+blockquote p {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  margin-bottom: 0;
+  line-height: 1.75;
+}
+
+blockquote strong {
+  color: var(--accent);
+}
+
+/* ═══════════════════════════════════════
+   LISTS
+   ═══════════════════════════════════════ */
+article ol, article ul {
+  margin-bottom: 1.5rem;
+  padding-left: 1.5rem;
+}
+
+article li {
+  font-size: 1.02rem;
+  line-height: 1.85;
+  margin-bottom: 0.4rem;
+  color: var(--text);
+}
+
+article li code {
+  font-size: 0.82em;
+}
+
+/* ═══════════════════════════════════════
+   TABLES
+   ═══════════════════════════════════════ */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+thead {
+  background: var(--bg-warm);
+}
+
+th {
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0.85rem 1.25rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  font-size: 0.92rem;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text);
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+/* ═══════════════════════════════════════
+   JSON / CONFIG blocks (special styling)
+   ═══════════════════════════════════════ */
+.config-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.config-block .config-label {
+  font-family: var(--sans);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+/* ═══════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════ */
+footer {
+  padding: 2rem 0;
+  border-top: 1px solid var(--border);
+  margin-top: 1rem;
+}
+
+footer p {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  line-height: 1.7;
+}
+
+footer a {
+  color: var(--text-muted);
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+footer a:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════ */
+@media (max-width: 600px) {
+  html { font-size: 16px; }
+
+  .hero h1 { font-size: 1.6rem; }
+
+  pre {
+    padding: 1rem;
+    font-size: 0.78rem;
+  }
+
+  article > section:first-child > p:first-of-type::first-letter {
+    font-size: 2.8em;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  nav .nav-inner {
+    gap: 0.15rem;
+  }
+
+  nav a {
+    font-size: 0.68rem;
+    padding: 0.35rem 0.5rem;
+  }
+}
+
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-home">&larr; Home</a>
+    <a href="#" class="nav-title">Claude Code on Windows</a>
+    <a href="#wsl">WSL2</a>
+    <a href="#install">Install</a>
+    <a href="#projects">Projects</a>
+    <a href="#autonomous">Autonomous Mode</a>
+    <a href="#troubleshooting">Troubleshooting</a>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<div class="hero">
+  <div class="container">
+    <div class="hero-badge">Mar 2026 &middot; Setup Guide</div>
+    <h1>Claude Code on Windows:<br>How to Set It Up So It Actually Works</h1>
+    <p class="subtitle">If you&rsquo;ve installed Claude Code on Windows and found that it can&rsquo;t run scripts, execute commands, or do much beyond generate code and suggest workarounds &mdash; you&rsquo;re not alone. The fix is straightforward, but it&rsquo;s not obvious if nobody tells you.</p>
+  </div>
+</div>
+
+<!-- ═══ ARTICLE ═══ -->
+<article>
+  <div class="container">
+
+    <section>
+      <p><strong>Claude Code is built for Unix-like systems (macOS and Linux). On Windows, you need WSL2.</strong> Without it, Claude Code is flying blind &mdash; it doesn&rsquo;t have a proper shell to work with, so it resorts to generating <code>.bat</code> files and telling you to run things manually. With WSL2, it works exactly like it does on a Mac: writing code, running scripts, installing packages, executing tests, managing git &mdash; all autonomously.</p>
+      <p>This guide walks you through the full setup from scratch.</p>
+    </section>
+
+    <hr>
+
+    <section id="wsl">
+      <h2>What Is WSL2 and Why Do You Need It?</h2>
+      <p>WSL2 (Windows Subsystem for Linux 2) runs a real Linux kernel inside Windows. It&rsquo;s not a virtual machine you have to manage &mdash; it&rsquo;s a Microsoft-built feature that gives you a native Linux environment alongside your Windows desktop. It&rsquo;s fast, lightweight, and free.</p>
+      <p>Claude Code&rsquo;s command execution is built around bash (the standard Linux/Mac shell). PowerShell and Command Prompt don&rsquo;t speak the same language. WSL2 gives Claude Code the bash environment it expects, and suddenly everything just works.</p>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>Prerequisites</h2>
+      <ul>
+        <li><strong>Windows 10</strong> version 2004 or higher, or <strong>Windows 11</strong></li>
+        <li>Administrator access on your machine</li>
+        <li>An Anthropic API key or Claude Pro/Max subscription</li>
+      </ul>
+    </section>
+
+    <hr>
+
+    <section id="install">
+      <h2>Step 1: Install WSL2</h2>
+      <p>Open <strong>PowerShell as Administrator</strong> (right-click the Start button &rarr; &ldquo;Terminal (Admin)&rdquo; or search for PowerShell and click &ldquo;Run as administrator&rdquo;).</p>
+      <p>Run:</p>
+      <pre data-lang="PowerShell"><code>wsl --install</code></pre>
+      <p>This installs WSL2 with Ubuntu as the default Linux distribution. When it finishes, <strong>restart your computer</strong>.</p>
+      <p>After the restart, an Ubuntu terminal window will open automatically and ask you to create a Linux username and password. This is separate from your Windows login &mdash; pick something you&rsquo;ll remember, as you&rsquo;ll need it for <code>sudo</code> commands.</p>
+      <blockquote><p><strong>Already have WSL1?</strong> Upgrade with <code>wsl --set-default-version 2</code>. You can check your version with <code>wsl -l -v</code>.</p></blockquote>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>Step 2: Update the System and Install Dependencies</h2>
+      <p>Open your Ubuntu terminal (search &ldquo;Ubuntu&rdquo; in the Start menu) and run:</p>
+      <pre data-lang="Bash"><code>sudo apt update && sudo apt upgrade -y</code></pre>
+      <p>Then install the tools Claude Code will need:</p>
+      <pre data-lang="Bash"><code>sudo apt install -y python3 python3-pip python3-venv git curl build-essential</code></pre>
+      <p>This gives you Python 3, pip, git, and the build tools that many packages depend on.</p>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>Step 3: Install Node.js</h2>
+      <p>Claude Code requires Node.js 18 or higher. The version in Ubuntu&rsquo;s default repositories is usually outdated, so install from NodeSource:</p>
+      <pre data-lang="Bash"><code>curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs</code></pre>
+      <p>Verify the installation:</p>
+      <pre data-lang="Bash"><code>node --version
+npm --version</code></pre>
+      <p>You should see Node v22.x.x (or higher) and npm 10.x.x (or higher).</p>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>Step 4: Install Claude Code</h2>
+      <p>Now install Claude Code globally:</p>
+      <pre data-lang="Bash"><code>npm install -g @anthropic-ai/claude-code</code></pre>
+      <p>Launch it for the first time:</p>
+      <pre data-lang="Bash"><code>claude</code></pre>
+      <p>It will walk you through authentication. You&rsquo;ll either connect your Anthropic API key or authenticate through your Claude subscription.</p>
+    </section>
+
+    <hr>
+
+    <section id="projects">
+      <h2>Step 5: Navigate to Your Projects</h2>
+      <p>Your Windows files are accessible from inside WSL at <code>/mnt/c/</code>. So if your projects live in <code>C:\Users\YourName\Documents\Projects</code>, you can get there with:</p>
+      <pre data-lang="Bash"><code>cd /mnt/c/Users/YourName/Documents/Projects/my-project</code></pre>
+      <p>From there, launch Claude Code:</p>
+      <pre data-lang="Bash"><code>claude</code></pre>
+      <blockquote><p><strong>Performance tip:</strong> File operations are faster when your project lives inside the WSL filesystem (your <code>~</code> home directory) rather than on the Windows side (<code>/mnt/c/</code>). If you&rsquo;re starting a new project, consider keeping it in <code>~/projects/</code> instead. For existing Windows-side projects, <code>/mnt/c/</code> works fine &mdash; it&rsquo;s just slightly slower for large file operations.</p></blockquote>
+    </section>
+
+    <hr>
+
+    <section id="autonomous">
+      <h2>Step 6: Let Claude Code Run Autonomously</h2>
+      <p>By default, Claude Code asks your permission before executing every command. This is a safety feature, but it can slow things down once you trust what it&rsquo;s doing. Here are your options, from most cautious to most autonomous:</p>
+
+      <h3>Option A: Approve Each Command (Default)</h3>
+      <p>Just press <strong>y</strong> and Enter each time Claude Code wants to run something. Good for learning what it does and staying in control.</p>
+
+      <h3>Option B: Trust for the Session</h3>
+      <p>While Claude Code is running, type <strong>!</strong> and press Enter. This approves all commands for the rest of the current session. Next time you launch Claude Code, it resets to asking permission again.</p>
+
+      <h3>Option C: Full Autonomous Mode</h3>
+      <p>Launch Claude Code with:</p>
+      <pre data-lang="Bash"><code>claude --dangerously-skip-permissions</code></pre>
+      <p>This skips all permission prompts. Claude Code will write files, run scripts, install packages, and execute commands without asking. Use this when you&rsquo;re working on a personal project and want maximum speed.</p>
+      <blockquote><p><strong>A note on the name:</strong> Yes, it literally says &ldquo;dangerously&rdquo; in the flag. It&rsquo;s a reminder that you&rsquo;re giving an AI full access to run commands on your system. For personal projects and learning, it&rsquo;s fine. For production codebases or anything sensitive, stick with Option A or B.</p></blockquote>
+
+      <h3>Option D: Configure an Allowlist</h3>
+      <p>You can configure specific tools and commands that Claude Code is always allowed to run without asking. Add this to your Claude Code settings (<code>~/.claude/settings.json</code>):</p>
+      <pre data-lang="JSON"><code>{
+  "permissions": {
+    "allow": [
+      "Bash(python3 *)",
+      "Bash(pip install *)",
+      "Bash(git *)",
+      "Write",
+      "Edit"
+    ]
+  }
+}</code></pre>
+      <p>This lets Claude Code run Python, install packages, use git, and edit files without prompting &mdash; but it&rsquo;ll still ask before doing anything else. You can customize this list to match your workflow.</p>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>Verify Everything Works</h2>
+      <p>Here&rsquo;s a quick smoke test. Open your Ubuntu terminal, launch Claude Code, and ask it:</p>
+      <blockquote><p>&ldquo;Create a Python script that fetches the current weather for New York from wttr.in and prints a summary. Save it and run it.&rdquo;</p></blockquote>
+      <p>If Claude Code is set up correctly, it will:</p>
+      <ol>
+        <li>Write a Python script to a file</li>
+        <li>Execute it directly</li>
+        <li>Show you the output</li>
+      </ol>
+      <p>No <code>.bat</code> files. No &ldquo;please run this manually.&rdquo; It just does it.</p>
+    </section>
+
+    <hr>
+
+    <section id="troubleshooting">
+      <h2>Troubleshooting</h2>
+
+      <h3>&ldquo;command not found: claude&rdquo;</h3>
+      <p>Node.js or npm wasn&rsquo;t installed correctly, or the global npm path isn&rsquo;t in your <code>$PATH</code>. Try:</p>
+      <pre data-lang="Bash"><code>export PATH="$PATH:$(npm config get prefix)/bin"</code></pre>
+      <p>If that works, make it permanent:</p>
+      <pre data-lang="Bash"><code>echo 'export PATH="$PATH:$(npm config get prefix)/bin"' >> ~/.bashrc
+source ~/.bashrc</code></pre>
+
+      <h3>Claude Code still can&rsquo;t run commands</h3>
+      <p>Make sure you&rsquo;re running Claude Code <strong>inside the WSL/Ubuntu terminal</strong>, not in PowerShell or Command Prompt. The terminal matters.</p>
+
+      <h3>Python scripts fail with &ldquo;module not found&rdquo;</h3>
+      <p>Install the missing module using pip inside WSL:</p>
+      <pre data-lang="Bash"><code>pip3 install module-name</code></pre>
+      <p>If you&rsquo;re working on a project with a <code>requirements.txt</code>:</p>
+      <pre data-lang="Bash"><code>pip3 install -r requirements.txt</code></pre>
+
+      <h3>Slow file access on /mnt/c/</h3>
+      <p>This is a known WSL limitation &mdash; cross-filesystem I/O between Windows and Linux is slower than native Linux I/O. For large projects, clone or move them into your WSL home directory:</p>
+      <pre data-lang="Bash"><code>mkdir -p ~/projects
+cp -r /mnt/c/Users/YourName/Documents/my-project ~/projects/
+cd ~/projects/my-project</code></pre>
+
+      <h3>WSL uses too much memory</h3>
+      <p>WSL2 can be memory-hungry. Create or edit <code>C:\Users\YourName\.wslconfig</code>:</p>
+      <pre data-lang="INI"><code>[wsl2]
+memory=4GB
+processors=2</code></pre>
+      <p>Then restart WSL:</p>
+      <pre data-lang="PowerShell"><code>wsl --shutdown</code></pre>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>VS Code Integration</h2>
+      <p>If you use VS Code, install the <strong>WSL extension</strong> from Microsoft. This lets you:</p>
+      <ul>
+        <li>Open your WSL projects directly in VS Code</li>
+        <li>Use the integrated terminal as a WSL bash shell</li>
+        <li>Run Claude Code from VS Code&rsquo;s terminal with full Linux support</li>
+      </ul>
+      <p>To open a WSL project in VS Code:</p>
+      <pre data-lang="Bash"><code>cd ~/projects/my-project
+code .</code></pre>
+      <p>VS Code will automatically connect to your WSL environment.</p>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>Summary</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Without WSL</th>
+            <th>With WSL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Claude Code can&rsquo;t run scripts</td>
+            <td>Full autonomous execution</td>
+          </tr>
+          <tr>
+            <td>Generates <code>.bat</code> files as workarounds</td>
+            <td>Runs commands directly</td>
+          </tr>
+          <tr>
+            <td>Limited to code generation</td>
+            <td>Writes, tests, debugs, deploys</td>
+          </tr>
+          <tr>
+            <td>PowerShell compatibility issues</td>
+            <td>Native bash environment</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Once WSL2 is set up, Claude Code on Windows works identically to Claude Code on Mac &mdash; no compromises, no workarounds.</p>
+    </section>
+
+  </div>
+</article>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="container">
+    <p>
+      <a href="/">Nathan Norman</a> &nbsp;&bull;&nbsp; Mar 2026
+    </p>
+    <p style="margin-top: 0.4rem;">
+      Have questions? Open an issue at <a href="https://github.com/anthropics/claude-code/issues" target="_blank" rel="noopener">github.com/anthropics/claude-code</a>.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
