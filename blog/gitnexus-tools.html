@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitNexus: What You Can Actually Do With a Code Knowledge Graph</title>
+<meta name="description" content="GitNexus indexes a codebase into a knowledge graph and exposes it via CLI and MCP tools. Here's what you can do with 13k+ nodes and 38k+ edges representing every function, class, and call chain.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #faf8f5;
+  --bg-warm: #f5f0eb;
+  --surface: #ffffff;
+  --border: #e8e0d8;
+  --border-light: #efe9e2;
+  --text: #2c2521;
+  --text-secondary: #6b5e55;
+  --text-muted: #9a8d84;
+  --accent: #c4632a;
+  --accent-hover: #a8521f;
+  --accent-faint: rgba(196, 99, 42, 0.06);
+  --accent-line: rgba(196, 99, 42, 0.25);
+  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --shadow-sm: 0 1px 3px rgba(60, 40, 20, 0.04), 0 1px 2px rgba(60, 40, 20, 0.06);
+  --shadow-md: 0 4px 16px rgba(60, 40, 20, 0.07), 0 2px 6px rgba(60, 40, 20, 0.04);
+  --shadow-lg: 0 8px 30px rgba(60, 40, 20, 0.08), 0 4px 10px rgba(60, 40, 20, 0.04);
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 17px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--bg);
+}
+
+body {
+  font-family: var(--serif);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.75;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Paper grain overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Warm gradient atmosphere */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 500px;
+  background: linear-gradient(180deg, rgba(196, 99, 42, 0.03) 0%, rgba(250, 248, 245, 0) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+::selection {
+  background: var(--accent);
+  color: #fff;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+a:hover { color: var(--accent-hover); }
+
+/* ═══════════════════════════════════════
+   NAV
+   ═══════════════════════════════════════ */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(250, 248, 245, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-light);
+  padding: 0 2rem;
+  transition: box-shadow 0.3s ease;
+}
+
+nav .nav-inner {
+  max-width: 780px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 52px;
+  overflow-x: auto;
+}
+
+nav a {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+nav a:hover {
+  color: var(--accent);
+  background: var(--accent-faint);
+}
+
+nav .nav-home {
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+nav .nav-title {
+  font-weight: 600;
+  font-size: 0.76rem;
+  color: var(--accent);
+  margin-right: 1rem;
+  letter-spacing: 0.01em;
+}
+
+/* ═══════════════════════════════════════
+   ARTICLE CONTAINER
+   ═══════════════════════════════════════ */
+.container {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 clamp(1.25rem, 4vw, 3rem);
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══════════════════════════════════════
+   HERO
+   ═══════════════════════════════════════ */
+.hero {
+  padding-top: 4.5rem;
+  padding-bottom: 3rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-badge {
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  background: var(--accent-faint);
+  border-radius: 2px;
+}
+
+.hero h1 {
+  font-family: var(--sans);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  color: var(--text);
+  margin-bottom: 1rem;
+}
+
+.hero .subtitle {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  max-width: 620px;
+}
+
+/* ═══════════════════════════════════════
+   ARTICLE CONTENT
+   ═══════════════════════════════════════ */
+article {
+  padding: clamp(2.5rem, 5vw, 4rem) 0;
+}
+
+article section {
+  margin-bottom: 3rem;
+}
+
+article section:last-child {
+  margin-bottom: 0;
+}
+
+article h2 {
+  font-family: var(--sans);
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: 1rem;
+  padding-top: 0.5rem;
+}
+
+article h3 {
+  font-family: var(--sans);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 2rem;
+  margin-bottom: 0.65rem;
+  letter-spacing: -0.01em;
+}
+
+article p {
+  font-size: 1.02rem;
+  color: var(--text);
+  margin-bottom: 1.25rem;
+  line-height: 1.85;
+}
+
+article p:last-child {
+  margin-bottom: 0;
+}
+
+/* Drop cap on first paragraph of article */
+article > .container > section:first-child > p:first-of-type::first-letter {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 3.4em;
+  float: left;
+  line-height: 0.8;
+  margin-right: 0.1em;
+  margin-top: 0.08em;
+  color: var(--accent);
+}
+
+article strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+article em {
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════
+   HORIZONTAL RULES (section dividers)
+   ═══════════════════════════════════════ */
+article hr {
+  border: none;
+  height: 1px;
+  background: var(--border);
+  margin: 2.5rem 0;
+}
+
+/* ═══════════════════════════════════════
+   CODE BLOCKS
+   ═══════════════════════════════════════ */
+pre {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 3px 3px 0;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  box-shadow: var(--shadow-sm);
+}
+
+pre code {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: var(--text);
+  background: none;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  color: var(--accent);
+  background: var(--accent-faint);
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  border: 1px solid rgba(196, 99, 42, 0.1);
+}
+
+/* Language label on code blocks */
+pre[data-lang]::before {
+  content: attr(data-lang);
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+/* ═══════════════════════════════════════
+   BLOCKQUOTES (tips, notes)
+   ═══════════════════════════════════════ */
+blockquote {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 3px 3px 0;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+blockquote p {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  margin-bottom: 0;
+  line-height: 1.75;
+}
+
+blockquote strong {
+  color: var(--accent);
+}
+
+/* ═══════════════════════════════════════
+   LISTS
+   ═══════════════════════════════════════ */
+article ol, article ul {
+  margin-bottom: 1.5rem;
+  padding-left: 1.5rem;
+}
+
+article li {
+  font-size: 1.02rem;
+  line-height: 1.85;
+  margin-bottom: 0.4rem;
+  color: var(--text);
+}
+
+article li code {
+  font-size: 0.82em;
+}
+
+/* ═══════════════════════════════════════
+   TABLES
+   ═══════════════════════════════════════ */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+thead {
+  background: var(--bg-warm);
+}
+
+th {
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0.85rem 1.25rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  font-size: 0.92rem;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text);
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+/* ═══════════════════════════════════════
+   TOOL CARDS
+   ═══════════════════════════════════════ */
+.tool-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+  margin-top: 2rem;
+}
+
+.tool-header h3 {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: -0.01em;
+}
+
+.tool-header .tool-tagline {
+  font-family: var(--serif);
+  font-size: 0.92rem;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.tool-meta {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.tool-meta .meta-tag {
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0.15rem 0.5rem;
+  background: var(--bg-warm);
+  border-radius: 2px;
+}
+
+.tool-meta .meta-tag.cli { color: var(--accent); background: var(--accent-faint); }
+.tool-meta .meta-tag.mcp { color: #5a8a5e; background: rgba(90, 138, 94, 0.08); }
+.tool-meta .meta-tag.hook { color: #8b6b4a; background: rgba(139, 107, 74, 0.08); }
+
+/* ═══════════════════════════════════════
+   WORKFLOW STEPS
+   ═══════════════════════════════════════ */
+.workflow-steps {
+  counter-reset: step;
+  list-style: none;
+  padding-left: 0;
+}
+
+.workflow-steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.workflow-steps li:first-child {
+  border-top: 1px solid var(--border-light);
+}
+
+.workflow-steps li::before {
+  content: counter(step);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-faint);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.workflow-steps .step-content {
+  padding-top: 0.15rem;
+}
+
+.workflow-steps .step-label {
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.15rem;
+}
+
+.workflow-steps .step-detail {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+.workflow-steps .step-detail code {
+  font-size: 0.82em;
+}
+
+/* ═══════════════════════════════════════
+   SCHEMA GRID
+   ═══════════════════════════════════════ */
+.schema-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.schema-item {
+  background: var(--surface);
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border-light);
+  border-right: 1px solid var(--border-light);
+}
+
+.schema-item:nth-child(even) {
+  border-right: none;
+}
+
+.schema-item:nth-last-child(-n+2) {
+  border-bottom: none;
+}
+
+.schema-label {
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.schema-value {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* ═══════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════ */
+footer {
+  padding: 2rem 0;
+  border-top: 1px solid var(--border);
+  margin-top: 1rem;
+}
+
+footer p {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  line-height: 1.7;
+}
+
+footer a {
+  color: var(--text-muted);
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+footer a:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════ */
+@media (max-width: 600px) {
+  html { font-size: 16px; }
+
+  .hero h1 { font-size: 1.6rem; }
+
+  pre {
+    padding: 1rem;
+    font-size: 0.78rem;
+  }
+
+  article > .container > section:first-child > p:first-of-type::first-letter {
+    font-size: 2.8em;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  nav .nav-inner {
+    gap: 0.15rem;
+  }
+
+  nav a {
+    font-size: 0.68rem;
+    padding: 0.35rem 0.5rem;
+  }
+
+  .schema-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .schema-item {
+    border-right: none;
+  }
+
+  .schema-item:nth-last-child(-n+2) {
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .schema-item:last-child {
+    border-bottom: none;
+  }
+}
+
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-home">&larr; Home</a>
+    <a href="#" class="nav-title">GitNexus Tools</a>
+    <a href="#tools">Tools</a>
+    <a href="#cypher">Cypher</a>
+    <a href="#mcp">MCP Resources</a>
+    <a href="#workflow">Workflow</a>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<div class="hero">
+  <div class="container">
+    <div class="hero-badge">Mar 2026 &middot; Developer Tools</div>
+    <h1>GitNexus: What You Can Actually Do<br>With a Code Knowledge Graph</h1>
+    <p class="subtitle">GitNexus indexes a codebase into a knowledge graph &mdash; 13k+ nodes and 38k+ edges representing every function, class, import, call chain, and execution flow. Here&rsquo;s what the tools look like in practice.</p>
+  </div>
+</div>
+
+<!-- ═══ ARTICLE ═══ -->
+<article>
+  <div class="container">
+
+    <section>
+      <p><strong>After running <code>gitnexus analyze</code>, you get a KuzuDB graph of your entire codebase.</strong> Every function, class, import relationship, and call chain is a node or edge. The CLI commands and MCP tools let you query that graph in ways that grep and file search can&rsquo;t &mdash; you&rsquo;re searching <em>execution flows</em>, not text matches. You ask &ldquo;how does X work?&rdquo; and get the actual call chain from entry point to implementation.</p>
+    </section>
+
+    <hr>
+
+    <section id="tools">
+      <h2>The Tools</h2>
+
+      <div class="tool-header">
+        <h3>query</h3>
+        <span class="tool-tagline">&ldquo;How does X work?&rdquo;</span>
+      </div>
+      <div class="tool-meta">
+        <span class="meta-tag cli">CLI</span>
+        <span class="meta-tag mcp">MCP</span>
+      </div>
+      <p>Searches for execution flows related to a concept. Returns ranked processes &mdash; traced call chains from entry points &mdash; not just file matches. Uses BM25 keyword search combined with semantic vector search via Reciprocal Rank Fusion.</p>
+      <pre data-lang="Bash"><code>gitnexus query "snapshot converter pipeline"
+gitnexus query "authentication middleware" --limit 10
+gitnexus query "rate limiting" --context "adding throttling to API" --goal "find existing patterns"</code></pre>
+      <blockquote><p><strong>When to use:</strong> Starting point for understanding how code works together. Complements grep &mdash; grep finds text matches, query finds execution flows.</p></blockquote>
+
+      <div class="tool-header">
+        <h3>context</h3>
+        <span class="tool-tagline">&ldquo;Tell me everything about this symbol&rdquo;</span>
+      </div>
+      <div class="tool-meta">
+        <span class="meta-tag cli">CLI</span>
+        <span class="meta-tag mcp">MCP</span>
+      </div>
+      <p>360-degree view of a single function, class, or method. Shows who calls it, what it calls, and which execution flows it participates in.</p>
+      <pre data-lang="Bash"><code>gitnexus context validateUser
+gitnexus context processRecord --file src/converter/handler.ts
+gitnexus context --uid "Function:src/auth/validator.ts:validateUser"</code></pre>
+      <blockquote><p><strong>When to use:</strong> After <code>query</code> finds something interesting, drill into a specific symbol. Before modifying a function, see everything connected to it.</p></blockquote>
+
+      <div class="tool-header">
+        <h3>impact</h3>
+        <span class="tool-tagline">&ldquo;What breaks if I change this?&rdquo;</span>
+      </div>
+      <div class="tool-meta">
+        <span class="meta-tag cli">CLI</span>
+        <span class="meta-tag mcp">MCP</span>
+      </div>
+      <p>Blast radius analysis. Traverses the graph outward from a symbol and categorizes everything affected by depth.</p>
+      <pre data-lang="Bash"><code>gitnexus impact processRecord --direction upstream
+gitnexus impact AuthService --direction upstream --depth 4
+gitnexus impact validateToken --direction downstream --include-tests</code></pre>
+      <p>Returns a risk level (LOW / MEDIUM / HIGH / CRITICAL) with results organized by distance:</p>
+      <ul>
+        <li><strong>d=1 (WILL BREAK):</strong> Direct callers and importers</li>
+        <li><strong>d=2 (LIKELY AFFECTED):</strong> Indirect dependents</li>
+        <li><strong>d=3 (MAY NEED TESTING):</strong> Transitive dependencies</li>
+      </ul>
+      <p>Also lists affected execution flows (which processes break and at which step) and affected modules (which functional areas are hit).</p>
+      <blockquote><p><strong>When to use:</strong> Before any refactor, rename, or modification to shared code. The risk rating tells you instantly how dangerous the change is.</p></blockquote>
+
+      <div class="tool-header">
+        <h3>detect_changes</h3>
+        <span class="tool-tagline">&ldquo;What did I break?&rdquo;</span>
+      </div>
+      <div class="tool-meta">
+        <span class="meta-tag mcp">MCP Only</span>
+      </div>
+      <p>Maps your uncommitted git changes back to the knowledge graph. Shows which symbols changed and which execution flows are affected.</p>
+      <pre data-lang="JavaScript"><code>detect_changes({ scope: "staged" })
+detect_changes({ scope: "compare", base_ref: "main" })</code></pre>
+      <p>Supports four scopes: <code>unstaged</code> (default), <code>staged</code>, <code>all</code>, and <code>compare</code> (diff against a branch). Returns changed symbols, affected processes, and a risk summary.</p>
+      <blockquote><p><strong>When to use:</strong> Before committing. Before opening a PR. Answers &ldquo;do I need to test more?&rdquo;</p></blockquote>
+
+      <div class="tool-header">
+        <h3>rename</h3>
+        <span class="tool-tagline">Multi-file coordinated rename</span>
+      </div>
+      <div class="tool-meta">
+        <span class="meta-tag mcp">MCP Only</span>
+      </div>
+      <p>Finds all references via graph traversal (high confidence) and regex text search (lower confidence). Runs in preview mode by default.</p>
+      <pre data-lang="JavaScript"><code>rename({ symbol_name: "processPayment", new_name: "handlePayment" })</code></pre>
+      <p>Each proposed edit is tagged <code>"graph"</code> (safe to accept) or <code>"text_search"</code> (review carefully). Safer than find-and-replace because it uses the graph to find callers and importers that regex might miss.</p>
+
+      <div class="tool-header">
+        <h3>augment</h3>
+        <span class="tool-tagline">Invisible context enrichment</span>
+      </div>
+      <div class="tool-meta">
+        <span class="meta-tag hook">PreToolUse Hook</span>
+      </div>
+      <p>This one runs automatically. When Claude Code executes a Grep or Glob, the registered PreToolUse hook runs <code>gitnexus augment &lt;pattern&gt;</code> behind the scenes. It searches the graph for matching symbols and injects callers, callees, and flow participation into the tool result before the agent sees it.</p>
+      <p>You never call this directly. It makes every search smarter by adding graph context automatically.</p>
+
+      <div class="tool-header">
+        <h3>wiki</h3>
+        <span class="tool-tagline">Generate browsable documentation</span>
+      </div>
+      <div class="tool-meta">
+        <span class="meta-tag cli">CLI</span>
+      </div>
+      <p>Runs an LLM over the knowledge graph and source code to produce a navigable HTML wiki. Groups files into functional modules, generates a page per module with architecture diagrams and cross-module call analysis.</p>
+      <pre data-lang="Bash"><code>gitnexus wiki                           # Generate wiki for current repo
+gitnexus wiki --model gpt-4o            # Use a specific model
+gitnexus wiki --gist                    # Publish to GitHub Gist</code></pre>
+      <p>Incremental &mdash; re-running after changes only regenerates affected modules. Output lands at <code>.gitnexus/wiki/index.html</code>.</p>
+    </section>
+
+    <hr>
+
+    <section id="cypher">
+      <h2>Raw Graph Queries with Cypher</h2>
+      <p>For anything the high-level tools can&rsquo;t answer, you can write Cypher queries directly against the knowledge graph. Read-only enforced &mdash; CREATE, DELETE, DROP, and other mutations are blocked.</p>
+
+      <pre data-lang="Cypher"><code># List functions
+MATCH (f:Function) RETURN f.name, f.filePath LIMIT 10
+
+# Find all callers of a function
+MATCH (a)-[:CodeRelation {type: 'CALLS'}]->(b:Function {name: 'validateUser'})
+RETURN a.name, a.filePath
+
+# Find cross-boundary calls into the Auth module
+MATCH (caller)-[:CodeRelation {type: 'CALLS'}]->(f)
+      -[:CodeRelation {type: 'MEMBER_OF'}]->(c:Community {heuristicLabel: 'Auth'})
+WHERE NOT (caller)-[:CodeRelation {type: 'MEMBER_OF'}]->(c)
+RETURN caller.name, f.name</code></pre>
+
+      <h3>Graph Schema</h3>
+      <div class="schema-grid">
+        <div class="schema-item">
+          <div class="schema-label">Nodes</div>
+          <div class="schema-value">File, Folder, Function, Class, Interface, Method, CodeElement, Community, Process</div>
+        </div>
+        <div class="schema-item">
+          <div class="schema-label">Edge Table</div>
+          <div class="schema-value">CodeRelation with <code>type</code> property</div>
+        </div>
+        <div class="schema-item">
+          <div class="schema-label">Edge Types</div>
+          <div class="schema-value">CONTAINS, DEFINES, CALLS, IMPORTS, EXTENDS, IMPLEMENTS, MEMBER_OF, STEP_IN_PROCESS</div>
+        </div>
+        <div class="schema-item">
+          <div class="schema-label">Multi-Language</div>
+          <div class="schema-value">Struct, Enum, Trait, Impl (use backticks in Cypher)</div>
+        </div>
+      </div>
+    </section>
+
+    <hr>
+
+    <section id="mcp">
+      <h2>MCP Resources</h2>
+      <p>Available to AI agents as read-only context via <code>READ gitnexus://...</code>:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Resource</th>
+            <th>What It Gives You</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>gitnexus://repos</code></td>
+            <td>All indexed repos with stats</td>
+          </tr>
+          <tr>
+            <td><code>gitnexus://repo/{name}/context</code></td>
+            <td>Codebase overview + staleness check</td>
+          </tr>
+          <tr>
+            <td><code>gitnexus://repo/{name}/clusters</code></td>
+            <td>Functional areas (Leiden communities)</td>
+          </tr>
+          <tr>
+            <td><code>gitnexus://repo/{name}/processes</code></td>
+            <td>All execution flows</td>
+          </tr>
+          <tr>
+            <td><code>gitnexus://repo/{name}/schema</code></td>
+            <td>Graph schema for writing Cypher</td>
+          </tr>
+          <tr>
+            <td><code>gitnexus://repo/{name}/cluster/{name}</code></td>
+            <td>Members of a specific community</td>
+          </tr>
+          <tr>
+            <td><code>gitnexus://repo/{name}/process/{name}</code></td>
+            <td>Step-by-step execution trace</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <hr>
+
+    <section id="workflow">
+      <h2>Typical Workflow</h2>
+      <ul class="workflow-steps">
+        <li>
+          <div class="step-content">
+            <div class="step-label">Index</div>
+            <div class="step-detail"><code>gitnexus analyze /path/to/repo</code> &mdash; builds the knowledge graph from source</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <div class="step-label">Explore</div>
+            <div class="step-detail"><code>gitnexus query "the thing you care about"</code> &mdash; find relevant execution flows</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <div class="step-label">Drill In</div>
+            <div class="step-detail"><code>gitnexus context &lt;symbol_name&gt;</code> &mdash; get the full picture of an interesting result</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <div class="step-label">Before Changing</div>
+            <div class="step-detail"><code>gitnexus impact &lt;target&gt; --direction upstream</code> &mdash; check blast radius</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <div class="step-label">After Changing</div>
+            <div class="step-detail"><code>detect_changes</code> &mdash; verify what you actually affected</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <div class="step-label">Document</div>
+            <div class="step-detail"><code>gitnexus wiki</code> &mdash; generate a browsable overview of the codebase</div>
+          </div>
+        </li>
+      </ul>
+      <p style="margin-top: 1.25rem;">The MCP tools do the same things but are available to AI agents automatically. The <code>augment</code> hook enriches every search the agent performs without explicit tool calls.</p>
+    </section>
+
+  </div>
+</article>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="container">
+    <p>
+      <a href="/">Nathan Norman</a> &nbsp;&bull;&nbsp; Mar 2026
+    </p>
+    <p style="margin-top: 0.4rem;">
+      GitNexus is a personal project. Source and documentation on <a href="https://github.com/NathanNorman" target="_blank" rel="noopener">GitHub</a>.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
