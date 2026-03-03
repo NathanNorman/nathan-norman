@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NSA: The Sparse Attention That Actually Ships</title>
+<meta name="description" content="DeepSeek&rsquo;s Native Sparse Attention replaces full O(n&sup2;) attention with three parallel pathways &mdash; compress, select, slide &mdash; achieving up to 11.6x speedup while matching or beating full attention quality. A visual explainer.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep: #faf8f5;
+  --bg-primary: #faf8f5;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f5f0eb;
+  --bg-surface: #f5f0eb;
+  --border: #e8e0d8;
+  --border-bright: #d4ccc4;
+  --text-primary: #2c2521;
+  --text-secondary: #6b5e55;
+  --text-muted: #9a8d84;
+  --teal: #c4632a;
+  --teal-dim: #a8521f;
+  --teal-glow: rgba(196, 99, 42, 0.06);
+  --teal-glow-strong: rgba(196, 99, 42, 0.15);
+  --orange: #c4632a;
+  --orange-dim: #a8521f;
+  --orange-glow: rgba(196, 99, 42, 0.08);
+  --cyan: #c4632a;
+  --purple: #8b6b4a;
+  --pink: #b85450;
+  --green: #5a8a5e;
+  --red: #c44a3f;
+  --yellow: #b8923a;
+  --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-bright) var(--bg-deep);
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+a { color: var(--teal); text-decoration: none; }
+a:hover { color: var(--teal-dim); }
+
+.accent { color: var(--teal); }
+.accent-orange { color: var(--orange); }
+
+/* =============== NAV =============== */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(250, 248, 245, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 0;
+}
+
+.nav-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.nav-inner::-webkit-scrollbar { display: none; }
+
+.nav-inner a {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.nav-inner a:hover { color: var(--text-primary); }
+.nav-logo { color: var(--teal) !important; font-weight: 600 !important; }
+
+/* =============== HERO =============== */
+#hero {
+  padding: 5rem 0 3.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-badge {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--teal);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+}
+
+.hero-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.25rem;
+}
+
+.hero-title .teal { color: var(--teal); }
+
+.hero-subtitle {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  max-width: 720px;
+}
+
+.hero-subtitle em { color: var(--teal); font-style: italic; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 2.5rem;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  padding: 1.5rem;
+  transition: background 0.2s;
+}
+
+.stat-card:hover { background: var(--bg-card-hover); }
+
+.stat-number {
+  font-family: var(--mono);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--teal);
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.stat-detail {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+/* =============== SECTIONS =============== */
+section {
+  padding: 4rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 0.75rem;
+}
+
+section h2 {
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-bottom: 1rem;
+}
+
+.desc {
+  font-family: var(--serif);
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  max-width: 720px;
+}
+
+.desc strong { color: var(--text-primary); }
+
+/* =============== THREE BRANCHES =============== */
+.branch-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.branch-card {
+  background: var(--bg-card);
+  padding: 1.75rem;
+  transition: background 0.2s;
+}
+
+.branch-card:hover { background: var(--bg-card-hover); }
+
+.branch-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.branch-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.branch-card .branch-tag {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--teal);
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.branch-card p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+.branch-card .branch-analogy {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  font-family: var(--serif);
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+/* =============== GATING EQUATION =============== */
+.gating-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2rem;
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.gating-box h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.gating-eq {
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+  margin-bottom: 1rem;
+}
+
+.gating-eq .g { color: var(--teal); font-weight: 600; }
+.gating-eq .dim { color: var(--text-muted); }
+
+.gating-detail {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* =============== ATTENTION VISUAL =============== */
+.attention-visual {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 2rem;
+  align-items: center;
+  margin-top: 2rem;
+}
+
+.attn-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.75rem;
+  text-align: center;
+}
+
+.attn-title {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.attn-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+  margin: 0 auto;
+  max-width: 200px;
+}
+
+.attn-cell {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  transition: background 0.3s;
+}
+
+.attn-full .attn-cell {
+  background: rgba(196, 74, 63, 0.25);
+}
+
+.attn-sparse .attn-cell {
+  background: rgba(196, 99, 42, 0.06);
+}
+
+.attn-sparse .attn-cell.compress {
+  background: rgba(90, 138, 94, 0.35);
+}
+
+.attn-sparse .attn-cell.select {
+  background: rgba(196, 99, 42, 0.4);
+}
+
+.attn-sparse .attn-cell.slide {
+  background: rgba(139, 107, 74, 0.35);
+}
+
+.attn-label {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.75rem;
+}
+
+.cost-tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  margin-top: 0.5rem;
+}
+
+.cost-bad {
+  color: var(--red);
+  background: rgba(196, 74, 63, 0.08);
+  border: 1px solid rgba(196, 74, 63, 0.2);
+}
+
+.cost-good {
+  color: var(--green);
+  background: rgba(90, 138, 94, 0.08);
+  border: 1px solid rgba(90, 138, 94, 0.2);
+}
+
+.attn-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+}
+
+/* =============== HARDWARE SECTION =============== */
+.hw-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.hw-card {
+  background: var(--bg-card);
+  padding: 1.75rem;
+  transition: background 0.2s;
+}
+
+.hw-card:hover { background: var(--bg-card-hover); }
+
+.hw-card .hw-icon {
+  font-size: 1.3rem;
+  margin-bottom: 0.75rem;
+}
+
+.hw-card h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.hw-card p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.hw-card .chip {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  margin-top: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.chip-teal {
+  color: var(--teal);
+  background: var(--teal-glow);
+  border: 1px solid rgba(196, 99, 42, 0.2);
+}
+
+.chip-green {
+  color: var(--green);
+  background: rgba(90, 138, 94, 0.08);
+  border: 1px solid rgba(90, 138, 94, 0.15);
+}
+
+/* =============== MEMORY DIAGRAM =============== */
+.memory-diagram {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2rem;
+  margin-top: 2rem;
+}
+
+.memory-diagram h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+}
+
+.mem-levels {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.mem-level {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.mem-level .mem-name {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+}
+
+.mem-level .mem-size {
+  font-family: var(--mono);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--teal);
+}
+
+.mem-level .mem-note {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.mem-arrow {
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.mem-caption {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+/* =============== KERNEL BOX =============== */
+.kernel-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2rem;
+  margin-top: 2rem;
+}
+
+.kernel-box h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.kernel-box .kernel-desc {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin-bottom: 1.25rem;
+}
+
+.kernel-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.kernel-step {
+  background: var(--bg-surface);
+  padding: 1rem;
+}
+
+.kernel-step .k-num {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+}
+
+.kernel-step h4 {
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.kernel-step p {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* =============== BENCHMARKS =============== */
+.bench-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 2rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bench-table thead th {
+  background: var(--bg-surface);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0.8rem 1rem;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.bench-table thead th:first-child {
+  text-align: left;
+}
+
+.bench-table thead th.nsa-col {
+  color: var(--teal);
+  background: rgba(196, 99, 42, 0.05);
+}
+
+.bench-table tbody td {
+  padding: 0.7rem 1rem;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.bench-table tbody td:first-child {
+  text-align: left;
+  font-family: var(--sans);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.bench-table tbody tr:last-child td { border-bottom: none; }
+.bench-table tbody tr:hover td { background: var(--bg-card-hover); }
+
+.bench-table td.nsa-col {
+  color: var(--teal);
+  font-weight: 600;
+  background: rgba(196, 99, 42, 0.03);
+}
+
+.bench-table td.best::after {
+  content: ' \25CF';
+  color: var(--teal);
+  font-size: 0.5rem;
+  vertical-align: super;
+}
+
+.bench-category td {
+  background: var(--bg-deep) !important;
+  color: var(--text-muted) !important;
+  font-family: var(--mono) !important;
+  font-size: 0.6rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  text-align: left !important;
+  padding: 0.5rem 1rem !important;
+}
+
+.bench-note {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* =============== SPEED BARS =============== */
+.speed-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.speed-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 60px;
+  align-items: center;
+  gap: 1rem;
+}
+
+.speed-label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.speed-track {
+  height: 28px;
+  background: var(--bg-surface);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.speed-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s ease;
+}
+
+.speed-fill.full { background: rgba(196, 74, 63, 0.25); }
+.speed-fill.nsa { background: linear-gradient(90deg, var(--teal-dim), var(--teal)); }
+
+.speed-value {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.speed-section-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+/* =============== WHY IT MATTERS =============== */
+.impact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.impact-card {
+  background: var(--bg-card);
+  padding: 1.75rem;
+  transition: background 0.2s;
+}
+
+.impact-card:hover { background: var(--bg-card-hover); }
+
+.impact-card .ic-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.impact-card h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.impact-card p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.impact-card .chip {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  margin-top: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+/* =============== ANALOGY BOX =============== */
+.analogy-box {
+  background: linear-gradient(135deg, rgba(196, 99, 42, 0.05) 0%, rgba(196, 99, 42, 0.02) 100%);
+  border: 1px solid rgba(196, 99, 42, 0.15);
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  margin-top: 2rem;
+}
+
+.analogy-box .analogy-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 0.5rem;
+}
+
+.analogy-box p {
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.75;
+}
+
+/* =============== KEY STAT =============== */
+.keystat {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2.5rem;
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.keystat .big-num {
+  font-family: var(--mono);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  color: var(--teal);
+  letter-spacing: -0.02em;
+}
+
+.keystat .context {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  max-width: 600px;
+  margin: 0.75rem auto 0;
+}
+
+.keystat .context strong { color: var(--text-primary); }
+
+/* =============== FOOTER =============== */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 2rem 0;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+footer a {
+  color: var(--teal);
+  text-decoration: none;
+}
+
+/* =============== RESPONSIVE =============== */
+@media (max-width: 900px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .branch-grid { grid-template-columns: 1fr; }
+  .hw-grid { grid-template-columns: 1fr; }
+  .attention-visual { grid-template-columns: 1fr; gap: 1rem; }
+  .attn-arrow { transform: rotate(90deg); }
+  .impact-grid { grid-template-columns: 1fr; }
+  .kernel-steps { grid-template-columns: repeat(2, 1fr); }
+  .mem-levels { grid-template-columns: 1fr; gap: 0.75rem; }
+  .mem-arrow { transform: rotate(90deg); }
+  .speed-row { grid-template-columns: 100px 1fr 50px; }
+  .bench-table { font-size: 0.75rem; }
+}
+
+@media (max-width: 600px) {
+  .stat-grid { grid-template-columns: 1fr; }
+  .kernel-steps { grid-template-columns: 1fr; }
+  .speed-row { grid-template-columns: 80px 1fr 45px; }
+  .speed-label { font-size: 0.72rem; }
+}
+
+/* =============== ANIMATIONS =============== */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-badge { animation: fadeUp 0.6s ease both; }
+.hero-title { animation: fadeUp 0.6s ease 0.1s both; }
+.hero-subtitle { animation: fadeUp 0.6s ease 0.2s both; }
+.stat-grid { animation: fadeUp 0.6s ease 0.35s both; }
+</style>
+</head>
+<body>
+
+<!-- === NAV === -->
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo" style="color: var(--text-muted); font-weight: 500; margin-right: 0.5rem;">&larr; Home</a>
+    <a href="#hero" class="nav-logo">NSA</a>
+    <a href="#problem">Problem</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#hardware">Hardware</a>
+    <a href="#benchmarks">Benchmarks</a>
+    <a href="#speed">Speed</a>
+    <a href="#impact">Why It Matters</a>
+  </div>
+</nav>
+
+<!-- === HERO === -->
+<section id="hero">
+  <div class="container">
+    <div class="hero-badge">&#9670; arXiv 2602.16928v2 &mdash; Feb 2026</div>
+    <h1 class="hero-title">
+      The Sparse Attention<br>That Actually <span class="teal">Ships</span>
+    </h1>
+    <p class="hero-subtitle">
+      DeepSeek&rsquo;s <em>Native Sparse Attention</em> replaces full O(n&sup2;) attention with three parallel pathways &mdash;
+      compress, select, slide &mdash; all hardware-aligned, all trainable end-to-end.
+      The result: up to 11.6&times; faster forward passes while matching or beating full attention quality.
+    </p>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-number">27B</div>
+        <div class="stat-label">Parameter Model</div>
+        <div class="stat-detail">Trained from scratch with NSA</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">11.6&times;</div>
+        <div class="stat-label">Forward Speedup</div>
+        <div class="stat-detail">64K context, full model forward</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">6.0&times;</div>
+        <div class="stat-label">Decode Speedup</div>
+        <div class="stat-detail">64K context, token generation</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">64K</div>
+        <div class="stat-label">Context Window</div>
+        <div class="stat-detail">Where sparse attention shines</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- === PROBLEM === -->
+<section id="problem">
+  <div class="container">
+    <div class="section-label">The Problem</div>
+    <h2>Full Attention Doesn&rsquo;t <span class="accent">Scale</span></h2>
+    <p class="desc">
+      Standard transformers compute attention between <strong>every pair of tokens</strong> in the context.
+      Double your context length, quadruple the cost. At 64K tokens, that&rsquo;s over 4 billion attention operations per layer.
+      Previous sparse methods either weren&rsquo;t trainable (post-hoc approximations) or weren&rsquo;t hardware-efficient (random scatter/gather patterns that thrash GPU memory).
+      NSA solves both.
+    </p>
+
+    <div class="attention-visual">
+      <div class="attn-box">
+        <div class="attn-title" style="color: var(--red);">Full Attention</div>
+        <div class="attn-grid attn-full">
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
+        </div>
+        <div class="attn-label">Every token attends to every other</div>
+        <div class="cost-tag cost-bad">O(n&sup2;) &mdash; doesn&rsquo;t scale</div>
+      </div>
+      <div class="attn-arrow">&rarr;</div>
+      <div class="attn-box">
+        <div class="attn-title" style="color: var(--teal);">NSA: Three-Branch Sparse</div>
+        <div class="attn-grid attn-sparse">
+          <div class="attn-cell compress"></div><div class="attn-cell compress"></div><div class="attn-cell"></div><div class="attn-cell select"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell slide"></div><div class="attn-cell slide"></div>
+          <div class="attn-cell compress"></div><div class="attn-cell compress"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell select"></div><div class="attn-cell"></div><div class="attn-cell slide"></div><div class="attn-cell slide"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell compress"></div><div class="attn-cell compress"></div><div class="attn-cell"></div><div class="attn-cell select"></div><div class="attn-cell slide"></div><div class="attn-cell slide"></div>
+          <div class="attn-cell select"></div><div class="attn-cell"></div><div class="attn-cell compress"></div><div class="attn-cell compress"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell slide"></div><div class="attn-cell slide"></div>
+          <div class="attn-cell"></div><div class="attn-cell select"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell compress"></div><div class="attn-cell compress"></div><div class="attn-cell slide"></div><div class="attn-cell slide"></div>
+          <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell select"></div><div class="attn-cell"></div><div class="attn-cell compress"></div><div class="attn-cell compress"></div><div class="attn-cell slide"></div><div class="attn-cell slide"></div>
+          <div class="attn-cell compress"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell select"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell slide"></div><div class="attn-cell slide"></div>
+          <div class="attn-cell"></div><div class="attn-cell compress"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell select"></div><div class="attn-cell"></div><div class="attn-cell slide"></div><div class="attn-cell slide"></div>
+        </div>
+        <div class="attn-label">
+          <span style="color:var(--green);">&#9632;</span> compress &nbsp;
+          <span style="color:var(--orange);">&#9632;</span> select &nbsp;
+          <span style="color:var(--purple);">&#9632;</span> slide
+        </div>
+        <div class="cost-tag cost-good">O(n &middot; k) &mdash; scales linearly</div>
+      </div>
+    </div>
+
+    <div class="analogy-box">
+      <div class="analogy-label">The analogy</div>
+      <p>
+        Full attention is a full table scan on every query &mdash; <code style="color:var(--orange);font-family:var(--mono);font-size:0.85em;">SELECT * FROM context</code>.
+        NSA is more like a well-designed data pipeline: a compressed summary for the big picture, targeted lookups for the important details, and a recent-events buffer for what just happened. Three access patterns, one result.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- === ARCHITECTURE === -->
+<section id="architecture">
+  <div class="container">
+    <div class="section-label">Core Innovation</div>
+    <h2>Three Branches, One <span class="accent">Attention</span></h2>
+    <p class="desc">
+      NSA decomposes attention into three <strong>parallel pathways</strong>, each handling a different
+      type of context dependency. Their outputs are merged through a learned gating mechanism &mdash;
+      the model itself decides how much weight to give each branch for every query.
+    </p>
+
+    <div class="branch-grid">
+      <div class="branch-card">
+        <div class="branch-icon">&#x1F5DC;</div>
+        <h3>Token Compression</h3>
+        <div class="branch-tag">Global context &rarr; O(n/l)</div>
+        <p>
+          Groups tokens into blocks of <em>l</em> and compresses each block into a single representation
+          using learned MLP gates. The query attends to these compressed tokens &mdash; like reading a
+          summary instead of the full document.
+        </p>
+        <div class="branch-analogy">
+          Think columnar aggregation: instead of scanning every row, you read pre-computed block-level statistics.
+        </div>
+      </div>
+      <div class="branch-card">
+        <div class="branch-icon">&#x1F3AF;</div>
+        <h3>Token Selection</h3>
+        <div class="branch-tag">Important tokens &rarr; O(n &middot; top-k)</div>
+        <p>
+          Scores every token block by importance (using the compressed representations as a cheap index),
+          then selects the top-<em>k</em> blocks for full fine-grained attention.
+          Only the tokens that actually matter get the expensive computation.
+        </p>
+        <div class="branch-analogy">
+          Like a database index scan: use the B-tree to find relevant pages, then fetch only those rows.
+        </div>
+      </div>
+      <div class="branch-card">
+        <div class="branch-icon">&#x1F4C4;</div>
+        <h3>Sliding Window</h3>
+        <div class="branch-tag">Recent tokens &rarr; O(w)</div>
+        <p>
+          Standard local attention over the most recent <em>w</em> tokens.
+          Captures immediate context &mdash; the tokens surrounding the current position.
+          Fixed cost regardless of total sequence length.
+        </p>
+        <div class="branch-analogy">
+          A write-ahead log: you always have fast access to the most recent entries.
+        </div>
+      </div>
+    </div>
+
+    <div class="gating-box">
+      <h3>Learned Gating &mdash; How the Branches Combine</h3>
+      <div class="gating-eq">
+        <span class="dim">O =</span>
+        <span class="g">g<sub>cmp</sub></span> &middot; O<sub>cmp</sub> +
+        <span class="g">g<sub>slc</sub></span> &middot; O<sub>slc</sub> +
+        <span class="g">g<sub>win</sub></span> &middot; O<sub>win</sub>
+      </div>
+      <div class="gating-detail">
+        The gates <strong>g</strong> are computed per-query from the input via a linear projection + sigmoid.
+        Each attention head learns its own gating weights &mdash; some heads learn to rely heavily on
+        compressed context, others on selection. The model discovers the optimal mix during training.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- === HARDWARE === -->
+<section id="hardware">
+  <div class="container">
+    <div class="section-label">Why It&rsquo;s Fast</div>
+    <h2>Hardware-Aligned <span class="accent">by Design</span></h2>
+    <p class="desc">
+      Most sparse attention methods look great on paper but are slow in practice. Random token selection
+      means <strong>scattered memory reads</strong> that destroy GPU throughput. NSA is designed around how
+      GPUs actually move data &mdash; every operation maps to coalesced, block-contiguous memory access.
+    </p>
+
+    <div class="hw-grid">
+      <div class="hw-card">
+        <div class="hw-icon">&#x1F9F1;</div>
+        <h4>Block-Contiguous Access</h4>
+        <p>All three branches operate on <strong>contiguous blocks</strong> of tokens (block size 64). No scattered reads, no random indexing. The compression and selection both use the same block boundaries, so the KV cache is always accessed in GPU-friendly chunks.</p>
+        <div class="chip chip-teal">ALIGNED TO GPU SRAM</div>
+      </div>
+      <div class="hw-card">
+        <div class="hw-icon">&#x26A1;</div>
+        <h4>FlashAttention-Compatible</h4>
+        <p>The selection branch computes blockwise importance scores <em>in SRAM</em> during the forward pass &mdash; it piggybacks on the same memory access pattern FlashAttention uses. No extra HBM round-trips for the index lookup.</p>
+        <div class="chip chip-green">ZERO EXTRA HBM READS</div>
+      </div>
+      <div class="hw-card">
+        <div class="hw-icon">&#x1F504;</div>
+        <h4>Shared Block Indices</h4>
+        <p>The compression branch computes block-level representations that the selection branch reuses as its importance index. Two branches, one data load. The block structure means the same KV cache slice serves both pathways.</p>
+        <div class="chip chip-teal">COMPUTE REUSE</div>
+      </div>
+      <div class="hw-card">
+        <div class="hw-icon">&#x1F4CA;</div>
+        <h4>Custom Triton Kernels</h4>
+        <p>End-to-end fused kernels written in Triton for both forward and backward passes. The selection kernel avoids materializing intermediate attention matrices &mdash; it computes scores, selects, and attends in a single kernel launch.</p>
+        <div class="chip chip-green">FUSED FORWARD + BACKWARD</div>
+      </div>
+    </div>
+
+    <div class="memory-diagram">
+      <h3>GPU Memory Hierarchy &mdash; NSA&rsquo;s Advantage</h3>
+      <div class="mem-levels">
+        <div class="mem-level">
+          <div class="mem-name">HBM</div>
+          <div class="mem-size">80 GB</div>
+          <div class="mem-note">High bandwidth, high latency</div>
+        </div>
+        <div class="mem-arrow">&rarr;</div>
+        <div class="mem-level">
+          <div class="mem-name" style="color: var(--teal);">SRAM</div>
+          <div class="mem-size">20 MB</div>
+          <div class="mem-note">Low latency, limited capacity</div>
+        </div>
+        <div class="mem-arrow">&rarr;</div>
+        <div class="mem-level">
+          <div class="mem-name">Registers</div>
+          <div class="mem-size">&lt;1 MB</div>
+          <div class="mem-note">Fastest, per-thread</div>
+        </div>
+      </div>
+      <div class="mem-caption">
+        NSA&rsquo;s block-contiguous design keeps the <strong>hot path in SRAM</strong>.
+        Compressed representations and block indices fit in the on-chip cache;
+        only the selected KV blocks get loaded from HBM.
+        Full attention forces <em>everything</em> through HBM &mdash; that&rsquo;s the bottleneck.
+      </div>
+    </div>
+
+    <div class="kernel-box">
+      <h3>The Selection Kernel &mdash; How It Works Under the Hood</h3>
+      <div class="kernel-desc">
+        A single Triton kernel handles the entire selection branch. No Python-level loops, no materialized intermediate matrices.
+      </div>
+      <div class="kernel-steps">
+        <div class="kernel-step">
+          <div class="k-num">Step 1</div>
+          <h4>Load Compressed KVs</h4>
+          <p>Read block-level compressed keys from SRAM (already computed by compression branch).</p>
+        </div>
+        <div class="kernel-step">
+          <div class="k-num">Step 2</div>
+          <h4>Score Blocks</h4>
+          <p>Compute blockwise importance scores via dot product with query. Runs entirely in SRAM.</p>
+        </div>
+        <div class="kernel-step">
+          <div class="k-num">Step 3</div>
+          <h4>TopK Select</h4>
+          <p>Pick the top-<em>k</em> highest-scoring blocks. Only these get loaded from HBM.</p>
+        </div>
+        <div class="kernel-step">
+          <div class="k-num">Step 4</div>
+          <h4>Attend</h4>
+          <p>Run FlashAttention-style computation over selected blocks. Output goes straight to result.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- === BENCHMARKS === -->
+<section id="benchmarks">
+  <div class="container">
+    <div class="section-label">Results</div>
+    <h2>Quality: Full Attention <span class="accent">Without the Cost</span></h2>
+    <p class="desc">
+      NSA was trained from scratch on a 27B parameter model using 260B tokens.
+      On general benchmarks it <strong>matches full attention</strong>. On reasoning-heavy and long-context tasks,
+      it often <strong>wins outright</strong> &mdash; the sparse structure acts as an inductive bias that helps the
+      model focus on what matters.
+    </p>
+
+    <table class="bench-table">
+      <thead>
+        <tr>
+          <th>Benchmark</th>
+          <th>Full Attention</th>
+          <th class="nsa-col">NSA</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="bench-category"><td colspan="3">General</td></tr>
+        <tr>
+          <td>MMLU (5-shot)</td>
+          <td>78.0</td>
+          <td class="nsa-col best">78.7</td>
+        </tr>
+        <tr>
+          <td>MMLU-Pro</td>
+          <td>52.3</td>
+          <td class="nsa-col best">52.8</td>
+        </tr>
+        <tr>
+          <td>MMLU-Redux</td>
+          <td>77.5</td>
+          <td class="nsa-col best">78.2</td>
+        </tr>
+        <tr>
+          <td>C-Eval</td>
+          <td>79.6</td>
+          <td class="nsa-col best">80.3</td>
+        </tr>
+        <tr class="bench-category"><td colspan="3">Reasoning</td></tr>
+        <tr>
+          <td>MATH-500</td>
+          <td>72.4</td>
+          <td class="nsa-col best">75.4</td>
+        </tr>
+        <tr>
+          <td>GPQA (Diamond)</td>
+          <td>36.4</td>
+          <td class="nsa-col best">38.9</td>
+        </tr>
+        <tr>
+          <td>BBH</td>
+          <td>79.3</td>
+          <td class="nsa-col best">81.1</td>
+        </tr>
+        <tr>
+          <td>ARC-Challenge</td>
+          <td>91.6</td>
+          <td class="nsa-col">91.4</td>
+        </tr>
+        <tr class="bench-category"><td colspan="3">Code</td></tr>
+        <tr>
+          <td>HumanEval</td>
+          <td>69.5</td>
+          <td class="nsa-col best">72.0</td>
+        </tr>
+        <tr>
+          <td>MBPP (3-shot)</td>
+          <td>74.0</td>
+          <td class="nsa-col best">75.5</td>
+        </tr>
+        <tr>
+          <td>CRUXEval-O</td>
+          <td>56.0</td>
+          <td class="nsa-col best">57.0</td>
+        </tr>
+        <tr class="bench-category"><td colspan="3">Long Context (64K)</td></tr>
+        <tr>
+          <td>RULER</td>
+          <td>90.3</td>
+          <td class="nsa-col best">93.0</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="bench-note">
+      <span style="color: var(--teal);">&#9679;</span> NSA leads &nbsp;&nbsp;|&nbsp;&nbsp; 27B params, 260B training tokens, identical data and hyperparameters
+    </div>
+
+    <div class="keystat">
+      <div class="big-num">93.0 RULER</div>
+      <div class="context">
+        On the RULER long-context benchmark at 64K tokens, NSA scores <strong>93.0 vs. 90.3</strong> for full attention.
+        Sparse attention isn&rsquo;t just cheaper &mdash; the inductive bias toward relevant tokens actually
+        <strong>improves</strong> long-context understanding. The model learns to ignore noise.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- === SPEED === -->
+<section id="speed">
+  <div class="container">
+    <div class="section-label">Performance</div>
+    <h2>The Speed <span class="accent">Numbers</span></h2>
+    <p class="desc">
+      Benchmarked on A100 GPUs. NSA&rsquo;s speedup grows with context length &mdash; at short contexts the overhead
+      of the three branches barely breaks even, but at 64K tokens the gap is enormous.
+      These numbers use the custom Triton kernels with FlashAttention-2 as the full attention baseline.
+    </p>
+
+    <div class="speed-grid">
+      <div class="speed-section-label">Forward Pass (Full Sequence)</div>
+      <div class="speed-row">
+        <div class="speed-label">Full Attn (64K)</div>
+        <div class="speed-track"><div class="speed-fill full" style="width: 100%;"></div></div>
+        <div class="speed-value">1.0&times;</div>
+      </div>
+      <div class="speed-row">
+        <div class="speed-label">NSA (64K)</div>
+        <div class="speed-track"><div class="speed-fill nsa" style="width: 8.6%;"></div></div>
+        <div class="speed-value">11.6&times;</div>
+      </div>
+
+      <div class="speed-section-label">Decoding (Token Generation)</div>
+      <div class="speed-row">
+        <div class="speed-label">Full Attn (64K)</div>
+        <div class="speed-track"><div class="speed-fill full" style="width: 100%;"></div></div>
+        <div class="speed-value">1.0&times;</div>
+      </div>
+      <div class="speed-row">
+        <div class="speed-label">NSA (64K)</div>
+        <div class="speed-track"><div class="speed-fill nsa" style="width: 16.7%;"></div></div>
+        <div class="speed-value">6.0&times;</div>
+      </div>
+
+      <div class="speed-section-label">Backward Pass (Training)</div>
+      <div class="speed-row">
+        <div class="speed-label">Full Attn (64K)</div>
+        <div class="speed-track"><div class="speed-fill full" style="width: 100%;"></div></div>
+        <div class="speed-value">1.0&times;</div>
+      </div>
+      <div class="speed-row">
+        <div class="speed-label">NSA (64K)</div>
+        <div class="speed-track"><div class="speed-fill nsa" style="width: 16.1%;"></div></div>
+        <div class="speed-value">6.2&times;</div>
+      </div>
+    </div>
+
+    <div class="analogy-box">
+      <div class="analogy-label">Why the forward pass is fastest</div>
+      <p>
+        During decoding, the selection branch still needs to score <em>all</em> compressed blocks
+        to find the top-k &mdash; that&rsquo;s the minimum read. During training (backward pass),
+        you need to propagate gradients through the gating and selection, which adds overhead.
+        But the forward pass on a full sequence can batch all queries together and reuse
+        the block index across them. That&rsquo;s where 11.6&times; comes from.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- === IMPACT === -->
+<section id="impact">
+  <div class="container">
+    <div class="section-label">So What</div>
+    <h2>Why This <span class="accent">Matters</span></h2>
+    <p class="desc">
+      This isn&rsquo;t a theoretical exercise. DeepSeek published this alongside their production model work.
+      The techniques here are practical enough to ship &mdash; and they address the single biggest bottleneck
+      in making LLMs useful: the cost of long context.
+    </p>
+
+    <div class="impact-grid">
+      <div class="impact-card">
+        <div class="ic-icon">&#x1F4B0;</div>
+        <h4>Inference Cost Drops</h4>
+        <p>
+          6&times; faster decoding at 64K context means 6&times; less GPU time per token generated.
+          For API providers, that translates directly to serving cost. For local deployment, it means
+          running long-context tasks on fewer GPUs.
+        </p>
+        <div class="chip chip-teal">COST REDUCTION</div>
+      </div>
+      <div class="impact-card">
+        <div class="ic-icon">&#x1F52C;</div>
+        <h4>Natively Trainable</h4>
+        <p>
+          Unlike post-hoc sparse approximations, NSA trains with the model from scratch.
+          The sparsity pattern is <em>learned</em>, not imposed. This means the model&rsquo;s sparse patterns
+          are optimal for the actual data distribution, not a researcher&rsquo;s best guess.
+        </p>
+        <div class="chip chip-green">END-TO-END LEARNING</div>
+      </div>
+      <div class="impact-card">
+        <div class="ic-icon">&#x1F680;</div>
+        <h4>Long Context Gets Practical</h4>
+        <p>
+          The RULER results show sparse attention doesn&rsquo;t just match full attention on long context &mdash;
+          it beats it. As context windows grow to 128K, 256K, and beyond, this kind of architecture
+          becomes less optional and more necessary.
+        </p>
+        <div class="chip chip-teal">SCALING UNLOCK</div>
+      </div>
+      <div class="impact-card">
+        <div class="ic-icon">&#x1F9E9;</div>
+        <h4>Open Research</h4>
+        <p>
+          The full paper is on arXiv with architecture details, training recipes, kernel implementations,
+          and ablation studies. DeepSeek continues to push the open-research approach they established
+          with DeepSeek-V2 and V3 &mdash; making frontier techniques available to everyone.
+        </p>
+        <div class="chip chip-green">ARXIV 2602.16928</div>
+      </div>
+    </div>
+
+    <div class="keystat" style="margin-top: 2rem;">
+      <div class="big-num" style="font-size: clamp(1.4rem, 3vw, 2rem);">Compress &middot; Select &middot; Slide</div>
+      <div class="context">
+        Three pathways. One attention mechanism. The global summary catches the big picture.
+        The selection finds the needles. The sliding window keeps you grounded in the present.
+        Each pathway is hardware-aligned. All three are trainable end-to-end.
+        This is what &ldquo;designed for GPUs, not just for math&rdquo; looks like.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- === FOOTER === -->
+<footer>
+  <div class="container">
+    <p>
+      <a href="/">Nathan Norman</a> &nbsp;&bull;&nbsp; Mar 2026
+    </p>
+    <p style="margin-top: 0.4rem;">
+      Paper: <a href="https://arxiv.org/abs/2602.16928" target="_blank" rel="noopener">arxiv.org/abs/2602.16928</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
