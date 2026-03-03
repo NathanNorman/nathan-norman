@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlphaEvolve: When AI Invents Better Algorithms Than Humans</title>
+<meta name="description" content="Google DeepMind used AlphaEvolve &mdash; an AI that writes and evolves code &mdash; to discover game-theory algorithms that outperform decades of hand-designed ones. A visual explainer.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep: #faf8f5;
+  --bg-primary: #faf8f5;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f5f0eb;
+  --bg-surface: #f5f0eb;
+  --border: #e8e0d8;
+  --border-bright: #d4ccc4;
+  --text-primary: #2c2521;
+  --text-secondary: #6b5e55;
+  --text-muted: #9a8d84;
+  --teal: #c4632a;
+  --teal-dim: #a8521f;
+  --teal-glow: rgba(196, 99, 42, 0.06);
+  --teal-glow-strong: rgba(196, 99, 42, 0.15);
+  --orange: #c4632a;
+  --orange-dim: #a8521f;
+  --orange-glow: rgba(196, 99, 42, 0.08);
+  --purple: #8b6b4a;
+  --green: #5a8a5e;
+  --red: #c44a3f;
+  --yellow: #b8923a;
+  --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-bright) var(--bg-deep);
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+a { color: var(--teal); text-decoration: none; }
+a:hover { color: var(--teal-dim); }
+
+.accent { color: var(--teal); }
+
+/* =============== NAV =============== */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(250, 248, 245, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 0;
+}
+
+.nav-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.nav-inner::-webkit-scrollbar { display: none; }
+
+.nav-inner a {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.nav-inner a:hover { color: var(--text-primary); }
+.nav-logo { color: var(--teal) !important; font-weight: 600 !important; }
+
+/* =============== HERO =============== */
+#hero {
+  padding: 5rem 0 3.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-badge {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--teal);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+}
+
+.hero-badge a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(196, 99, 42, 0.3);
+}
+
+.hero-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.25rem;
+}
+
+.hero-title .teal { color: var(--teal); }
+
+.hero-subtitle {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  max-width: 720px;
+}
+
+.hero-subtitle em { color: var(--teal); font-style: italic; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 2.5rem;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  padding: 1.5rem;
+  transition: background 0.2s;
+}
+
+.stat-card:hover { background: var(--bg-card-hover); }
+
+.stat-number {
+  font-family: var(--mono);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--teal);
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.stat-detail {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+/* =============== SECTIONS =============== */
+section {
+  padding: 4rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 0.75rem;
+}
+
+section h2 {
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-bottom: 1rem;
+}
+
+.desc {
+  font-family: var(--serif);
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  max-width: 720px;
+}
+
+.desc strong { color: var(--text-primary); }
+
+/* =============== ANALOGY BOX =============== */
+.analogy-box {
+  background: linear-gradient(135deg, rgba(196, 99, 42, 0.05) 0%, rgba(196, 99, 42, 0.02) 100%);
+  border: 1px solid rgba(196, 99, 42, 0.15);
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  margin-top: 2rem;
+}
+
+.analogy-box .analogy-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 0.5rem;
+}
+
+.analogy-box p {
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.75;
+}
+
+/* =============== ICON IMGS =============== */
+.card-icon img, .evo-icon img, .ic-icon img {
+  width: 28px;
+  height: 28px;
+  display: block;
+}
+
+.card-icon, .evo-icon, .ic-icon {
+  margin-bottom: 0.75rem;
+  line-height: 1;
+}
+
+/* =============== TWO-COLUMN GRID =============== */
+.two-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.two-card {
+  background: var(--bg-card);
+  padding: 1.75rem;
+  transition: background 0.2s;
+}
+
+.two-card:hover { background: var(--bg-card-hover); }
+
+.two-card h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.two-card p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.two-card .chip {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  margin-top: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.chip-teal {
+  color: var(--teal);
+  background: var(--teal-glow);
+  border: 1px solid rgba(196, 99, 42, 0.2);
+}
+
+.chip-green {
+  color: var(--green);
+  background: rgba(90, 138, 94, 0.08);
+  border: 1px solid rgba(90, 138, 94, 0.15);
+}
+
+/* =============== EVOLUTION LOOP =============== */
+.evo-loop {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.evo-step {
+  background: var(--bg-card);
+  padding: 1.5rem;
+  transition: background 0.2s;
+}
+
+.evo-step:hover { background: var(--bg-card-hover); }
+
+.evo-step .evo-num {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+}
+
+.evo-step h4 {
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.evo-step p {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+/* =============== DISCOVERY CARDS =============== */
+.discovery {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.discovery-header {
+  padding: 1.75rem 2rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.discovery-header .discovery-tag {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 0.5rem;
+}
+
+.discovery-header h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.discovery-header .discovery-full-name {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.discovery-header .discovery-desc {
+  font-family: var(--serif);
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-top: 0.75rem;
+}
+
+.discovery-tricks {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--border);
+}
+
+.trick {
+  background: var(--bg-card);
+  padding: 1.25rem 1.5rem;
+  transition: background 0.2s;
+}
+
+.trick:hover { background: var(--bg-card-hover); }
+
+.trick h4 {
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.trick p {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.trick .trick-tag {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--teal);
+  margin-top: 0.5rem;
+  display: inline-block;
+}
+
+/* =============== BENCHMARKS =============== */
+.bench-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 2rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bench-table thead th {
+  background: var(--bg-surface);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0.8rem 1rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.bench-table thead th:first-child {
+  text-align: left;
+}
+
+.bench-table thead th.evo-col {
+  color: var(--teal);
+  background: rgba(196, 99, 42, 0.05);
+}
+
+.bench-table tbody td {
+  padding: 0.7rem 1rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.bench-table tbody td:first-child {
+  text-align: left;
+  font-family: var(--sans);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.bench-table tbody tr:last-child td { border-bottom: none; }
+.bench-table tbody tr:hover td { background: var(--bg-card-hover); }
+
+.bench-table td.evo-col {
+  color: var(--teal);
+  font-weight: 600;
+  background: rgba(196, 99, 42, 0.03);
+}
+
+.bench-table td.best {
+  color: var(--teal);
+  font-weight: 700;
+}
+
+.bench-category td {
+  background: var(--bg-deep) !important;
+  color: var(--text-muted) !important;
+  font-family: var(--mono) !important;
+  font-size: 0.6rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  text-align: left !important;
+  padding: 0.5rem 1rem !important;
+}
+
+.bench-note {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.75rem;
+}
+
+/* =============== KEY STAT =============== */
+.keystat {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2.5rem;
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.keystat .big-num {
+  font-family: var(--mono);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  color: var(--teal);
+  letter-spacing: -0.02em;
+}
+
+.keystat .context {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  max-width: 600px;
+  margin: 0.75rem auto 0;
+}
+
+.keystat .context strong { color: var(--text-primary); }
+
+/* =============== IMPACT GRID =============== */
+.impact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.impact-card {
+  background: var(--bg-card);
+  padding: 1.75rem;
+  transition: background 0.2s;
+}
+
+.impact-card:hover { background: var(--bg-card-hover); }
+
+.impact-card h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.impact-card p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.impact-card .chip {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  margin-top: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+/* =============== FOOTER =============== */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 2rem 0;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+footer a {
+  color: var(--teal);
+  text-decoration: none;
+}
+
+/* =============== RESPONSIVE =============== */
+@media (max-width: 900px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .two-grid { grid-template-columns: 1fr; }
+  .evo-loop { grid-template-columns: repeat(2, 1fr); }
+  .discovery-tricks { grid-template-columns: 1fr; }
+  .impact-grid { grid-template-columns: 1fr; }
+  .bench-table { font-size: 0.75rem; }
+}
+
+@media (max-width: 600px) {
+  .stat-grid { grid-template-columns: 1fr; }
+  .evo-loop { grid-template-columns: 1fr; }
+}
+
+/* =============== ANIMATIONS =============== */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-badge { animation: fadeUp 0.6s ease both; }
+.hero-title { animation: fadeUp 0.6s ease 0.1s both; }
+.hero-subtitle { animation: fadeUp 0.6s ease 0.2s both; }
+.stat-grid { animation: fadeUp 0.6s ease 0.35s both; }
+</style>
+</head>
+<body>
+
+<!-- === NAV === -->
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo" style="color: var(--text-muted); font-weight: 500; margin-right: 0.5rem;">&larr; Home</a>
+    <a href="#hero" class="nav-logo">AlphaEvolve</a>
+    <a href="#context">Context</a>
+    <a href="#how">How It Works</a>
+    <a href="#vad-cfr">Discovery 1</a>
+    <a href="#shor-psro">Discovery 2</a>
+    <a href="#results">Results</a>
+    <a href="#impact">Why It Matters</a>
+  </div>
+</nav>
+
+<!-- === HERO === -->
+<section id="hero">
+  <div class="container">
+    <div class="hero-badge"><a href="https://arxiv.org/abs/2602.16928" target="_blank" rel="noopener">&#9670; arXiv 2602.16928</a> &mdash; Feb 2026</div>
+    <h1 class="hero-title">
+      When AI Invents<br><span class="teal">Better Algorithms</span>
+    </h1>
+    <p class="hero-subtitle">
+      Game theory researchers have spent decades hand-designing algorithms for strategic decision-making &mdash;
+      the math behind poker bots, autonomous negotiation, and multi-agent AI.
+      Google DeepMind pointed <em>AlphaEvolve</em>, an AI that writes and evolves code,
+      at the problem. It discovered two new algorithms that outperform the hand-designed ones.
+    </p>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-number">2</div>
+        <div class="stat-label">New Algorithms</div>
+        <div class="stat-detail">Discovered by AI, not humans</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">10/11</div>
+        <div class="stat-label">Games Won (Small)</div>
+        <div class="stat-detail">VAD-CFR beats hand-designed SOTA</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">8/11</div>
+        <div class="stat-label">Games Won (Large)</div>
+        <div class="stat-detail">SHOR-PSRO beats hand-designed SOTA</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">200+</div>
+        <div class="stat-label">Generations</div>
+        <div class="stat-detail">Of evolutionary code refinement</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- === CONTEXT === -->
+<section id="context">
+  <div class="container">
+    <div class="section-label">Background</div>
+    <h2>What Are Game Theory <span class="accent">Algorithms?</span></h2>
+    <p class="desc">
+      <strong>Game theory algorithms figure out the best strategy when multiple players are competing.</strong>
+      If you&rsquo;ve played poker, you know the problem intuitively: your best move depends on what
+      your opponent does, and their best move depends on what you do. There&rsquo;s no single &ldquo;right
+      answer&rdquo; &mdash; the optimal play is a <em>balance</em> where no player can improve by changing strategy alone.
+      Mathematicians call this a Nash equilibrium.
+    </p>
+    <p class="desc" style="margin-top: 1rem;">
+      Finding that balance is hard. For simple games, algorithms can compute it exactly.
+      For complex games (full poker, military simulations, multi-robot coordination),
+      they need clever approximations. Researchers have been refining these approximations
+      for <strong>over 20 years</strong>. This paper asks: what if we let AI do the refining instead?
+    </p>
+
+    <div class="two-grid">
+      <div class="two-card">
+        <div class="card-icon"><img src="https://api.iconify.design/lucide/calculator.svg?color=%23c4632a&width=28&height=28" alt="Small games"></div>
+        <h4>Small Games &mdash; Solve Exactly</h4>
+        <p>Games small enough to fit in memory (simplified poker, card games). Algorithms like <strong>CFR</strong> (Counterfactual Regret Minimization) compute the exact optimal strategy by iterating through every possible situation millions of times. Each iteration gets closer to perfect play.</p>
+        <div class="chip chip-teal">CFR FAMILY</div>
+      </div>
+      <div class="two-card">
+        <div class="card-icon"><img src="https://api.iconify.design/lucide/network.svg?color=%23c4632a&width=28&height=28" alt="Large games"></div>
+        <h4>Large Games &mdash; Approximate</h4>
+        <p>Games too big for exact methods (full poker, real-world strategy). Algorithms like <strong>PSRO</strong> (Policy Space Response Oracles) build a population of strategies and evolve them against each other &mdash; like a round-robin tournament where each round produces smarter players.</p>
+        <div class="chip chip-green">PSRO FAMILY</div>
+      </div>
+    </div>
+
+    <div class="analogy-box">
+      <div class="analogy-label">Why this matters beyond poker</div>
+      <p>
+        These algorithms aren&rsquo;t just for card games. Any situation where multiple agents interact strategically
+        uses game theory: autonomous vehicles negotiating intersections, AI assistants competing for resources,
+        cybersecurity (attacker vs. defender), auction design, and training multi-agent AI systems.
+        Better algorithms here make all of those applications smarter.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- === HOW === -->
+<section id="how">
+  <div class="container">
+    <div class="section-label">The Tool</div>
+    <h2>AlphaEvolve: AI That <span class="accent">Writes Code</span></h2>
+    <p class="desc">
+      AlphaEvolve is a coding agent built by Google DeepMind. It doesn&rsquo;t just write code &mdash;
+      it <strong>evolves</strong> it. Give it a starting algorithm and a way to measure quality, and it will
+      iteratively mutate, recombine, and improve the code over hundreds of generations.
+      It&rsquo;s powered by Gemini (Google&rsquo;s frontier AI model) and uses evolutionary principles:
+      the best-performing variants survive and breed the next generation.
+    </p>
+
+    <div class="evo-loop">
+      <div class="evo-step">
+        <div class="evo-num">Step 1</div>
+        <h4>Start with a Known Algorithm</h4>
+        <p>Feed AlphaEvolve a working implementation of an existing algorithm (like CFR or PSRO) as the starting point. This is the &ldquo;seed&rdquo; for evolution.</p>
+      </div>
+      <div class="evo-step">
+        <div class="evo-num">Step 2</div>
+        <h4>Mutate the Code</h4>
+        <p>Gemini proposes modifications &mdash; adding new logic, changing formulas, tweaking parameters. It understands the code semantically, not just randomly shuffling characters.</p>
+      </div>
+      <div class="evo-step">
+        <div class="evo-num">Step 3</div>
+        <h4>Test on Training Games</h4>
+        <p>Run each variant on a set of training games and measure how close it gets to optimal play (the &ldquo;Nash gap&rdquo;). Lower gap = better algorithm.</p>
+      </div>
+      <div class="evo-step">
+        <div class="evo-num">Step 4</div>
+        <h4>Survive and Repeat</h4>
+        <p>The best variants survive. The worst are discarded. New mutations are applied to the survivors. Repeat for 200+ generations until the algorithm stabilizes.</p>
+      </div>
+    </div>
+
+    <div class="analogy-box">
+      <div class="analogy-label">The key insight</div>
+      <p>
+        Human researchers refine algorithms by intuition and mathematical analysis &mdash; they propose
+        a tweak, prove it works theoretically, then test it. AlphaEvolve skips the intuition step.
+        It proposes hundreds of tweaks, keeps what works, and discards what doesn&rsquo;t. The result:
+        algorithms with non-obvious tricks that no human would have thought to try.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- === VAD-CFR === -->
+<section id="vad-cfr">
+  <div class="container">
+    <div class="section-label">Discovery 1</div>
+    <h2>VAD-CFR: For <span class="accent">Smaller Games</span></h2>
+
+    <div class="discovery">
+      <div class="discovery-header">
+        <div class="discovery-tag">Evolved from: Discounted CFR</div>
+        <h3>VAD-CFR</h3>
+        <div class="discovery-full-name">Volatility-Adaptive Discounted Counterfactual Regret Minimization</div>
+        <div class="discovery-desc">
+          Standard CFR converges to optimal play by tracking &ldquo;regret&rdquo; &mdash; how much each decision
+          cost you in hindsight. Over thousands of iterations, the strategy converges to a Nash equilibrium.
+          The best human-designed variant (DCFR+) uses fixed discount factors to weight recent experience
+          more heavily. VAD-CFR makes those discounts <strong>adaptive</strong> &mdash; it watches how volatile
+          the regrets are and adjusts on the fly.
+        </div>
+      </div>
+      <div class="discovery-tricks">
+        <div class="trick">
+          <h4>Volatility Tracking</h4>
+          <p>Monitors how much regret values are changing using an exponential moving average. When regrets are bouncing around (high volatility), it discounts older data more aggressively. When they stabilize, it trusts history more.</p>
+          <div class="trick-tag">ADAPTIVE DISCOUNTING</div>
+        </div>
+        <div class="trick">
+          <h4>Asymmetric Regret Boosting</h4>
+          <p>Multiplies positive regrets by 1.1&times; &mdash; a subtle bias that makes the algorithm more eager to explore promising actions. No human researcher proposed this specific trick; the evolution found it empirically.</p>
+          <div class="trick-tag">NON-OBVIOUS</div>
+        </div>
+        <div class="trick">
+          <h4>Hard Warm-Start</h4>
+          <p>Ignores the first 500 iterations entirely when computing the final strategy. The early iterations are noisy and unreliable &mdash; by throwing them away, the average strategy is cleaner. Humans typically soft-discount; hard-cutting is counterintuitive.</p>
+          <div class="trick-tag">COUNTERINTUITIVE</div>
+        </div>
+        <div class="trick">
+          <h4>Regret-Weighted Averaging</h4>
+          <p>After the warm-start, weights each iteration&rsquo;s contribution to the final strategy by the magnitude of cumulative regret. Iterations where the algorithm was more &ldquo;certain&rdquo; (higher regret magnitude) count more.</p>
+          <div class="trick-tag">EVOLVED HEURISTIC</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- === SHOR-PSRO === -->
+<section id="shor-psro">
+  <div class="container">
+    <div class="section-label">Discovery 2</div>
+    <h2>SHOR-PSRO: For <span class="accent">Larger Games</span></h2>
+
+    <div class="discovery">
+      <div class="discovery-header">
+        <div class="discovery-tag">Evolved from: Pipeline PSRO</div>
+        <h3>SHOR-PSRO</h3>
+        <div class="discovery-full-name">Smoothed Hybrid Optimistic Regret Policy Space Response Oracles</div>
+        <div class="discovery-desc">
+          PSRO works by building a roster of strategies. Each round, it trains a new strategy that
+          beats the current roster, adds it, and recomputes the optimal mix. The human-designed state
+          of the art uses regret matching to decide how to mix strategies. SHOR-PSRO replaces that
+          with a <strong>hybrid approach</strong> that blends two different mixing methods and uses
+          different settings for training vs. evaluation.
+        </div>
+      </div>
+      <div class="discovery-tricks">
+        <div class="trick">
+          <h4>Hybrid Blending</h4>
+          <p>Mixes two strategy-selection methods: Optimistic Regret Matching (principled, stable) and Boltzmann softmax over best pure strategies (aggressive, exploitative). The blend ratio decays from 30% to 5% over time.</p>
+          <div class="trick-tag">DUAL STRATEGY</div>
+        </div>
+        <div class="trick">
+          <h4>Dynamic Annealing</h4>
+          <p>The blend ratio and a diversity bonus both decay on a specific schedule. Early on, the algorithm explores broadly. Later, it narrows to exploit what it&rsquo;s learned. The exact decay curve was discovered by evolution, not derived from theory.</p>
+          <div class="trick-tag">EVOLVED SCHEDULE</div>
+        </div>
+        <div class="trick">
+          <h4>Training vs. Evaluation Split</h4>
+          <p>Uses different solver configurations for growing the strategy roster (training) vs. computing the final strategy mix (evaluation). Humans typically use the same solver for both &mdash; the asymmetry was AlphaEvolve&rsquo;s idea.</p>
+          <div class="trick-tag">NON-OBVIOUS</div>
+        </div>
+        <div class="trick">
+          <h4>Diversity Bonus</h4>
+          <p>Adds a small bonus for strategies that are different from existing ones in the roster. Prevents the population from collapsing to a single approach. The bonus starts at 5% and decays to 0.1%.</p>
+          <div class="trick-tag">ANTI-COLLAPSE</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- === RESULTS === -->
+<section id="results">
+  <div class="container">
+    <div class="section-label">Results</div>
+    <h2>Evolved vs. <span class="accent">Hand-Designed</span></h2>
+    <p class="desc">
+      Both algorithms were trained on just <strong>4 games</strong>, then tested on <strong>11</strong> &mdash;
+      including 7 they&rsquo;d never seen. The key question: do tricks discovered on simple training games
+      generalize to harder, unseen games? The answer is yes.
+    </p>
+
+    <table class="bench-table">
+      <thead>
+        <tr>
+          <th>Game</th>
+          <th>Best Human-Designed</th>
+          <th class="evo-col">AlphaEvolve</th>
+          <th>Winner</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="bench-category"><td colspan="4">VAD-CFR vs. DCFR+ / PCFR+ (Small Games)</td></tr>
+        <tr>
+          <td>Kuhn Poker (3P)</td>
+          <td>DCFR+</td>
+          <td class="evo-col">VAD-CFR</td>
+          <td class="best">Evolved</td>
+        </tr>
+        <tr>
+          <td>Leduc Poker (2P)</td>
+          <td>PCFR+</td>
+          <td class="evo-col">VAD-CFR</td>
+          <td class="best">Evolved</td>
+        </tr>
+        <tr>
+          <td>Goofspiel (4-card)</td>
+          <td>DCFR+</td>
+          <td class="evo-col">VAD-CFR</td>
+          <td class="best">Evolved</td>
+        </tr>
+        <tr>
+          <td>Liar&rsquo;s Dice (5-sided)</td>
+          <td>DCFR+</td>
+          <td class="evo-col">VAD-CFR</td>
+          <td class="best">Evolved</td>
+        </tr>
+        <tr>
+          <td>Kuhn Poker (4P) *</td>
+          <td>PCFR+</td>
+          <td class="evo-col">VAD-CFR</td>
+          <td class="best">Evolved</td>
+        </tr>
+        <tr>
+          <td>Leduc Poker (3P) *</td>
+          <td>DCFR+</td>
+          <td class="evo-col">VAD-CFR</td>
+          <td class="best">Evolved</td>
+        </tr>
+        <tr>
+          <td>Goofspiel (5-card) *</td>
+          <td>DCFR+</td>
+          <td class="evo-col">VAD-CFR</td>
+          <td class="best">Evolved</td>
+        </tr>
+        <tr class="bench-category"><td colspan="4">SHOR-PSRO vs. Pipeline PSRO / NeuPL-JPSRO (Large Games)</td></tr>
+        <tr>
+          <td>Kuhn Poker (3P)</td>
+          <td>P-PSRO</td>
+          <td class="evo-col">SHOR-PSRO</td>
+          <td class="best">Evolved</td>
+        </tr>
+        <tr>
+          <td>Leduc Poker (2P)</td>
+          <td>NeuPL</td>
+          <td class="evo-col">SHOR-PSRO</td>
+          <td class="best">Evolved</td>
+        </tr>
+        <tr>
+          <td>Kuhn Poker (4P) *</td>
+          <td>P-PSRO</td>
+          <td class="evo-col">SHOR-PSRO</td>
+          <td class="best">Evolved</td>
+        </tr>
+        <tr>
+          <td>Leduc Poker (3P) *</td>
+          <td>NeuPL</td>
+          <td class="evo-col">SHOR-PSRO</td>
+          <td class="best">Evolved</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="bench-note">
+      * = Unseen during training &nbsp;&nbsp;|&nbsp;&nbsp; Winner determined by Nash gap (lower = closer to optimal play)
+    </div>
+
+    <div class="keystat">
+      <div class="big-num">Trained on 4, Tested on 11</div>
+      <div class="context">
+        The algorithms weren&rsquo;t just memorizing tricks for specific games.
+        The mechanisms AlphaEvolve discovered &mdash; volatility tracking, adaptive annealing,
+        asymmetric boosting &mdash; are <strong>general principles</strong> that transfer to unseen games.
+        That&rsquo;s the difference between overfitting and genuine algorithmic insight.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- === IMPACT === -->
+<section id="impact">
+  <div class="container">
+    <div class="section-label">So What</div>
+    <h2>Why This <span class="accent">Matters</span></h2>
+    <p class="desc">
+      The specific algorithms are interesting. But the bigger story is the method:
+      an AI system that can discover algorithms humans haven&rsquo;t found in 20+ years of trying.
+      This isn&rsquo;t AI <em>using</em> existing tools &mdash; it&rsquo;s AI <em>inventing</em> new ones.
+    </p>
+
+    <div class="impact-grid">
+      <div class="impact-card">
+        <div class="ic-icon"><img src="https://api.iconify.design/lucide/lightbulb.svg?color=%23c4632a&width=28&height=28" alt="Discovery"></div>
+        <h4>Non-Obvious Discoveries</h4>
+        <p>
+          The evolved algorithms contain tricks no human researcher proposed &mdash; like throwing away the
+          first 500 iterations, or using different solvers for training vs. evaluation. These aren&rsquo;t
+          things you&rsquo;d derive from theory. They emerged from empirical search over code space.
+        </p>
+        <div class="chip chip-teal">BEYOND HUMAN INTUITION</div>
+      </div>
+      <div class="impact-card">
+        <div class="ic-icon"><img src="https://api.iconify.design/lucide/repeat.svg?color=%23c4632a&width=28&height=28" alt="Generalize"></div>
+        <h4>Generalizable Method</h4>
+        <p>
+          AlphaEvolve doesn&rsquo;t know anything about game theory. It just evolves code against a fitness
+          function. The same approach could discover algorithms in optimization, scheduling, routing,
+          or any domain where you can measure &ldquo;better&rdquo; programmatically.
+        </p>
+        <div class="chip chip-green">DOMAIN-AGNOSTIC</div>
+      </div>
+      <div class="impact-card">
+        <div class="ic-icon"><img src="https://api.iconify.design/lucide/graduation-cap.svg?color=%23c4632a&width=28&height=28" alt="Research"></div>
+        <h4>New Research Paradigm</h4>
+        <p>
+          Instead of &ldquo;researcher proposes algorithm, proves it works,&rdquo; the loop becomes
+          &ldquo;AI proposes thousands of variants, researcher analyzes why the winner works.&rdquo;
+          The human role shifts from inventor to interpreter &mdash; understanding <em>why</em>
+          the AI&rsquo;s discoveries work, not <em>finding</em> them.
+        </p>
+        <div class="chip chip-teal">ROLE SHIFT</div>
+      </div>
+      <div class="impact-card">
+        <div class="ic-icon"><img src="https://api.iconify.design/lucide/book-open.svg?color=%23c4632a&width=28&height=28" alt="Open"></div>
+        <h4>Open Research</h4>
+        <p>
+          The <a href="https://arxiv.org/abs/2602.16928" target="_blank" rel="noopener">full paper</a>
+          includes the complete evolved code for both algorithms, the training setup,
+          and detailed ablation studies explaining which components matter most.
+          The algorithms can be used by anyone working on multiagent systems.
+        </p>
+        <div class="chip chip-green">ARXIV 2602.16928</div>
+      </div>
+    </div>
+
+    <div class="keystat" style="margin-top: 2rem;">
+      <div class="big-num" style="font-size: clamp(1.4rem, 3vw, 2rem);">AI Inventing AI&rsquo;s Tools</div>
+      <div class="context">
+        Twenty years of hand-designed algorithms. Hundreds of papers. Careful mathematical proofs.
+        An AI with no game theory knowledge, armed with nothing but a code editor and a fitness function,
+        found better solutions in a few hundred generations. The tools are getting good enough
+        to improve themselves. That&rsquo;s a new kind of feedback loop.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- === FOOTER === -->
+<footer>
+  <div class="container">
+    <p>
+      <a href="/">Nathan Norman</a> &nbsp;&bull;&nbsp; Mar 2026
+    </p>
+    <p style="margin-top: 0.4rem;">
+      Paper: <a href="https://arxiv.org/abs/2602.16928" target="_blank" rel="noopener">arxiv.org/abs/2602.16928</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
