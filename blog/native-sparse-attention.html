@@ -236,8 +236,14 @@ section h2 {
 .branch-card:hover { background: var(--bg-card-hover); }
 
 .branch-icon {
-  font-size: 1.5rem;
   margin-bottom: 0.75rem;
+  line-height: 1;
+}
+
+.branch-icon img, .hw-icon img, .ic-icon img {
+  width: 28px;
+  height: 28px;
+  display: block;
 }
 
 .branch-card h3 {
@@ -425,8 +431,8 @@ section h2 {
 .hw-card:hover { background: var(--bg-card-hover); }
 
 .hw-card .hw-icon {
-  font-size: 1.3rem;
   margin-bottom: 0.75rem;
+  line-height: 1;
 }
 
 .hw-card h4 {
@@ -759,8 +765,8 @@ section h2 {
 .impact-card:hover { background: var(--bg-card-hover); }
 
 .impact-card .ic-icon {
-  font-size: 1.5rem;
   margin-bottom: 0.75rem;
+  line-height: 1;
 }
 
 .impact-card h4 {
@@ -1058,7 +1064,7 @@ footer a {
 
     <div class="branch-grid">
       <div class="branch-card">
-        <div class="branch-icon">&#x1F5DC;</div>
+        <div class="branch-icon"><img src="https://api.iconify.design/lucide/minimize-2.svg?color=%23c4632a&width=28&height=28" alt="Compress"></div>
         <h3>Compress</h3>
         <div class="branch-tag">The big picture</div>
         <p>
@@ -1071,7 +1077,7 @@ footer a {
         </div>
       </div>
       <div class="branch-card">
-        <div class="branch-icon">&#x1F3AF;</div>
+        <div class="branch-icon"><img src="https://api.iconify.design/lucide/target.svg?color=%23c4632a&width=28&height=28" alt="Select"></div>
         <h3>Select</h3>
         <div class="branch-tag">The important parts</div>
         <p>
@@ -1084,7 +1090,7 @@ footer a {
         </div>
       </div>
       <div class="branch-card">
-        <div class="branch-icon">&#x1F4C4;</div>
+        <div class="branch-icon"><img src="https://api.iconify.design/lucide/scroll-text.svg?color=%23c4632a&width=28&height=28" alt="Slide"></div>
         <h3>Slide</h3>
         <div class="branch-tag">What just happened</div>
         <p>
@@ -1135,25 +1141,25 @@ footer a {
 
     <div class="hw-grid">
       <div class="hw-card">
-        <div class="hw-icon">&#x1F9F1;</div>
+        <div class="hw-icon"><img src="https://api.iconify.design/lucide/layout-grid.svg?color=%23c4632a&width=28&height=28" alt="Blocks"></div>
         <h4>Organized in Blocks</h4>
         <p>All three branches work on tidy blocks of 64 consecutive words. No random jumping around in memory. The GPU can load an entire block in one efficient read instead of fetching individual words one at a time.</p>
         <div class="chip chip-teal">FAST MEMORY ACCESS</div>
       </div>
       <div class="hw-card">
-        <div class="hw-icon">&#x26A1;</div>
+        <div class="hw-icon"><img src="https://api.iconify.design/lucide/zap.svg?color=%23c4632a&width=28&height=28" alt="Fast"></div>
         <h4>Scoring Is Free</h4>
         <p>The &ldquo;select&rdquo; branch needs to figure out which blocks are important. Cleverly, it reuses the compressed summaries that the &ldquo;compress&rdquo; branch already computed &mdash; so the importance scoring costs almost nothing extra.</p>
         <div class="chip chip-green">NO EXTRA WORK</div>
       </div>
       <div class="hw-card">
-        <div class="hw-icon">&#x1F504;</div>
+        <div class="hw-icon"><img src="https://api.iconify.design/lucide/merge.svg?color=%23c4632a&width=28&height=28" alt="Fused"></div>
         <h4>Everything Fused</h4>
         <p>Score the blocks, pick the winners, and do the attention &mdash; all in one GPU operation instead of three separate ones. Each separate operation would mean another slow round trip to main memory. Fusing them avoids that entirely.</p>
         <div class="chip chip-teal">ONE OPERATION</div>
       </div>
       <div class="hw-card">
-        <div class="hw-icon">&#x1F4CA;</div>
+        <div class="hw-icon"><img src="https://api.iconify.design/lucide/brain.svg?color=%23c4632a&width=28&height=28" alt="Trainable"></div>
         <h4>Trainable From Scratch</h4>
         <p>The efficiency tricks aren&rsquo;t bolted on after training. The model is <em>born</em> with sparse attention &mdash; it learns which words to skip as part of its normal training process. This means the shortcuts are optimized for the actual data.</p>
         <div class="chip chip-green">NATIVE, NOT RETROFITTED</div>
@@ -1370,7 +1376,7 @@ footer a {
 
     <div class="impact-grid">
       <div class="impact-card">
-        <div class="ic-icon">&#x1F4B0;</div>
+        <div class="ic-icon"><img src="https://api.iconify.design/lucide/circle-dollar-sign.svg?color=%23c4632a&width=28&height=28" alt="Cost"></div>
         <h4>Cheaper AI</h4>
         <p>
           6&times; faster replies means 6&times; less GPU time, which means lower costs for API providers
@@ -1380,7 +1386,7 @@ footer a {
         <div class="chip chip-teal">COST REDUCTION</div>
       </div>
       <div class="impact-card">
-        <div class="ic-icon">&#x1F52C;</div>
+        <div class="ic-icon"><img src="https://api.iconify.design/lucide/sparkles.svg?color=%23c4632a&width=28&height=28" alt="Learned"></div>
         <h4>Learned, Not Hacked</h4>
         <p>
           The key insight is that the model <em>learns</em> what to skip during training, rather than
@@ -1390,7 +1396,7 @@ footer a {
         <div class="chip chip-green">SMARTER SHORTCUTS</div>
       </div>
       <div class="impact-card">
-        <div class="ic-icon">&#x1F680;</div>
+        <div class="ic-icon"><img src="https://api.iconify.design/lucide/rocket.svg?color=%23c4632a&width=28&height=28" alt="Rocket"></div>
         <h4>Longer Context, Finally</h4>
         <p>
           Today&rsquo;s models advertise 128K or even 1M token context windows, but in practice they&rsquo;re
@@ -1400,7 +1406,7 @@ footer a {
         <div class="chip chip-teal">REAL LONG CONTEXT</div>
       </div>
       <div class="impact-card">
-        <div class="ic-icon">&#x1F9E9;</div>
+        <div class="ic-icon"><img src="https://api.iconify.design/lucide/book-open.svg?color=%23c4632a&width=28&height=28" alt="Open"></div>
         <h4>Open Research</h4>
         <p>
           The full paper is public on arXiv with complete architecture details, training recipes, and code.
