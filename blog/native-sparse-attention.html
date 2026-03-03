@@ -897,9 +897,10 @@ footer a {
   <div class="nav-inner">
     <a href="/" class="nav-logo" style="color: var(--text-muted); font-weight: 500; margin-right: 0.5rem;">&larr; Home</a>
     <a href="#hero" class="nav-logo">NSA</a>
+    <a href="#context">Context</a>
     <a href="#problem">Problem</a>
-    <a href="#architecture">Architecture</a>
-    <a href="#hardware">Hardware</a>
+    <a href="#architecture">The Fix</a>
+    <a href="#hardware">Why It&rsquo;s Fast</a>
     <a href="#benchmarks">Benchmarks</a>
     <a href="#speed">Speed</a>
     <a href="#impact">Why It Matters</a>
@@ -911,34 +912,66 @@ footer a {
   <div class="container">
     <div class="hero-badge">&#9670; arXiv 2602.16928v2 &mdash; Feb 2026</div>
     <h1 class="hero-title">
-      The Sparse Attention<br>That Actually <span class="teal">Ships</span>
+      Making AI Models<br><span class="teal">Think Faster</span>
     </h1>
     <p class="hero-subtitle">
-      DeepSeek&rsquo;s <em>Native Sparse Attention</em> replaces full O(n&sup2;) attention with three parallel pathways &mdash;
-      compress, select, slide &mdash; all hardware-aligned, all trainable end-to-end.
-      The result: up to 11.6&times; faster forward passes while matching or beating full attention quality.
+      Every time you send a long message to ChatGPT, Claude, or any AI chatbot, there&rsquo;s a hidden cost:
+      the model has to re-read your <em>entire conversation</em> to generate each word of its reply.
+      DeepSeek found a way to skip the parts that don&rsquo;t matter &mdash; making long conversations
+      up to 11&times; faster without losing quality.
     </p>
     <div class="stat-grid">
       <div class="stat-card">
-        <div class="stat-number">27B</div>
-        <div class="stat-label">Parameter Model</div>
-        <div class="stat-detail">Trained from scratch with NSA</div>
-      </div>
-      <div class="stat-card">
         <div class="stat-number">11.6&times;</div>
-        <div class="stat-label">Forward Speedup</div>
-        <div class="stat-detail">64K context, full model forward</div>
+        <div class="stat-label">Faster Processing</div>
+        <div class="stat-detail">On long conversations (64K tokens)</div>
       </div>
       <div class="stat-card">
         <div class="stat-number">6.0&times;</div>
-        <div class="stat-label">Decode Speedup</div>
-        <div class="stat-detail">64K context, token generation</div>
+        <div class="stat-label">Faster Replies</div>
+        <div class="stat-detail">Generating each word of output</div>
       </div>
       <div class="stat-card">
-        <div class="stat-number">64K</div>
-        <div class="stat-label">Context Window</div>
-        <div class="stat-detail">Where sparse attention shines</div>
+        <div class="stat-number">= or &uarr;</div>
+        <div class="stat-label">Same Quality</div>
+        <div class="stat-detail">Matches or beats the original approach</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-number">27B</div>
+        <div class="stat-label">Parameter Model</div>
+        <div class="stat-detail">Trained from scratch to prove it works</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- === CONTEXT === -->
+<section id="context">
+  <div class="container">
+    <div class="section-label">Background</div>
+    <h2>First, What Is <span class="accent">Attention?</span></h2>
+    <p class="desc">
+      <strong>Attention is how AI language models understand context.</strong>
+      When you ask ChatGPT a question, it doesn&rsquo;t just look at your last sentence &mdash; it looks at
+      everything you&rsquo;ve said in the conversation so far.
+      For every word it&rsquo;s about to write, the model asks: <em>&ldquo;Which parts of the conversation
+      are relevant to what I should say next?&rdquo;</em>
+    </p>
+    <p class="desc" style="margin-top: 1rem;">
+      That process of looking back and deciding what&rsquo;s relevant is called <strong>attention</strong>.
+      It&rsquo;s the core mechanism behind every modern AI model &mdash; GPT, Claude, Gemini, DeepSeek, all of them.
+      And it has a fundamental scaling problem.
+    </p>
+
+    <div class="analogy-box">
+      <div class="analogy-label">Think of it like this</div>
+      <p>
+        Imagine you&rsquo;re writing a reply to a long email thread. Before writing each sentence,
+        you re-read <em>every single email in the thread</em> to make sure your reply is relevant.
+        For a 5-email thread, that&rsquo;s fine. For a 500-email thread, you&rsquo;d spend
+        all your time re-reading and almost none writing. That&rsquo;s exactly the problem
+        AI models face with long conversations.
+      </p>
     </div>
   </div>
 </section>
@@ -947,17 +980,23 @@ footer a {
 <section id="problem">
   <div class="container">
     <div class="section-label">The Problem</div>
-    <h2>Full Attention Doesn&rsquo;t <span class="accent">Scale</span></h2>
+    <h2>Why Long Conversations Are <span class="accent">So Expensive</span></h2>
     <p class="desc">
-      Standard transformers compute attention between <strong>every pair of tokens</strong> in the context.
-      Double your context length, quadruple the cost. At 64K tokens, that&rsquo;s over 4 billion attention operations per layer.
-      Previous sparse methods either weren&rsquo;t trainable (post-hoc approximations) or weren&rsquo;t hardware-efficient (random scatter/gather patterns that thrash GPU memory).
+      Here&rsquo;s the math problem. With standard attention, the model compares <strong>every word to every
+      other word</strong> in the conversation. Double the conversation length and you quadruple the work.
+      This is called O(n&sup2;) scaling &mdash; meaning the cost grows with the <em>square</em> of the input size.
+      At 64,000 tokens (roughly a 50-page document), that&rsquo;s over 4 billion comparisons per layer.
+    </p>
+    <p class="desc" style="margin-top: 1rem;">
+      Researchers have tried to fix this before by skipping some comparisons &mdash; so-called &ldquo;sparse attention.&rdquo;
+      But previous attempts had two problems: they were either bolted on <em>after</em> training (meaning the model wasn&rsquo;t
+      designed for them), or they used random access patterns that made GPUs slow despite doing less work.
       NSA solves both.
     </p>
 
     <div class="attention-visual">
       <div class="attn-box">
-        <div class="attn-title" style="color: var(--red);">Full Attention</div>
+        <div class="attn-title" style="color: var(--red);">Standard: Compare Everything</div>
         <div class="attn-grid attn-full">
           <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
           <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
@@ -968,12 +1007,12 @@ footer a {
           <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
           <div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell"></div>
         </div>
-        <div class="attn-label">Every token attends to every other</div>
-        <div class="cost-tag cost-bad">O(n&sup2;) &mdash; doesn&rsquo;t scale</div>
+        <div class="attn-label">Every word checked against every other word</div>
+        <div class="cost-tag cost-bad">Quadratic &mdash; 2&times; input = 4&times; cost</div>
       </div>
       <div class="attn-arrow">&rarr;</div>
       <div class="attn-box">
-        <div class="attn-title" style="color: var(--teal);">NSA: Three-Branch Sparse</div>
+        <div class="attn-title" style="color: var(--teal);">NSA: Only Check What Matters</div>
         <div class="attn-grid attn-sparse">
           <div class="attn-cell compress"></div><div class="attn-cell compress"></div><div class="attn-cell"></div><div class="attn-cell select"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell slide"></div><div class="attn-cell slide"></div>
           <div class="attn-cell compress"></div><div class="attn-cell compress"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell select"></div><div class="attn-cell"></div><div class="attn-cell slide"></div><div class="attn-cell slide"></div>
@@ -985,19 +1024,22 @@ footer a {
           <div class="attn-cell"></div><div class="attn-cell compress"></div><div class="attn-cell"></div><div class="attn-cell"></div><div class="attn-cell select"></div><div class="attn-cell"></div><div class="attn-cell slide"></div><div class="attn-cell slide"></div>
         </div>
         <div class="attn-label">
-          <span style="color:var(--green);">&#9632;</span> compress &nbsp;
-          <span style="color:var(--orange);">&#9632;</span> select &nbsp;
-          <span style="color:var(--purple);">&#9632;</span> slide
+          <span style="color:var(--green);">&#9632;</span> summaries &nbsp;
+          <span style="color:var(--orange);">&#9632;</span> important parts &nbsp;
+          <span style="color:var(--purple);">&#9632;</span> recent
         </div>
-        <div class="cost-tag cost-good">O(n &middot; k) &mdash; scales linearly</div>
+        <div class="cost-tag cost-good">Linear &mdash; 2&times; input = 2&times; cost</div>
       </div>
     </div>
 
     <div class="analogy-box">
-      <div class="analogy-label">The analogy</div>
+      <div class="analogy-label">Back to the email analogy</div>
       <p>
-        Full attention is a full table scan on every query &mdash; <code style="color:var(--orange);font-family:var(--mono);font-size:0.85em;">SELECT * FROM context</code>.
-        NSA is more like a well-designed data pipeline: a compressed summary for the big picture, targeted lookups for the important details, and a recent-events buffer for what just happened. Three access patterns, one result.
+        Instead of re-reading every email before writing each sentence, NSA does three smarter things:
+        it keeps a <strong>summary</strong> of the whole thread (the gist of each topic),
+        it <strong>pulls up specific emails</strong> that are actually relevant to the current point,
+        and it always <strong>re-reads the last few messages</strong> for immediate context.
+        Three strategies, combined. That&rsquo;s the whole paper.
       </p>
     </div>
   </div>
@@ -1006,68 +1048,69 @@ footer a {
 <!-- === ARCHITECTURE === -->
 <section id="architecture">
   <div class="container">
-    <div class="section-label">Core Innovation</div>
-    <h2>Three Branches, One <span class="accent">Attention</span></h2>
+    <div class="section-label">The Fix</div>
+    <h2>Three Ways to Read, <span class="accent">One Answer</span></h2>
     <p class="desc">
-      NSA decomposes attention into three <strong>parallel pathways</strong>, each handling a different
-      type of context dependency. Their outputs are merged through a learned gating mechanism &mdash;
-      the model itself decides how much weight to give each branch for every query.
+      NSA splits the attention mechanism into three <strong>parallel pathways</strong>. Each one handles a different
+      kind of &ldquo;looking back at the conversation.&rdquo; The model learns to combine them automatically &mdash;
+      for some questions it leans on the summary, for others it focuses on specific earlier passages.
     </p>
 
     <div class="branch-grid">
       <div class="branch-card">
         <div class="branch-icon">&#x1F5DC;</div>
-        <h3>Token Compression</h3>
-        <div class="branch-tag">Global context &rarr; O(n/l)</div>
+        <h3>Compress</h3>
+        <div class="branch-tag">The big picture</div>
         <p>
-          Groups tokens into blocks of <em>l</em> and compresses each block into a single representation
-          using learned MLP gates. The query attends to these compressed tokens &mdash; like reading a
-          summary instead of the full document.
+          Groups the conversation into chunks and compresses each chunk into a short summary.
+          The model reads these summaries instead of every individual word &mdash;
+          like reading chapter headings instead of the whole book.
         </p>
         <div class="branch-analogy">
-          Think columnar aggregation: instead of scanning every row, you read pre-computed block-level statistics.
+          Good for: &ldquo;What have we been talking about?&rdquo;
         </div>
       </div>
       <div class="branch-card">
         <div class="branch-icon">&#x1F3AF;</div>
-        <h3>Token Selection</h3>
-        <div class="branch-tag">Important tokens &rarr; O(n &middot; top-k)</div>
+        <h3>Select</h3>
+        <div class="branch-tag">The important parts</div>
         <p>
-          Scores every token block by importance (using the compressed representations as a cheap index),
-          then selects the top-<em>k</em> blocks for full fine-grained attention.
-          Only the tokens that actually matter get the expensive computation.
+          Uses the compressed summaries as a quick index to figure out which chunks are actually relevant,
+          then goes back and reads those specific chunks in full detail.
+          Only the parts that matter get the expensive, thorough read.
         </p>
         <div class="branch-analogy">
-          Like a database index scan: use the B-tree to find relevant pages, then fetch only those rows.
+          Good for: &ldquo;What did they say about pricing specifically?&rdquo;
         </div>
       </div>
       <div class="branch-card">
         <div class="branch-icon">&#x1F4C4;</div>
-        <h3>Sliding Window</h3>
-        <div class="branch-tag">Recent tokens &rarr; O(w)</div>
+        <h3>Slide</h3>
+        <div class="branch-tag">What just happened</div>
         <p>
-          Standard local attention over the most recent <em>w</em> tokens.
-          Captures immediate context &mdash; the tokens surrounding the current position.
-          Fixed cost regardless of total sequence length.
+          Always reads the most recent part of the conversation in full detail.
+          No shortcuts here &mdash; the last few hundred words are always fully processed.
+          This keeps the model grounded in the current moment.
         </p>
         <div class="branch-analogy">
-          A write-ahead log: you always have fast access to the most recent entries.
+          Good for: &ldquo;They just asked me to clarify something.&rdquo;
         </div>
       </div>
     </div>
 
     <div class="gating-box">
-      <h3>Learned Gating &mdash; How the Branches Combine</h3>
+      <h3>The Model Decides the Mix</h3>
       <div class="gating-eq">
-        <span class="dim">O =</span>
-        <span class="g">g<sub>cmp</sub></span> &middot; O<sub>cmp</sub> +
-        <span class="g">g<sub>slc</sub></span> &middot; O<sub>slc</sub> +
-        <span class="g">g<sub>win</sub></span> &middot; O<sub>win</sub>
+        <span class="dim">output =</span>
+        <span class="g">g<sub>compress</sub></span> &middot; summary +
+        <span class="g">g<sub>select</sub></span> &middot; details +
+        <span class="g">g<sub>slide</sub></span> &middot; recent
       </div>
       <div class="gating-detail">
-        The gates <strong>g</strong> are computed per-query from the input via a linear projection + sigmoid.
-        Each attention head learns its own gating weights &mdash; some heads learn to rely heavily on
-        compressed context, others on selection. The model discovers the optimal mix during training.
+        The weights <strong>g</strong> are not fixed &mdash; the model learns them during training.
+        For a question about something mentioned earlier, it might weight &ldquo;select&rdquo; heavily.
+        For a follow-up question, &ldquo;slide&rdquo; dominates. The model figures out the right balance
+        on its own, for every single word it generates.
       </div>
     </div>
   </div>
@@ -1077,95 +1120,71 @@ footer a {
 <section id="hardware">
   <div class="container">
     <div class="section-label">Why It&rsquo;s Fast</div>
-    <h2>Hardware-Aligned <span class="accent">by Design</span></h2>
+    <h2>Designed for How <span class="accent">GPUs Actually Work</span></h2>
     <p class="desc">
-      Most sparse attention methods look great on paper but are slow in practice. Random token selection
-      means <strong>scattered memory reads</strong> that destroy GPU throughput. NSA is designed around how
-      GPUs actually move data &mdash; every operation maps to coalesced, block-contiguous memory access.
+      Here&rsquo;s why previous &ldquo;sparse attention&rdquo; methods didn&rsquo;t deliver real speedups. A GPU is like a
+      factory with a small, blazing-fast workbench (on-chip memory) and a giant but slow warehouse
+      (main memory). The bottleneck isn&rsquo;t the math &mdash; it&rsquo;s <strong>moving data</strong>
+      between the warehouse and the workbench.
+    </p>
+    <p class="desc" style="margin-top: 1rem;">
+      Previous sparse methods skipped some math, but still needed to grab random pieces of data
+      from the warehouse &mdash; scattered reads that are painfully slow on GPUs. NSA avoids this by
+      organizing everything into <strong>neat, contiguous blocks</strong> that the GPU can grab in bulk.
     </p>
 
     <div class="hw-grid">
       <div class="hw-card">
         <div class="hw-icon">&#x1F9F1;</div>
-        <h4>Block-Contiguous Access</h4>
-        <p>All three branches operate on <strong>contiguous blocks</strong> of tokens (block size 64). No scattered reads, no random indexing. The compression and selection both use the same block boundaries, so the KV cache is always accessed in GPU-friendly chunks.</p>
-        <div class="chip chip-teal">ALIGNED TO GPU SRAM</div>
+        <h4>Organized in Blocks</h4>
+        <p>All three branches work on tidy blocks of 64 consecutive words. No random jumping around in memory. The GPU can load an entire block in one efficient read instead of fetching individual words one at a time.</p>
+        <div class="chip chip-teal">FAST MEMORY ACCESS</div>
       </div>
       <div class="hw-card">
         <div class="hw-icon">&#x26A1;</div>
-        <h4>FlashAttention-Compatible</h4>
-        <p>The selection branch computes blockwise importance scores <em>in SRAM</em> during the forward pass &mdash; it piggybacks on the same memory access pattern FlashAttention uses. No extra HBM round-trips for the index lookup.</p>
-        <div class="chip chip-green">ZERO EXTRA HBM READS</div>
+        <h4>Scoring Is Free</h4>
+        <p>The &ldquo;select&rdquo; branch needs to figure out which blocks are important. Cleverly, it reuses the compressed summaries that the &ldquo;compress&rdquo; branch already computed &mdash; so the importance scoring costs almost nothing extra.</p>
+        <div class="chip chip-green">NO EXTRA WORK</div>
       </div>
       <div class="hw-card">
         <div class="hw-icon">&#x1F504;</div>
-        <h4>Shared Block Indices</h4>
-        <p>The compression branch computes block-level representations that the selection branch reuses as its importance index. Two branches, one data load. The block structure means the same KV cache slice serves both pathways.</p>
-        <div class="chip chip-teal">COMPUTE REUSE</div>
+        <h4>Everything Fused</h4>
+        <p>Score the blocks, pick the winners, and do the attention &mdash; all in one GPU operation instead of three separate ones. Each separate operation would mean another slow round trip to main memory. Fusing them avoids that entirely.</p>
+        <div class="chip chip-teal">ONE OPERATION</div>
       </div>
       <div class="hw-card">
         <div class="hw-icon">&#x1F4CA;</div>
-        <h4>Custom Triton Kernels</h4>
-        <p>End-to-end fused kernels written in Triton for both forward and backward passes. The selection kernel avoids materializing intermediate attention matrices &mdash; it computes scores, selects, and attends in a single kernel launch.</p>
-        <div class="chip chip-green">FUSED FORWARD + BACKWARD</div>
+        <h4>Trainable From Scratch</h4>
+        <p>The efficiency tricks aren&rsquo;t bolted on after training. The model is <em>born</em> with sparse attention &mdash; it learns which words to skip as part of its normal training process. This means the shortcuts are optimized for the actual data.</p>
+        <div class="chip chip-green">NATIVE, NOT RETROFITTED</div>
       </div>
     </div>
 
     <div class="memory-diagram">
-      <h3>GPU Memory Hierarchy &mdash; NSA&rsquo;s Advantage</h3>
+      <h3>The GPU Bottleneck, Visualized</h3>
       <div class="mem-levels">
         <div class="mem-level">
-          <div class="mem-name">HBM</div>
+          <div class="mem-name">Main Memory</div>
           <div class="mem-size">80 GB</div>
-          <div class="mem-note">High bandwidth, high latency</div>
+          <div class="mem-note">Lots of space, but slow</div>
         </div>
         <div class="mem-arrow">&rarr;</div>
         <div class="mem-level">
-          <div class="mem-name" style="color: var(--teal);">SRAM</div>
+          <div class="mem-name" style="color: var(--teal);">On-Chip Cache</div>
           <div class="mem-size">20 MB</div>
-          <div class="mem-note">Low latency, limited capacity</div>
+          <div class="mem-note">Tiny, but 100&times; faster</div>
         </div>
         <div class="mem-arrow">&rarr;</div>
         <div class="mem-level">
-          <div class="mem-name">Registers</div>
-          <div class="mem-size">&lt;1 MB</div>
-          <div class="mem-note">Fastest, per-thread</div>
+          <div class="mem-name">Compute Cores</div>
+          <div class="mem-size">Do the math</div>
+          <div class="mem-note">Fast, but need data fed to them</div>
         </div>
       </div>
       <div class="mem-caption">
-        NSA&rsquo;s block-contiguous design keeps the <strong>hot path in SRAM</strong>.
-        Compressed representations and block indices fit in the on-chip cache;
-        only the selected KV blocks get loaded from HBM.
-        Full attention forces <em>everything</em> through HBM &mdash; that&rsquo;s the bottleneck.
-      </div>
-    </div>
-
-    <div class="kernel-box">
-      <h3>The Selection Kernel &mdash; How It Works Under the Hood</h3>
-      <div class="kernel-desc">
-        A single Triton kernel handles the entire selection branch. No Python-level loops, no materialized intermediate matrices.
-      </div>
-      <div class="kernel-steps">
-        <div class="kernel-step">
-          <div class="k-num">Step 1</div>
-          <h4>Load Compressed KVs</h4>
-          <p>Read block-level compressed keys from SRAM (already computed by compression branch).</p>
-        </div>
-        <div class="kernel-step">
-          <div class="k-num">Step 2</div>
-          <h4>Score Blocks</h4>
-          <p>Compute blockwise importance scores via dot product with query. Runs entirely in SRAM.</p>
-        </div>
-        <div class="kernel-step">
-          <div class="k-num">Step 3</div>
-          <h4>TopK Select</h4>
-          <p>Pick the top-<em>k</em> highest-scoring blocks. Only these get loaded from HBM.</p>
-        </div>
-        <div class="kernel-step">
-          <div class="k-num">Step 4</div>
-          <h4>Attend</h4>
-          <p>Run FlashAttention-style computation over selected blocks. Output goes straight to result.</p>
-        </div>
+        Standard attention forces the GPU to load the <strong>entire conversation</strong> from main memory for every word generated.
+        NSA keeps compressed summaries and block indices in the fast on-chip cache, and only loads
+        the <strong>selected blocks</strong> from main memory. Less data moved = faster results.
       </div>
     </div>
   </div>
@@ -1175,24 +1194,25 @@ footer a {
 <section id="benchmarks">
   <div class="container">
     <div class="section-label">Results</div>
-    <h2>Quality: Full Attention <span class="accent">Without the Cost</span></h2>
+    <h2>Faster <span class="accent">and</span> Smarter</h2>
     <p class="desc">
-      NSA was trained from scratch on a 27B parameter model using 260B tokens.
-      On general benchmarks it <strong>matches full attention</strong>. On reasoning-heavy and long-context tasks,
-      it often <strong>wins outright</strong> &mdash; the sparse structure acts as an inductive bias that helps the
-      model focus on what matters.
+      The obvious question: if you&rsquo;re skipping parts of the conversation, don&rsquo;t you lose quality?
+      DeepSeek trained two identical 27-billion-parameter models &mdash; one with standard attention,
+      one with NSA &mdash; on the exact same data. The NSA model <strong>matches or beats</strong> standard attention
+      on every major benchmark. On tasks requiring long-context understanding, it actually <strong>does better</strong>,
+      because learning to focus on what matters turns out to be a feature, not a compromise.
     </p>
 
     <table class="bench-table">
       <thead>
         <tr>
           <th>Benchmark</th>
-          <th>Full Attention</th>
-          <th class="nsa-col">NSA</th>
+          <th>Standard</th>
+          <th class="nsa-col">NSA (Sparse)</th>
         </tr>
       </thead>
       <tbody>
-        <tr class="bench-category"><td colspan="3">General</td></tr>
+        <tr class="bench-category"><td colspan="3">General Knowledge</td></tr>
         <tr>
           <td>MMLU (5-shot)</td>
           <td>78.0</td>
@@ -1213,7 +1233,7 @@ footer a {
           <td>79.6</td>
           <td class="nsa-col best">80.3</td>
         </tr>
-        <tr class="bench-category"><td colspan="3">Reasoning</td></tr>
+        <tr class="bench-category"><td colspan="3">Math &amp; Reasoning</td></tr>
         <tr>
           <td>MATH-500</td>
           <td>72.4</td>
@@ -1234,7 +1254,7 @@ footer a {
           <td>91.6</td>
           <td class="nsa-col">91.4</td>
         </tr>
-        <tr class="bench-category"><td colspan="3">Code</td></tr>
+        <tr class="bench-category"><td colspan="3">Coding</td></tr>
         <tr>
           <td>HumanEval</td>
           <td>69.5</td>
@@ -1250,7 +1270,7 @@ footer a {
           <td>56.0</td>
           <td class="nsa-col best">57.0</td>
         </tr>
-        <tr class="bench-category"><td colspan="3">Long Context (64K)</td></tr>
+        <tr class="bench-category"><td colspan="3">Long Document Understanding (64K tokens)</td></tr>
         <tr>
           <td>RULER</td>
           <td>90.3</td>
@@ -1259,15 +1279,16 @@ footer a {
       </tbody>
     </table>
     <div class="bench-note">
-      <span style="color: var(--teal);">&#9679;</span> NSA leads &nbsp;&nbsp;|&nbsp;&nbsp; 27B params, 260B training tokens, identical data and hyperparameters
+      <span style="color: var(--teal);">&#9679;</span> NSA leads &nbsp;&nbsp;|&nbsp;&nbsp; Both models: 27B params, 260B training tokens, identical data
     </div>
 
     <div class="keystat">
-      <div class="big-num">93.0 RULER</div>
+      <div class="big-num">93.0 vs. 90.3</div>
       <div class="context">
-        On the RULER long-context benchmark at 64K tokens, NSA scores <strong>93.0 vs. 90.3</strong> for full attention.
-        Sparse attention isn&rsquo;t just cheaper &mdash; the inductive bias toward relevant tokens actually
-        <strong>improves</strong> long-context understanding. The model learns to ignore noise.
+        On RULER, a benchmark that tests whether models can find and use information buried in long documents,
+        the sparse model <strong>outperforms</strong> the standard model. Learning to skip irrelevant parts
+        doesn&rsquo;t just save compute &mdash; it actually helps the model <strong>focus better</strong>.
+        Less noise, cleaner signal.
       </div>
     </div>
   </div>
@@ -1277,59 +1298,59 @@ footer a {
 <section id="speed">
   <div class="container">
     <div class="section-label">Performance</div>
-    <h2>The Speed <span class="accent">Numbers</span></h2>
+    <h2>How Much <span class="accent">Faster?</span></h2>
     <p class="desc">
-      Benchmarked on A100 GPUs. NSA&rsquo;s speedup grows with context length &mdash; at short contexts the overhead
-      of the three branches barely breaks even, but at 64K tokens the gap is enormous.
-      These numbers use the custom Triton kernels with FlashAttention-2 as the full attention baseline.
+      These are real measurements on real GPUs (NVIDIA A100s), comparing NSA against the best
+      existing implementation of standard attention. The speedup is most dramatic on long inputs &mdash;
+      exactly the scenario where you need it most.
     </p>
 
     <div class="speed-grid">
-      <div class="speed-section-label">Forward Pass (Full Sequence)</div>
+      <div class="speed-section-label">Processing a 64K-Token Document</div>
       <div class="speed-row">
-        <div class="speed-label">Full Attn (64K)</div>
+        <div class="speed-label">Standard</div>
         <div class="speed-track"><div class="speed-fill full" style="width: 100%;"></div></div>
         <div class="speed-value">1.0&times;</div>
       </div>
       <div class="speed-row">
-        <div class="speed-label">NSA (64K)</div>
+        <div class="speed-label">NSA</div>
         <div class="speed-track"><div class="speed-fill nsa" style="width: 8.6%;"></div></div>
         <div class="speed-value">11.6&times;</div>
       </div>
 
-      <div class="speed-section-label">Decoding (Token Generation)</div>
+      <div class="speed-section-label">Generating Each Word of a Reply (64K Context)</div>
       <div class="speed-row">
-        <div class="speed-label">Full Attn (64K)</div>
+        <div class="speed-label">Standard</div>
         <div class="speed-track"><div class="speed-fill full" style="width: 100%;"></div></div>
         <div class="speed-value">1.0&times;</div>
       </div>
       <div class="speed-row">
-        <div class="speed-label">NSA (64K)</div>
+        <div class="speed-label">NSA</div>
         <div class="speed-track"><div class="speed-fill nsa" style="width: 16.7%;"></div></div>
         <div class="speed-value">6.0&times;</div>
       </div>
 
-      <div class="speed-section-label">Backward Pass (Training)</div>
+      <div class="speed-section-label">Training the Model (64K Context)</div>
       <div class="speed-row">
-        <div class="speed-label">Full Attn (64K)</div>
+        <div class="speed-label">Standard</div>
         <div class="speed-track"><div class="speed-fill full" style="width: 100%;"></div></div>
         <div class="speed-value">1.0&times;</div>
       </div>
       <div class="speed-row">
-        <div class="speed-label">NSA (64K)</div>
+        <div class="speed-label">NSA</div>
         <div class="speed-track"><div class="speed-fill nsa" style="width: 16.1%;"></div></div>
         <div class="speed-value">6.2&times;</div>
       </div>
     </div>
 
     <div class="analogy-box">
-      <div class="analogy-label">Why the forward pass is fastest</div>
+      <div class="analogy-label">Why processing is faster than generating</div>
       <p>
-        During decoding, the selection branch still needs to score <em>all</em> compressed blocks
-        to find the top-k &mdash; that&rsquo;s the minimum read. During training (backward pass),
-        you need to propagate gradients through the gating and selection, which adds overhead.
-        But the forward pass on a full sequence can batch all queries together and reuse
-        the block index across them. That&rsquo;s where 11.6&times; comes from.
+        When the model processes your entire input at once (the 11.6&times; number), it can reuse its
+        &ldquo;table of contents&rdquo; across every word simultaneously. When generating a reply word by word
+        (the 6.0&times; number), it still has to check the table of contents each time to figure out which
+        parts of the conversation to focus on. Still much faster than reading everything &mdash; just not quite
+        as parallelizable.
       </p>
     </div>
   </div>
@@ -1341,61 +1362,62 @@ footer a {
     <div class="section-label">So What</div>
     <h2>Why This <span class="accent">Matters</span></h2>
     <p class="desc">
-      This isn&rsquo;t a theoretical exercise. DeepSeek published this alongside their production model work.
-      The techniques here are practical enough to ship &mdash; and they address the single biggest bottleneck
-      in making LLMs useful: the cost of long context.
+      This paper came from DeepSeek, the same lab behind DeepSeek-V2 and V3 &mdash; models that
+      are actually in production serving millions of users. These aren&rsquo;t theoretical ideas.
+      They solve the single biggest bottleneck in making AI models useful: the cost of
+      handling long conversations and large documents.
     </p>
 
     <div class="impact-grid">
       <div class="impact-card">
         <div class="ic-icon">&#x1F4B0;</div>
-        <h4>Inference Cost Drops</h4>
+        <h4>Cheaper AI</h4>
         <p>
-          6&times; faster decoding at 64K context means 6&times; less GPU time per token generated.
-          For API providers, that translates directly to serving cost. For local deployment, it means
-          running long-context tasks on fewer GPUs.
+          6&times; faster replies means 6&times; less GPU time, which means lower costs for API providers
+          like OpenAI and Anthropic. That translates to cheaper pricing for users and developers.
+          For companies running their own models, it means fewer expensive GPUs needed.
         </p>
         <div class="chip chip-teal">COST REDUCTION</div>
       </div>
       <div class="impact-card">
         <div class="ic-icon">&#x1F52C;</div>
-        <h4>Natively Trainable</h4>
+        <h4>Learned, Not Hacked</h4>
         <p>
-          Unlike post-hoc sparse approximations, NSA trains with the model from scratch.
-          The sparsity pattern is <em>learned</em>, not imposed. This means the model&rsquo;s sparse patterns
-          are optimal for the actual data distribution, not a researcher&rsquo;s best guess.
+          The key insight is that the model <em>learns</em> what to skip during training, rather than
+          using a fixed rule imposed by researchers. This means the shortcuts are optimized for
+          the actual data &mdash; the model discovers its own best strategy for what&rsquo;s worth reading carefully.
         </p>
-        <div class="chip chip-green">END-TO-END LEARNING</div>
+        <div class="chip chip-green">SMARTER SHORTCUTS</div>
       </div>
       <div class="impact-card">
         <div class="ic-icon">&#x1F680;</div>
-        <h4>Long Context Gets Practical</h4>
+        <h4>Longer Context, Finally</h4>
         <p>
-          The RULER results show sparse attention doesn&rsquo;t just match full attention on long context &mdash;
-          it beats it. As context windows grow to 128K, 256K, and beyond, this kind of architecture
-          becomes less optional and more necessary.
+          Today&rsquo;s models advertise 128K or even 1M token context windows, but in practice they&rsquo;re
+          slow and expensive at those lengths. Sparse attention makes long context <em>actually practical</em> &mdash;
+          fast enough to use routinely, not just as a demo feature.
         </p>
-        <div class="chip chip-teal">SCALING UNLOCK</div>
+        <div class="chip chip-teal">REAL LONG CONTEXT</div>
       </div>
       <div class="impact-card">
         <div class="ic-icon">&#x1F9E9;</div>
         <h4>Open Research</h4>
         <p>
-          The full paper is on arXiv with architecture details, training recipes, kernel implementations,
-          and ablation studies. DeepSeek continues to push the open-research approach they established
-          with DeepSeek-V2 and V3 &mdash; making frontier techniques available to everyone.
+          The full paper is public on arXiv with complete architecture details, training recipes, and code.
+          DeepSeek continues to be one of the few frontier AI labs that publishes its core innovations
+          openly, letting the entire research community build on this work.
         </p>
         <div class="chip chip-green">ARXIV 2602.16928</div>
       </div>
     </div>
 
     <div class="keystat" style="margin-top: 2rem;">
-      <div class="big-num" style="font-size: clamp(1.4rem, 3vw, 2rem);">Compress &middot; Select &middot; Slide</div>
+      <div class="big-num" style="font-size: clamp(1.4rem, 3vw, 2rem);">Summarize &middot; Select &middot; Remember</div>
       <div class="context">
-        Three pathways. One attention mechanism. The global summary catches the big picture.
-        The selection finds the needles. The sliding window keeps you grounded in the present.
-        Each pathway is hardware-aligned. All three are trainable end-to-end.
-        This is what &ldquo;designed for GPUs, not just for math&rdquo; looks like.
+        Read the summaries for the big picture. Pull up the important parts for detail.
+        Always keep track of what just happened. Three strategies that humans use intuitively
+        when reading long documents &mdash; now built into how AI models process language.
+        Faster, cheaper, and if anything, a little smarter.
       </div>
     </div>
   </div>
