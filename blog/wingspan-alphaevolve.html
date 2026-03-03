@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What If AI Designed My Board Game AI?</title>
+<meta name="description" content="I built a Wingspan board game simulator with a hand-tuned AI full of guessed thresholds. A Google DeepMind paper showed that AI can evolve better game algorithms than humans design. Here&rsquo;s what that would look like applied to my project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep: #faf8f5;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f5f0eb;
+  --bg-surface: #f5f0eb;
+  --border: #e8e0d8;
+  --border-bright: #d4ccc4;
+  --text-primary: #2c2521;
+  --text-secondary: #6b5e55;
+  --text-muted: #9a8d84;
+  --teal: #c4632a;
+  --teal-dim: #a8521f;
+  --teal-glow: rgba(196, 99, 42, 0.06);
+  --green: #5a8a5e;
+  --red: #c44a3f;
+  --purple: #8b6b4a;
+  --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container { max-width: 960px; margin: 0 auto; padding: 0 2rem; }
+
+a { color: var(--teal); text-decoration: none; }
+a:hover { color: var(--teal-dim); }
+.accent { color: var(--teal); }
+
+/* =============== NAV =============== */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(250, 248, 245, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 0;
+}
+.nav-inner {
+  max-width: 960px; margin: 0 auto; padding: 0 2rem;
+  display: flex; align-items: center; gap: 1.5rem;
+  overflow-x: auto; white-space: nowrap;
+  -ms-overflow-style: none; scrollbar-width: none;
+}
+.nav-inner::-webkit-scrollbar { display: none; }
+.nav-inner a {
+  font-family: var(--mono); font-size: 0.7rem; font-weight: 500;
+  color: var(--text-muted); letter-spacing: 0.03em; transition: color 0.2s; flex-shrink: 0;
+}
+.nav-inner a:hover { color: var(--text-primary); }
+.nav-logo { color: var(--teal) !important; font-weight: 600 !important; }
+
+/* =============== HERO =============== */
+#hero { padding: 5rem 0 3.5rem; border-bottom: 1px solid var(--border); }
+.hero-badge {
+  font-family: var(--mono); font-size: 0.65rem; font-weight: 600;
+  color: var(--teal); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 1.5rem;
+}
+.hero-title {
+  font-size: clamp(2rem, 5vw, 3rem); font-weight: 700;
+  line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 1.25rem;
+}
+.hero-title .teal { color: var(--teal); }
+.hero-subtitle {
+  font-family: var(--serif); font-size: 1.1rem;
+  color: var(--text-secondary); line-height: 1.75; max-width: 720px;
+}
+.stat-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+  background: var(--border); border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden; margin-top: 2.5rem;
+}
+.stat-card { background: var(--bg-card); padding: 1.5rem; transition: background 0.2s; }
+.stat-card:hover { background: var(--bg-card-hover); }
+.stat-number { font-family: var(--mono); font-size: 1.6rem; font-weight: 700; color: var(--teal); margin-bottom: 0.25rem; }
+.stat-label { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.25rem; }
+.stat-detail { font-size: 0.72rem; color: var(--text-muted); line-height: 1.45; }
+
+/* =============== SECTIONS =============== */
+section { padding: 4rem 0; border-bottom: 1px solid var(--border); }
+.section-label {
+  font-family: var(--mono); font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.15em; text-transform: uppercase; color: var(--teal); margin-bottom: 0.75rem;
+}
+section h2 { font-size: clamp(1.5rem, 3.5vw, 2rem); font-weight: 700; letter-spacing: -0.01em; margin-bottom: 1rem; }
+.desc { font-family: var(--serif); font-size: 1rem; color: var(--text-secondary); line-height: 1.8; max-width: 720px; }
+.desc strong { color: var(--text-primary); }
+
+/* =============== CODE BLOCKS =============== */
+pre {
+  background: #1e1e1e; color: #d4d4d4; border-radius: 8px;
+  padding: 1.5rem; margin-top: 1.5rem; overflow-x: auto;
+  font-family: var(--mono); font-size: 0.8rem; line-height: 1.65;
+  position: relative;
+}
+pre[data-lang]::before {
+  content: attr(data-lang);
+  position: absolute; top: 0.5rem; right: 0.75rem;
+  font-family: var(--mono); font-size: 0.55rem; font-weight: 700;
+  color: #666; letter-spacing: 0.08em; text-transform: uppercase;
+}
+pre .comment { color: #6a9955; }
+pre .keyword { color: #569cd6; }
+pre .string { color: #ce9178; }
+pre .number { color: #b5cea8; }
+pre .fn { color: #dcdcaa; }
+pre .highlight { color: #c4632a; font-weight: 600; }
+
+/* =============== ANALOGY BOX =============== */
+.analogy-box {
+  background: linear-gradient(135deg, rgba(196, 99, 42, 0.05) 0%, rgba(196, 99, 42, 0.02) 100%);
+  border: 1px solid rgba(196, 99, 42, 0.15); border-radius: 8px;
+  padding: 1.5rem 2rem; margin-top: 2rem;
+}
+.analogy-box .analogy-label {
+  font-family: var(--mono); font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--teal); margin-bottom: 0.5rem;
+}
+.analogy-box p { font-family: var(--serif); font-size: 0.95rem; color: var(--text-secondary); line-height: 1.75; }
+
+/* =============== ICON IMGS =============== */
+.card-icon img { width: 28px; height: 28px; display: block; }
+.card-icon { margin-bottom: 0.75rem; line-height: 1; }
+
+/* =============== THRESHOLD TABLE =============== */
+.threshold-table {
+  width: 100%; border-collapse: separate; border-spacing: 0;
+  margin-top: 1.5rem; font-size: 0.85rem;
+  border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+}
+.threshold-table thead th {
+  background: var(--bg-surface); font-family: var(--mono);
+  font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-muted);
+  padding: 0.8rem 1rem; text-align: left; border-bottom: 1px solid var(--border);
+}
+.threshold-table tbody td {
+  padding: 0.65rem 1rem; border-bottom: 1px solid var(--border);
+  font-size: 0.82rem; color: var(--text-secondary); vertical-align: top;
+}
+.threshold-table tbody td:first-child {
+  font-family: var(--mono); font-size: 0.78rem; color: var(--teal); font-weight: 500; white-space: nowrap;
+}
+.threshold-table tbody td:nth-child(2) { font-family: var(--sans); font-weight: 500; color: var(--text-primary); }
+.threshold-table tbody tr:last-child td { border-bottom: none; }
+.threshold-table tbody tr:hover td { background: var(--bg-card-hover); }
+
+/* =============== BEFORE/AFTER =============== */
+.compare-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+  background: var(--border); border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden; margin-top: 2rem;
+}
+.compare-card { background: var(--bg-card); padding: 1.75rem; }
+.compare-card:hover { background: var(--bg-card-hover); }
+.compare-label {
+  font-family: var(--mono); font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.75rem;
+}
+.compare-label.before { color: var(--text-muted); }
+.compare-label.after { color: var(--teal); }
+.compare-card pre { margin-top: 0; font-size: 0.72rem; padding: 1rem; }
+
+/* =============== THREE-COL GRID =============== */
+.three-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+  background: var(--border); border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden; margin-top: 2rem;
+}
+.three-card { background: var(--bg-card); padding: 1.75rem; transition: background 0.2s; }
+.three-card:hover { background: var(--bg-card-hover); }
+.three-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.35rem; }
+.three-card .path-tag {
+  font-family: var(--mono); font-size: 0.65rem; font-weight: 600;
+  color: var(--teal); margin-bottom: 0.75rem; letter-spacing: 0.04em;
+}
+.three-card p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; }
+.three-card .difficulty {
+  display: inline-block; font-family: var(--mono); font-size: 0.65rem; font-weight: 600;
+  padding: 0.15rem 0.5rem; border-radius: 3px; margin-top: 0.75rem; letter-spacing: 0.04em;
+}
+.diff-easy { color: var(--green); background: rgba(90, 138, 94, 0.08); border: 1px solid rgba(90, 138, 94, 0.15); }
+.diff-medium { color: var(--teal); background: var(--teal-glow); border: 1px solid rgba(196, 99, 42, 0.2); }
+.diff-hard { color: var(--purple); background: rgba(139, 107, 74, 0.08); border: 1px solid rgba(139, 107, 74, 0.15); }
+
+/* =============== TWO-COL GRID =============== */
+.two-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px;
+  background: var(--border); border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden; margin-top: 2rem;
+}
+.two-card { background: var(--bg-card); padding: 1.75rem; transition: background 0.2s; }
+.two-card:hover { background: var(--bg-card-hover); }
+.two-card h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; }
+.two-card p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; }
+.two-card .chip {
+  display: inline-block; font-family: var(--mono); font-size: 0.65rem; font-weight: 600;
+  padding: 0.15rem 0.5rem; border-radius: 3px; margin-top: 0.75rem; letter-spacing: 0.04em;
+}
+.chip-teal { color: var(--teal); background: var(--teal-glow); border: 1px solid rgba(196, 99, 42, 0.2); }
+.chip-green { color: var(--green); background: rgba(90, 138, 94, 0.08); border: 1px solid rgba(90, 138, 94, 0.15); }
+
+/* =============== KEY STAT =============== */
+.keystat {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 2.5rem; text-align: center; margin-top: 2rem;
+}
+.keystat .big-num {
+  font-family: var(--mono); font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 700; color: var(--teal); letter-spacing: -0.02em;
+}
+.keystat .context {
+  font-size: 0.9rem; color: var(--text-secondary); line-height: 1.65;
+  max-width: 600px; margin: 0.75rem auto 0;
+}
+.keystat .context strong { color: var(--text-primary); }
+
+/* =============== FOOTER =============== */
+footer {
+  border-top: 1px solid var(--border); padding: 2rem 0; text-align: center;
+  font-family: var(--mono); font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.04em;
+}
+footer a { color: var(--teal); text-decoration: none; }
+
+/* =============== RESPONSIVE =============== */
+@media (max-width: 900px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .three-grid { grid-template-columns: 1fr; }
+  .compare-grid { grid-template-columns: 1fr; }
+  .two-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .stat-grid { grid-template-columns: 1fr; }
+}
+
+/* =============== ANIMATIONS =============== */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.hero-badge { animation: fadeUp 0.6s ease both; }
+.hero-title { animation: fadeUp 0.6s ease 0.1s both; }
+.hero-subtitle { animation: fadeUp 0.6s ease 0.2s both; }
+.stat-grid { animation: fadeUp 0.6s ease 0.35s both; }
+</style>
+</head>
+<body>
+
+<!-- === NAV === -->
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo" style="color: var(--text-muted); font-weight: 500; margin-right: 0.5rem;">&larr; Home</a>
+    <a href="#hero" class="nav-logo">Wingspan AI</a>
+    <a href="#simulator">The Simulator</a>
+    <a href="#heuristics">The Hand-Tuned AI</a>
+    <a href="#paper">The Paper</a>
+    <a href="#mapping">What This Would Look Like</a>
+    <a href="#paths">Three Paths</a>
+    <a href="#closing">Why It Matters</a>
+  </div>
+</nav>
+
+<!-- === HERO === -->
+<section id="hero">
+  <div class="container">
+    <div class="hero-badge">&#9670; Mar 2026 &middot; Personal Project</div>
+    <h1 class="hero-title">
+      What If AI Designed<br>My <span class="teal">Board Game AI?</span>
+    </h1>
+    <p class="hero-subtitle">
+      I built a Wingspan simulator with a hand-tuned AI. Every decision threshold is a number I guessed.
+      Then I read <a href="/blog/alphaevolve-game-theory">a paper</a> where Google DeepMind let an AI
+      rewrite game-theory algorithms &mdash; and it found better ones than humans designed in 20 years.
+      Here&rsquo;s what that would look like applied to my project.
+    </p>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-number">446</div>
+        <div class="stat-label">Birds Implemented</div>
+        <div class="stat-detail">All 4 expansions: Core, Europe, Asia, Oceania</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">4.5/sec</div>
+        <div class="stat-label">Games Simulated</div>
+        <div class="stat-detail">Full headless games, no UI</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">50+</div>
+        <div class="stat-label">Hardcoded Thresholds</div>
+        <div class="stat-detail">Every one is a guess</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">0</div>
+        <div class="stat-label">Learned Parameters</div>
+        <div class="stat-detail">No ML, no training, pure heuristics</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- === SIMULATOR === -->
+<section id="simulator">
+  <div class="container">
+    <div class="section-label">The Project</div>
+    <h2>A Complete Wingspan <span class="accent">Simulator</span></h2>
+    <p class="desc">
+      <a href="https://stonemaiergames.com/games/wingspan/" target="_blank" rel="noopener"><strong>Wingspan</strong></a>
+      is a competitive board game where 1&ndash;5 players collect birds, lay eggs,
+      cache food, and chain bird powers together to score points across four rounds.
+      It&rsquo;s strategic, it has hidden information (your hand of bird cards), and every decision
+      ripples through the rest of the game.
+    </p>
+    <p class="desc" style="margin-top: 1rem;">
+      I built a Python simulator that plays the full game programmatically &mdash; all 446 birds across
+      four expansions, complete power chains, round goals, bonus cards, and a gym-style API
+      that returns <code style="font-family:var(--mono);font-size:0.85em;color:var(--teal);">(observation, reward, done, info)</code>
+      after every action. It runs about 4.5 complete games per second with no UI.
+      The goal was always to train an AI on it. The AI I have so far&hellip; well.
+    </p>
+  </div>
+</section>
+
+<!-- === HEURISTICS === -->
+<section id="heuristics">
+  <div class="container">
+    <div class="section-label">The Honest Truth</div>
+    <h2>Every Number Is <span class="accent">a Guess</span></h2>
+    <p class="desc">
+      The simulator&rsquo;s AI is a class called <code style="font-family:var(--mono);font-size:0.85em;color:var(--teal);">SmartAIPlayer</code>.
+      &ldquo;Smart&rdquo; is generous. It works &mdash; it plays legal moves, finishes games, scores reasonable points.
+      But every decision it makes comes down to a hardcoded number that I picked because it
+      <em>felt about right</em>.
+    </p>
+
+    <table class="threshold-table">
+      <thead>
+        <tr>
+          <th>Threshold</th>
+          <th>What It Controls</th>
+          <th>Why This Number?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>birds &lt; 3</td>
+          <td>&ldquo;Early game&rdquo; &mdash; prioritize playing birds</td>
+          <td>Felt right</td>
+        </tr>
+        <tr>
+          <td>birds &lt; 8</td>
+          <td>&ldquo;Mid game&rdquo; &mdash; balance all actions</td>
+          <td>Felt right</td>
+        </tr>
+        <tr>
+          <td>food &gt; 10</td>
+          <td>Stop hoarding food</td>
+          <td>Seemed like enough</td>
+        </tr>
+        <tr>
+          <td>hand &gt; 10</td>
+          <td>Stop drawing cards</td>
+          <td>Seemed like enough</td>
+        </tr>
+        <tr>
+          <td>points &times; 2</td>
+          <td>Base bird attractiveness score</td>
+          <td>Doubles felt impactful</td>
+        </tr>
+        <tr>
+          <td>cost &times; 0.5</td>
+          <td>Food cost penalty</td>
+          <td>Half-penalty felt balanced</td>
+        </tr>
+        <tr>
+          <td>+3 / +6</td>
+          <td>Bonus for birds with powers</td>
+          <td>Powers seem worth 3&ndash;6 points</td>
+        </tr>
+        <tr>
+          <td>30%</td>
+          <td>Chance to prioritize migration birds</td>
+          <td>Not too often, not too rare</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="desc" style="margin-top: 1.5rem;">
+      Here&rsquo;s the actual bird-scoring function. Every line is a judgment call:
+    </p>
+
+    <pre data-lang="Python"><span class="keyword">def</span> <span class="fn">_score_bird_play</span>(self, bird, action, player, game):
+    score = <span class="number">0.0</span>
+
+    <span class="comment"># Base score from bird points</span>
+    score += bird.points * <span class="highlight">2</span>           <span class="comment"># Why 2? Felt impactful.</span>
+
+    <span class="comment"># Bonus for birds with powers</span>
+    <span class="keyword">if</span> bird.power:
+        score += <span class="highlight">3</span>                       <span class="comment"># Why 3? Seemed fair.</span>
+        <span class="keyword">if</span> bird.power.abstracted_power:
+            score += <span class="highlight">3</span>                   <span class="comment"># Why 3 more? Gut feeling.</span>
+
+    <span class="comment"># Migration bird bonus (50% chance)</span>
+    <span class="keyword">if</span> bird.name <span class="keyword">in</span> MIGRATION_BIRDS <span class="keyword">and</span> random() &lt; <span class="highlight">0.50</span>:
+        score += <span class="highlight">15</span>                      <span class="comment"># Why 15? Big number = gets played.</span>
+
+    <span class="comment"># Prefer cheaper birds</span>
+    score -= food_cost * <span class="highlight">0.5</span>           <span class="comment"># Why 0.5? Half-penalty felt right.</span>
+
+    <span class="keyword">return</span> score</pre>
+
+    <p class="desc" style="margin-top: 1.5rem;">
+      And the egg-laying decision? The most strategically important action in the late game?
+    </p>
+
+    <pre data-lang="Python"><span class="keyword">def</span> <span class="fn">_select_best_egg_laying</span>(self, actions, player, game):
+    <span class="comment"># For now, just pick randomly from valid egg actions</span>
+    <span class="comment"># Could be enhanced to prefer birds with more egg capacity</span>
+    <span class="keyword">return</span> <span class="highlight">random.choice(actions)</span>      <span class="comment"># Literally random.</span></pre>
+
+    <div class="analogy-box">
+      <div class="analogy-label">It gets worse</div>
+      <p>
+        There are actually <strong>two</strong> heuristic AIs in the codebase &mdash; <code style="font-family:var(--mono);font-size:0.85em;">SmartAIPlayer</code>
+        in the AI module and a separate <code style="font-family:var(--mono);font-size:0.85em;">smart_action_selector</code>
+        in the simulator script. They evolved independently and disagree on the thresholds.
+        One says early game ends at 3 birds. The other uses round number instead.
+        One caps food at 10. The other at 4.
+        Two humans hand-tuning the same AI couldn&rsquo;t even converge on the same numbers.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- === PAPER === -->
+<section id="paper">
+  <div class="container">
+    <div class="section-label">The Research</div>
+    <h2>AI That Rewrites <span class="accent">Its Own Algorithms</span></h2>
+    <p class="desc">
+      I wrote a <a href="/blog/alphaevolve-game-theory">full explainer of this paper</a>, but here&rsquo;s the short version.
+      Google DeepMind built <strong>AlphaEvolve</strong>, a system that takes a working algorithm,
+      uses an LLM (Gemini) to propose code mutations, evaluates each variant by running it on
+      actual games, keeps the winners, and repeats for hundreds of generations.
+    </p>
+    <p class="desc" style="margin-top: 1rem;">
+      They pointed it at two families of game-theory algorithms that researchers had been refining
+      for over 20 years. AlphaEvolve discovered two new variants that <strong>beat the hand-designed ones</strong>
+      on 10 out of 11 benchmark games. The evolved algorithms contained tricks no human proposed &mdash;
+      like throwing away the first 500 iterations of data (counterintuitive, but it works)
+      and multiplying certain values by exactly 1.1 (no theoretical justification, but empirically superior).
+    </p>
+
+    <div class="analogy-box">
+      <div class="analogy-label">The parallel</div>
+      <p>
+        The paper&rsquo;s algorithms had the same structure as my Wingspan AI: hardcoded thresholds,
+        fixed orderings, manually chosen constants. The only difference is that theirs were designed by
+        PhD researchers and mine were designed by me guessing. AlphaEvolve beat both kinds.
+        If it can improve algorithms refined by experts over two decades,
+        it can definitely improve <code style="font-family:var(--mono);font-size:0.85em;">score += bird.points * 2</code>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- === MAPPING === -->
+<section id="mapping">
+  <div class="container">
+    <div class="section-label">The Application</div>
+    <h2>Mapping AlphaEvolve to <span class="accent">Wingspan</span></h2>
+    <p class="desc">
+      The AlphaEvolve approach needs three things: a <strong>seed algorithm</strong> to start from,
+      a <strong>fitness function</strong> to measure quality, and <strong>code to mutate</strong>.
+      The Wingspan simulator already has all three.
+    </p>
+
+    <div class="two-grid">
+      <div class="two-card">
+        <div class="card-icon"><img src="https://api.iconify.design/lucide/file-code.svg?color=%23c4632a&width=28&height=28" alt="Code"></div>
+        <h4>Seed Algorithm</h4>
+        <p><code style="font-family:var(--mono);font-size:0.85em;">SmartAIPlayer</code> &mdash; it already plays legal, complete games. It&rsquo;s not optimal, but it&rsquo;s a working starting point. AlphaEvolve doesn&rsquo;t need a good algorithm; it needs a <em>functional</em> one to evolve from.</p>
+        <div class="chip chip-teal">EXISTS TODAY</div>
+      </div>
+      <div class="two-card">
+        <div class="card-icon"><img src="https://api.iconify.design/lucide/gauge.svg?color=%23c4632a&width=28&height=28" alt="Fitness"></div>
+        <h4>Fitness Function</h4>
+        <p>Average final score across N games. The simulator already returns <code style="font-family:var(--mono);font-size:0.85em;">final_scores</code> at game end. Run 100 games, take the mean &mdash; higher average score = better algorithm. Simple, fast, and already built.</p>
+        <div class="chip chip-teal">EXISTS TODAY</div>
+      </div>
+      <div class="two-card">
+        <div class="card-icon"><img src="https://api.iconify.design/lucide/pencil-line.svg?color=%23c4632a&width=28&height=28" alt="Mutate"></div>
+        <h4>Code to Mutate</h4>
+        <p>Three functions: <code style="font-family:var(--mono);font-size:0.85em;">_get_action_priorities()</code> (what to do),
+        <code style="font-family:var(--mono);font-size:0.85em;">_score_bird_play()</code> (which bird to play),
+        <code style="font-family:var(--mono);font-size:0.85em;">_select_best_food_to_gain()</code> (which food to take).
+        These contain all the guessed numbers.</p>
+        <div class="chip chip-teal">EXISTS TODAY</div>
+      </div>
+      <div class="two-card">
+        <div class="card-icon"><img src="https://api.iconify.design/lucide/brain.svg?color=%23c4632a&width=28&height=28" alt="LLM"></div>
+        <h4>The LLM</h4>
+        <p>AlphaEvolve used Gemini (not public). But the approach works with any code-capable LLM. Claude, GPT-4, or even a local model &mdash; it just needs to read a Python function and propose a modified version.</p>
+        <div class="chip chip-green">AVAILABLE VIA API</div>
+      </div>
+    </div>
+
+    <p class="desc" style="margin-top: 2rem;">
+      Here&rsquo;s what the evolution might produce. The current scoring function is a flat linear formula.
+      An evolved version might discover non-linear interactions, conditional logic, or
+      phase-dependent weights &mdash; things that <em>work</em> but that no human would think to try:
+    </p>
+
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="compare-label before">Current: Hand-Tuned</div>
+        <pre data-lang="Python">score  = bird.points * <span class="highlight">2</span>
+score += <span class="highlight">3</span> <span class="keyword">if</span> bird.power <span class="keyword">else</span> <span class="number">0</span>
+score -= food_cost * <span class="highlight">0.5</span>
+<span class="comment"># 3 constants, all guesses</span></pre>
+      </div>
+      <div class="compare-card">
+        <div class="compare-label after">Hypothetical: Evolved</div>
+        <pre data-lang="Python">score  = bird.points * <span class="highlight">2.3</span>
+score += <span class="highlight">4.7</span> <span class="keyword">if</span> bird.power <span class="keyword">else</span> <span class="number">0</span>
+score -= food_cost * <span class="highlight">0.8</span>
+<span class="keyword">if</span> round &gt; <span class="highlight">2</span> <span class="keyword">and</span> eggs &lt; <span class="highlight">4</span>:
+    score += egg_capacity * <span class="highlight">1.4</span>
+<span class="comment"># non-obvious conditional the AI found</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- === PATHS === -->
+<section id="paths">
+  <div class="container">
+    <div class="section-label">What&rsquo;s Next</div>
+    <h2>Three Paths <span class="accent">Forward</span></h2>
+    <p class="desc">
+      AlphaEvolve isn&rsquo;t publicly available, but the idea is reproducible.
+      There are three realistic ways to apply it to the Wingspan simulator, each at a different
+      level of complexity.
+    </p>
+
+    <div class="three-grid">
+      <div class="three-card">
+        <div class="card-icon"><img src="https://api.iconify.design/lucide/dna.svg?color=%23c4632a&width=28&height=28" alt="Genetic"></div>
+        <h3>Genetic Algorithm</h3>
+        <div class="path-tag">Evolve the numbers</div>
+        <p>
+          Extract all 50+ thresholds into a parameter vector. Use a standard genetic algorithm
+          to mutate values, run tournaments, keep winners. No LLM needed &mdash; just numerical
+          optimization. The simplest path and the quickest to validate.
+        </p>
+        <div class="difficulty diff-easy">EASIEST</div>
+      </div>
+      <div class="three-card">
+        <div class="card-icon"><img src="https://api.iconify.design/lucide/bot.svg?color=%23c4632a&width=28&height=28" alt="RL"></div>
+        <h3>Reinforcement Learning</h3>
+        <div class="path-tag">Learn from self-play</div>
+        <p>
+          The gym-style API is already built. Hook up PPO or similar via
+          <code style="font-family:var(--mono);font-size:0.82em;">stable-baselines3</code>.
+          The <code style="font-family:var(--mono);font-size:0.82em;">StateEncoder</code> already produces
+          observation vectors. Train against copies of itself.
+        </p>
+        <div class="difficulty diff-medium">MEDIUM</div>
+      </div>
+      <div class="three-card">
+        <div class="card-icon"><img src="https://api.iconify.design/lucide/sparkles.svg?color=%23c4632a&width=28&height=28" alt="LLM"></div>
+        <h3>DIY AlphaEvolve</h3>
+        <div class="path-tag">LLM evolves the code</div>
+        <p>
+          Send <code style="font-family:var(--mono);font-size:0.82em;">_score_bird_play()</code> to the Claude API
+          with &ldquo;propose a better version.&rdquo; Run 100 games with each variant.
+          Keep the highest-scoring one. Repeat. This is literally what the paper does.
+        </p>
+        <div class="difficulty diff-hard">MOST INTERESTING</div>
+      </div>
+    </div>
+
+    <div class="analogy-box">
+      <div class="analogy-label">The practical choice</div>
+      <p>
+        Path 1 (genetic algorithm) is the fastest to build and would already produce better thresholds
+        than my guesses. Path 3 (DIY AlphaEvolve) is the most exciting because it can discover
+        <em>structural</em> changes to the code &mdash; new conditionals, new factors, entirely new
+        decision logic &mdash; not just better numbers. The paper&rsquo;s most impressive discoveries
+        were structural, not numerical.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- === CLOSING === -->
+<section id="closing">
+  <div class="container">
+    <div class="section-label">The Bigger Picture</div>
+    <h2>Why This <span class="accent">Matters</span></h2>
+    <p class="desc">
+      This isn&rsquo;t really about Wingspan. It&rsquo;s about a pattern that shows up everywhere:
+      a developer writes a heuristic with guessed constants, it works well enough, and nobody
+      goes back to optimize it. Scheduling algorithms, recommendation scores, resource allocation
+      weights, retry backoff timers &mdash; they&rsquo;re all full of numbers someone picked because
+      they felt right.
+    </p>
+    <p class="desc" style="margin-top: 1rem;">
+      The AlphaEvolve paper shows that LLMs can do more than just write code to spec.
+      They can <em>explore the space of possible code</em> and find solutions humans wouldn&rsquo;t
+      think to try. The Wingspan simulator is a perfect sandbox for that experiment &mdash;
+      a complete game engine, a measurable fitness function, and an AI full of numbers
+      that are begging to be replaced by better ones.
+    </p>
+
+    <div class="keystat">
+      <div class="big-num">50+ Guesses &rarr; ?</div>
+      <div class="context">
+        Every threshold in <code style="font-family:var(--mono);font-size:0.85em;">SmartAIPlayer</code> is a guess.
+        The AlphaEvolve paper proved that AI can replace human guesses with empirically optimal values &mdash;
+        and discover entirely new decision logic in the process.
+        The simulator is ready. The fitness function is built. The only missing piece is the evolution loop.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- === FOOTER === -->
+<footer>
+  <div class="container">
+    <p>
+      <a href="/">Nathan Norman</a> &nbsp;&bull;&nbsp; Mar 2026
+    </p>
+    <p style="margin-top: 0.4rem;">
+      Paper: <a href="/blog/alphaevolve-game-theory">AlphaEvolve Explainer</a>
+      &nbsp;&bull;&nbsp;
+      Simulator: <a href="https://github.com/NathanNorman/wingspan-simulator" target="_blank" rel="noopener">GitHub</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
