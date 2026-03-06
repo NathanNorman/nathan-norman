@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Four Hooks Patterns for Steering Claude Code</title>
+<meta name="description" content="Four composable patterns for controlling Claude Code agent behavior using hooks: PreToolUse interception, orchestrators, session state files, and PostToolUse context injection.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #faf8f5;
+  --bg-warm: #f5f0eb;
+  --surface: #ffffff;
+  --border: #e8e0d8;
+  --border-light: #efe9e2;
+  --text: #2c2521;
+  --text-secondary: #6b5e55;
+  --text-muted: #9a8d84;
+  --accent: #c4632a;
+  --accent-hover: #a8521f;
+  --accent-faint: rgba(196, 99, 42, 0.06);
+  --accent-line: rgba(196, 99, 42, 0.25);
+  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --shadow-sm: 0 1px 3px rgba(60, 40, 20, 0.04), 0 1px 2px rgba(60, 40, 20, 0.06);
+  --shadow-md: 0 4px 16px rgba(60, 40, 20, 0.07), 0 2px 6px rgba(60, 40, 20, 0.04);
+  --shadow-lg: 0 8px 30px rgba(60, 40, 20, 0.08), 0 4px 10px rgba(60, 40, 20, 0.04);
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 17px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--bg);
+}
+
+body {
+  font-family: var(--serif);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.75;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Paper grain overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Warm gradient atmosphere */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 500px;
+  background: linear-gradient(180deg, rgba(196, 99, 42, 0.03) 0%, rgba(250, 248, 245, 0) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+::selection {
+  background: var(--accent);
+  color: #fff;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+a:hover { color: var(--accent-hover); }
+
+/* ═══════════════════════════════════════
+   NAV
+   ═══════════════════════════════════════ */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(250, 248, 245, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-light);
+  padding: 0 2rem;
+  transition: box-shadow 0.3s ease;
+}
+
+nav .nav-inner {
+  max-width: 780px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 52px;
+  overflow-x: auto;
+}
+
+nav a {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+nav a:hover {
+  color: var(--accent);
+  background: var(--accent-faint);
+}
+
+nav .nav-home {
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+nav .nav-title {
+  font-weight: 600;
+  font-size: 0.76rem;
+  color: var(--accent);
+  margin-right: 1rem;
+  letter-spacing: 0.01em;
+}
+
+/* ═══════════════════════════════════════
+   ARTICLE CONTAINER
+   ═══════════════════════════════════════ */
+.container {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 clamp(1.25rem, 4vw, 3rem);
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══════════════════════════════════════
+   HERO
+   ═══════════════════════════════════════ */
+.hero {
+  padding-top: 4.5rem;
+  padding-bottom: 3rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-badge {
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  background: var(--accent-faint);
+  border-radius: 2px;
+}
+
+.hero h1 {
+  font-family: var(--sans);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  color: var(--text);
+  margin-bottom: 1rem;
+}
+
+.hero .subtitle {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  max-width: 620px;
+}
+
+/* ═══════════════════════════════════════
+   ARTICLE CONTENT
+   ═══════════════════════════════════════ */
+article {
+  padding: clamp(2.5rem, 5vw, 4rem) 0;
+}
+
+article section {
+  margin-bottom: 3rem;
+}
+
+article section:last-child {
+  margin-bottom: 0;
+}
+
+article h2 {
+  font-family: var(--sans);
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: 1rem;
+  padding-top: 0.5rem;
+}
+
+article h3 {
+  font-family: var(--sans);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 2rem;
+  margin-bottom: 0.65rem;
+  letter-spacing: -0.01em;
+}
+
+article p {
+  font-size: 1.02rem;
+  color: var(--text);
+  margin-bottom: 1.25rem;
+  line-height: 1.85;
+}
+
+article p:last-child {
+  margin-bottom: 0;
+}
+
+/* Drop cap on first paragraph of article */
+article > section:first-child > p:first-of-type::first-letter {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 3.4em;
+  float: left;
+  line-height: 0.8;
+  margin-right: 0.1em;
+  margin-top: 0.08em;
+  color: var(--accent);
+}
+
+article strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+article em {
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════
+   HORIZONTAL RULES (section dividers)
+   ═══════════════════════════════════════ */
+article hr {
+  border: none;
+  height: 1px;
+  background: var(--border);
+  margin: 2.5rem 0;
+}
+
+/* ═══════════════════════════════════════
+   CODE BLOCKS
+   ═══════════════════════════════════════ */
+pre {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 3px 3px 0;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  box-shadow: var(--shadow-sm);
+}
+
+pre code {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: var(--text);
+  background: none;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  color: var(--accent);
+  background: var(--accent-faint);
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  border: 1px solid rgba(196, 99, 42, 0.1);
+}
+
+/* Language label on code blocks */
+pre[data-lang]::before {
+  content: attr(data-lang);
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
+/* ═══════════════════════════════════════
+   BLOCKQUOTES (tips, notes)
+   ═══════════════════════════════════════ */
+blockquote {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 3px 3px 0;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+blockquote p {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  margin-bottom: 0;
+  line-height: 1.75;
+}
+
+blockquote strong {
+  color: var(--accent);
+}
+
+/* ═══════════════════════════════════════
+   LISTS
+   ═══════════════════════════════════════ */
+article ol, article ul {
+  margin-bottom: 1.5rem;
+  padding-left: 1.5rem;
+}
+
+article li {
+  font-size: 1.02rem;
+  line-height: 1.85;
+  margin-bottom: 0.4rem;
+  color: var(--text);
+}
+
+article li code {
+  font-size: 0.82em;
+}
+
+/* ═══════════════════════════════════════
+   TABLES
+   ═══════════════════════════════════════ */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+thead {
+  background: var(--bg-warm);
+}
+
+th {
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0.85rem 1.25rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  font-size: 0.92rem;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text);
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+/* ═══════════════════════════════════════
+   FLOW DIAGRAM
+   ═══════════════════════════════════════ */
+.flow-diagram {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+}
+
+/* ═══════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════ */
+footer {
+  padding: 2rem 0;
+  border-top: 1px solid var(--border);
+  margin-top: 1rem;
+}
+
+footer p {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  line-height: 1.7;
+}
+
+footer a {
+  color: var(--text-muted);
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+footer a:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════ */
+@media (max-width: 600px) {
+  html { font-size: 16px; }
+
+  .hero h1 { font-size: 1.6rem; }
+
+  pre {
+    padding: 1rem;
+    font-size: 0.78rem;
+  }
+
+  article > section:first-child > p:first-of-type::first-letter {
+    font-size: 2.8em;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  nav .nav-inner {
+    gap: 0.15rem;
+  }
+
+  nav a {
+    font-size: 0.68rem;
+    padding: 0.35rem 0.5rem;
+  }
+}
+
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-home">&larr; Home</a>
+    <a href="#" class="nav-title">Hooks Patterns</a>
+    <a href="#problem">The Problem</a>
+    <a href="#pattern-1">Interception</a>
+    <a href="#pattern-2">Orchestrator</a>
+    <a href="#pattern-3">Session State</a>
+    <a href="#pattern-4">Context Injection</a>
+    <a href="#compose">Composition</a>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<div class="hero">
+  <div class="container">
+    <div class="hero-badge">Mar 2026 &middot; Claude Code</div>
+    <h1>Four Hooks Patterns for<br>Steering Claude Code</h1>
+    <p class="subtitle">Composable patterns for controlling what Claude Code does &mdash; and when it learns what &mdash; using hooks. No CLAUDE.md bloat required.</p>
+  </div>
+</div>
+
+<!-- ═══ ARTICLE ═══ -->
+<article>
+  <div class="container">
+
+    <section id="problem">
+      <p>Telling Claude &ldquo;don&rsquo;t use <code>find</code>&rdquo; or &ldquo;always check X before doing Y&rdquo; in CLAUDE.md works &mdash; until the context window fills up and those instructions get compressed away. The more rules you add, the less reliably any single rule fires. And front-loading every possible instruction means Claude reads 200 lines of rules before touching your actual task.</p>
+      <p>Hooks solve this by moving behavioral control out of the prompt and into code that runs at deterministic moments: before a tool fires, after a tool fires, on session start, on session stop. Your rules become shell scripts and Python programs that execute every time, regardless of how full the context window gets.</p>
+      <p>Here are four patterns I&rsquo;ve been using that compose well together. All code examples are available in the <a href="https://github.com/NathanNorman/claude-code-hooks-patterns" target="_blank" rel="noopener">companion reference repo</a>.</p>
+    </section>
+
+    <hr>
+
+    <section id="pattern-1">
+      <h2>Pattern 1: PreToolUse Interception</h2>
+      <p><strong>When:</strong> You want to block or warn before a command runs.</p>
+      <p>Register a hook on <code>PreToolUse</code> with a tool matcher (e.g., <code>Bash</code>). The hook reads the command from stdin, decides whether to allow or block, and exits with code <code>0</code> (allow) or <code>2</code> (block with message on stderr).</p>
+      <p>The hook script receives JSON on stdin with <code>tool_input.command</code>. Parse it, match patterns, and exit <code>0</code> (allow) or <code>2</code> (block):</p>
+      <pre data-lang="Bash"><code>#!/bin/bash
+HOOK_DATA=$(cat)
+COMMAND=$(echo "$HOOK_DATA" | jq -r '.tool_input.command // ""')
+
+if echo "$COMMAND" | grep -qE 'find\s+(/|~)'; then
+    echo "BLOCKED: find on broad path. Use Glob or Grep instead." &gt;&amp;2
+    exit 2  # Block &mdash; stderr message is shown to Claude
+fi
+
+exit 0  # Allow</code></pre>
+      <p>The stderr message becomes part of Claude&rsquo;s context, so it knows <em>why</em> the command was blocked and can adjust. See the <a href="https://github.com/NathanNorman/claude-code-hooks-patterns/tree/main/pattern-1-pretooluse" target="_blank" rel="noopener">full examples</a> in the companion repo.</p>
+      <p><strong>Use cases:</strong> Blocking <code>rm -rf</code>, preventing force-push, catching <code>find ~/</code>, enforcing specific workflows over raw CLI commands.</p>
+    </section>
+
+    <hr>
+
+    <section id="pattern-2">
+      <h2>Pattern 2: The Orchestrator</h2>
+      <p><strong>When:</strong> You have multiple independent checks that should all run on the same hook event.</p>
+      <p>The naive approach &mdash; registering 8 separate hooks in settings.json &mdash; gets unwieldy fast. Each hook independently parses stdin, ordering is implicit, and your settings.json balloons with repeated boilerplate.</p>
+      <p>Instead, register <strong>one</strong> orchestrator script that delegates to check modules in a directory:</p>
+      <pre data-lang="Bash"><code>#!/bin/bash
+HOOK_DATA=$(cat)
+COMMAND=$(echo "$HOOK_DATA" | jq -r '.tool_input.command // ""')
+[[ -z "$COMMAND" ]] &amp;&amp; exit 0
+
+CHECKS_DIR="$HOME/.claude/hooks/checks"
+for check in "$CHECKS_DIR"/prevent-force-push.sh \
+             "$CHECKS_DIR"/rm-safety-check.sh \
+             "$CHECKS_DIR"/block-broad-find.sh; do
+    [[ -x "$check" ]] &amp;&amp; "$check" "$COMMAND"
+    [[ $? -eq 2 ]] &amp;&amp; exit 2
+done
+exit 0</code></pre>
+      <p>Each check is a standalone script: takes the command as <code>$1</code>, exits <code>0</code> to pass or <code>2</code> to block. Adding a new check means dropping a file into <code>checks/</code> and adding one line to the loop. See the <a href="https://github.com/NathanNorman/claude-code-hooks-patterns/tree/main/pattern-2-orchestrator" target="_blank" rel="noopener">full orchestrator</a> in the repo.</p>
+      <h3>Benefits</h3>
+      <ul>
+        <li>One entry in settings.json instead of eight</li>
+        <li>Checks run in explicit order (put hard blocks first)</li>
+        <li>Each check is independently testable</li>
+        <li>Dead-simple to add or remove checks</li>
+      </ul>
+    </section>
+
+    <hr>
+
+    <section id="pattern-3">
+      <h2>Pattern 3: Session State Files</h2>
+      <p><strong>When:</strong> You want a hook to fire once per session, not on every invocation.</p>
+      <p>A &ldquo;warn on first <code>rm</code>, allow subsequent&rdquo; pattern needs state. The trick: use the Claude Code process PID as a session identifier, and touch a file in a state directory.</p>
+      <pre data-lang="Bash"><code>CLAUDE_PID=$(find_claude_pid)  # walk up process tree to find "claude"
+STATE_FILE="$HOME/.claude/hooks/state/my-check/$CLAUDE_PID"
+mkdir -p "$(dirname "$STATE_FILE")"
+
+[ -f "$STATE_FILE" ] &amp;&amp; exit 0          # already warned this session
+touch "$STATE_FILE"                       # mark warned
+echo "First-time warning for this session..." &gt;&amp;2
+exit 2</code></pre>
+      <p>The <code>find_claude_pid</code> function walks up the process tree via <code>ps -o ppid=</code> until it finds a process named <code>claude</code>, giving you a stable session identifier. State files accumulate as sessions end; a <strong>lazy cleanup</strong> (5% probability per invocation) checks if each PID is still alive and deletes stale files. See the <a href="https://github.com/NathanNorman/claude-code-hooks-patterns/tree/main/pattern-3-session-state" target="_blank" rel="noopener">full implementation</a> in the repo.</p>
+      <p><strong>Use cases:</strong> Warn once about <code>rm</code> then allow, remind about safety checks on first push, show validation reminders once per session.</p>
+    </section>
+
+    <hr>
+
+    <section id="pattern-4">
+      <h2>Pattern 4: PostToolUse Context Injection</h2>
+      <p><strong>When:</strong> You want to push the right reference doc at the right moment, based on what the agent just did.</p>
+      <p>This is the opposite of Pattern 1 &mdash; instead of blocking before, you inject context after. The hook watches what tool was just used and pushes a relevant document into Claude&rsquo;s context via <code>hookSpecificOutput.additionalContext</code>.</p>
+      <p>The core output is simple &mdash; when a trigger matches, emit the resource as JSON on stdout:</p>
+      <pre data-lang="Python"><code># When a trigger matches, inject the resource into Claude's context
+content = open("resources/deployment-checklist.md").read()
+json.dump({
+    "hookSpecificOutput": {
+        "hookEventName": "PostToolUse",
+        "additionalContext": content,
+    }
+}, sys.stdout)</code></pre>
+      <p>Build a trigger system on top: a JSON manifest that maps tool patterns to resource files:</p>
+      <pre data-lang="JSON"><code>{
+  "push_triggers": [
+    { "trigger": { "tool": "Bash", "command_pattern": "kubectl apply" },
+      "resource": "deployment-checklist" },
+    { "trigger": { "tool": "Write", "file_path_pattern": ".*\\.css$" },
+      "resource": "style-guide" }
+  ],
+  "resources": [
+    { "name": "deployment-checklist", "file": "resources/deployment-checklist.md" },
+    { "name": "style-guide", "file": "resources/style-guide.md" }
+  ]
+}</code></pre>
+      <p>The <a href="https://github.com/NathanNorman/claude-code-hooks-patterns/tree/main/pattern-4-context-injection" target="_blank" rel="noopener">full implementation</a> in the repo includes trigger matching, session-scoped deduplication, and micro-reminders.</p>
+      <h3>Why this beats CLAUDE.md</h3>
+      <p>Your deployment checklist might be 50 lines. Your style guide might have examples and anti-patterns. Putting all of that in CLAUDE.md bloats the prompt with content that&rsquo;s only relevant at specific moments. With push triggers, the agent gets the deployment checklist exactly when it runs <code>kubectl</code> &mdash; not 200 turns earlier when it was reading the task description.</p>
+      <p>You can also track which resources have been injected per session (using Pattern 3&rsquo;s session state) so each resource fires exactly once, avoiding repeated context bloat.</p>
+    </section>
+
+    <hr>
+
+    <section id="compose">
+      <h2>How They Compose</h2>
+      <p>These four patterns layer naturally:</p>
+
+      <div class="flow-diagram" style="text-align: center;">
+        <svg viewBox="0 0 900 310" xmlns="http://www.w3.org/2000/svg" width="100%" style="max-width: 900px;" font-family="'DM Sans', system-ui, sans-serif">
+          <defs>
+            <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+              <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#3c2814" flood-opacity="0.08"/>
+            </filter>
+          </defs>
+          <rect width="900" height="310" fill="#faf8f5" rx="4"/>
+          <!-- Main flow -->
+          <rect x="24" y="36" width="138" height="56" rx="8" fill="#ffffff" stroke="#e8e0d8" filter="url(#shadow)"/>
+          <text x="93" y="59" text-anchor="middle" font-size="12" font-weight="500" fill="#2c2521">Agent wants to</text>
+          <text x="93" y="76" text-anchor="middle" font-size="12" font-weight="500" fill="#2c2521">run a command</text>
+          <line x1="162" y1="64" x2="202" y2="64" stroke="#c4632a" stroke-width="2"/>
+          <polygon points="208,64 198,58 198,70" fill="#c4632a"/>
+          <rect x="208" y="36" width="140" height="56" rx="8" fill="#c4632a" filter="url(#shadow)"/>
+          <text x="278" y="59" text-anchor="middle" font-size="12.5" font-weight="600" fill="#ffffff">PreToolUse</text>
+          <text x="278" y="76" text-anchor="middle" font-size="12.5" font-weight="600" fill="#ffffff">Hook</text>
+          <line x1="348" y1="64" x2="422" y2="64" stroke="#c4632a" stroke-width="2"/>
+          <polygon points="428,64 418,58 418,70" fill="#c4632a"/>
+          <text x="388" y="54" text-anchor="middle" font-size="10" fill="#6b5e55" font-weight="500">exit 0</text>
+          <line x1="278" y1="92" x2="278" y2="150" stroke="#c4632a" stroke-width="2"/>
+          <polygon points="278,160 272,150 284,150" fill="#c4632a"/>
+          <text x="298" y="130" font-size="10" fill="#6b5e55" font-weight="500">exit 2</text>
+          <rect x="208" y="160" width="140" height="50" rx="8" fill="#fde8e0" stroke="#e8a090" filter="url(#shadow)"/>
+          <text x="278" y="181" text-anchor="middle" font-size="12" font-weight="600" fill="#a0422a">BLOCKED</text>
+          <text x="278" y="198" text-anchor="middle" font-size="10" fill="#9a8d84">message sent to agent</text>
+          <rect x="428" y="36" width="138" height="56" rx="8" fill="#ffffff" stroke="#e8e0d8" filter="url(#shadow)"/>
+          <text x="497" y="59" text-anchor="middle" font-size="12" font-weight="500" fill="#2c2521">Command</text>
+          <text x="497" y="76" text-anchor="middle" font-size="12" font-weight="500" fill="#2c2521">Executes</text>
+          <line x1="566" y1="64" x2="602" y2="64" stroke="#c4632a" stroke-width="2"/>
+          <polygon points="608,64 598,58 598,70" fill="#c4632a"/>
+          <rect x="608" y="36" width="140" height="56" rx="8" fill="#c4632a" filter="url(#shadow)"/>
+          <text x="678" y="59" text-anchor="middle" font-size="12.5" font-weight="600" fill="#ffffff">PostToolUse</text>
+          <text x="678" y="76" text-anchor="middle" font-size="12.5" font-weight="600" fill="#ffffff">Hook</text>
+          <line x1="748" y1="64" x2="782" y2="64" stroke="#c4632a" stroke-width="2"/>
+          <polygon points="788,64 778,58 778,70" fill="#c4632a"/>
+          <rect x="788" y="36" width="100" height="56" rx="8" fill="#ffffff" stroke="#e8e0d8" filter="url(#shadow)"/>
+          <text x="838" y="59" text-anchor="middle" font-size="11" font-weight="500" fill="#2c2521">Context injected</text>
+          <text x="838" y="76" text-anchor="middle" font-size="11" font-weight="500" fill="#2c2521">for next step</text>
+          <!-- Supporting layer -->
+          <rect x="24" y="240" width="160" height="52" rx="8" fill="#ffffff" stroke="#c4b8ad" stroke-dasharray="6,4" filter="url(#shadow)"/>
+          <text x="104" y="262" text-anchor="middle" font-size="11" font-weight="600" fill="#6b5e55">Pattern 2:</text>
+          <text x="104" y="279" text-anchor="middle" font-size="11" font-weight="600" fill="#6b5e55">Orchestrator</text>
+          <path d="M 104,240 C 104,160 208,180 208,92" fill="none" stroke="#9a8d84" stroke-width="1.5" stroke-dasharray="6,4"/>
+          <polygon points="208,88 204,96 212,96" fill="#9a8d84"/>
+          <text x="30" y="192" font-size="9.5" fill="#9a8d84" font-style="italic">manages</text>
+          <text x="30" y="205" font-size="9.5" fill="#9a8d84" font-style="italic">multiple checks</text>
+          <rect x="260" y="240" width="160" height="52" rx="8" fill="#ffffff" stroke="#c4b8ad" stroke-dasharray="6,4" filter="url(#shadow)"/>
+          <text x="340" y="262" text-anchor="middle" font-size="11" font-weight="600" fill="#6b5e55">Pattern 3:</text>
+          <text x="340" y="279" text-anchor="middle" font-size="11" font-weight="600" fill="#6b5e55">Session State</text>
+          <line x1="260" y1="266" x2="190" y2="266" stroke="#9a8d84" stroke-width="1.5" stroke-dasharray="6,4"/>
+          <polygon points="184,266 192,261 192,271" fill="#9a8d84"/>
+          <text x="222" y="254" text-anchor="middle" font-size="9.5" fill="#9a8d84" font-style="italic">controls fire-once</text>
+        </svg>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Pattern</th>
+            <th>Hook Event</th>
+            <th>Purpose</th>
+            <th>Fires</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>PreToolUse interception</td>
+            <td><code>PreToolUse</code></td>
+            <td>Block dangerous commands</td>
+            <td>Before tool runs</td>
+          </tr>
+          <tr>
+            <td>Orchestrator</td>
+            <td><code>PreToolUse</code></td>
+            <td>Single entry point for many checks</td>
+            <td>Before tool runs</td>
+          </tr>
+          <tr>
+            <td>Session state files</td>
+            <td>Any</td>
+            <td>Warn once, allow after</td>
+            <td>Once per session</td>
+          </tr>
+          <tr>
+            <td>Context injection</td>
+            <td><code>PostToolUse</code></td>
+            <td>Push docs at the right moment</td>
+            <td>After tool runs</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>Getting Started</h2>
+      <ol>
+        <li><strong>Start with Pattern 1</strong> &mdash; pick one command you want to intercept (e.g., <code>find ~/</code>) and write a simple PreToolUse hook</li>
+        <li><strong>When you have 3+ checks</strong>, wrap them in an orchestrator (Pattern 2)</li>
+        <li><strong>Add session state</strong> (Pattern 3) when &ldquo;warn once&rdquo; beats &ldquo;block every time&rdquo;</li>
+        <li><strong>Graduate to Pattern 4</strong> when you have reference docs that are only relevant at specific moments</li>
+      </ol>
+      <p>All four patterns use standard Claude Code hook APIs &mdash; no special tooling required. The official <a href="https://code.claude.com/docs/en/hooks" target="_blank" rel="noopener">hooks reference</a> and <a href="https://code.claude.com/docs/en/hooks-guide" target="_blank" rel="noopener">hooks guide</a> cover the fundamentals; the patterns here are built on top.</p>
+      <p>Full working code for every pattern is in the <a href="https://github.com/NathanNorman/claude-code-hooks-patterns" target="_blank" rel="noopener">companion repository</a>.</p>
+    </section>
+
+  </div>
+</article>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="container">
+    <p>
+      <a href="/">Nathan Norman</a> &nbsp;&bull;&nbsp; Mar 2026
+    </p>
+    <p style="margin-top: 0.4rem;">
+      Code: <a href="https://github.com/NathanNorman/claude-code-hooks-patterns" target="_blank" rel="noopener">github.com/NathanNorman/claude-code-hooks-patterns</a>
+      &nbsp;&bull;&nbsp;
+      Docs: <a href="https://code.claude.com/docs/en/hooks" target="_blank" rel="noopener">Claude Code Hooks Reference</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
