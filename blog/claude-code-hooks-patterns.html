@@ -286,6 +286,38 @@ pre {
   overflow-x: auto;
   box-shadow: var(--shadow-sm);
   line-height: 1.2;
+  position: relative;
+}
+
+pre .copy-btn {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  background: var(--bg-warm);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.2rem 0.5rem;
+  font-family: var(--sans);
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s, border-color 0.2s;
+}
+
+pre:hover .copy-btn {
+  opacity: 1;
+}
+
+pre .copy-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+
+pre .copy-btn.copied {
+  color: var(--accent);
+  opacity: 1;
 }
 
 pre code {
@@ -749,5 +781,24 @@ json.dump({
   </div>
 </footer>
 
+<script>
+document.querySelectorAll('pre').forEach(function(pre) {
+  var btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', function() {
+    var code = pre.querySelector('code');
+    navigator.clipboard.writeText(code.textContent).then(function() {
+      btn.textContent = 'Copied';
+      btn.classList.add('copied');
+      setTimeout(function() {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  });
+  pre.appendChild(btn);
+});
+</script>
 </body>
 </html>
