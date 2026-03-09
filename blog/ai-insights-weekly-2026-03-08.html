@@ -375,6 +375,18 @@ tr:last-child td {
   margin-bottom: 0.5rem;
 }
 
+.insight-card h3 a,
+.highlight-card h3 a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.insight-card h3 a:hover,
+.highlight-card h3 a:hover {
+  color: var(--accent);
+}
+
 .insight-card .source {
   font-family: var(--sans);
   font-size: 0.72rem;
@@ -514,8 +526,8 @@ footer a:hover {
       <h2>Highlight of the Week</h2>
 
       <div class="highlight-card">
-        <h3>Karpathy&rsquo;s Autoresearch</h3>
-        <div class="source"><a href="https://x.com/karpathy/status/2030371219518931079" target="_blank" rel="noopener">Andrej Karpathy on X</a></div>
+        <h3><a href="https://x.com/karpathy/status/2030371219518931079" target="_blank" rel="noopener">Karpathy&rsquo;s Autoresearch</a></h3>
+        <div class="source">Andrej Karpathy on X</div>
         <p>A self-contained repo for an <strong>autonomous LLM training loop</strong>. An AI agent iteratively improves training code and hyperparameters based on human prompts, autonomously driving validation loss improvements. This is the &ldquo;AI improving AI&rdquo; loop made concrete and reproducible.</p>
       </div>
     </section>
@@ -526,20 +538,20 @@ footer a:hover {
       <h2>Agentic Engineering &amp; Strategy</h2>
 
       <div class="insight-card">
-        <h3>Harness Engineering as Cybernetics</h3>
-        <div class="source"><a href="https://x.com/odysseus0z/status/2030416758138634583" target="_blank" rel="noopener">George (@odysseus0z)</a></div>
+        <h3><a href="https://x.com/odysseus0z/status/2030416758138634583" target="_blank" rel="noopener">Harness Engineering as Cybernetics</a></h3>
+        <div class="source">George (@odysseus0z)</div>
         <p>Harness engineering is the modern iteration of cybernetic control systems. The key insight: success relies not on agent capability, but on <strong>calibrating feedback loops</strong> with system-specific knowledge &mdash; architecture docs, linters, golden principles. This maps directly to how Claude Code skills work: the skill document <em>is</em> the feedback loop calibration.</p>
       </div>
 
       <div class="insight-card">
-        <h3>Anthropic&rsquo;s Official Skills Guide</h3>
-        <div class="source"><a href="https://x.com/RoundtableSpace/status/2030595632998580328" target="_blank" rel="noopener">0xMarioNawfal (@RoundtableSpace)</a></div>
+        <h3><a href="https://x.com/RoundtableSpace/status/2030595632998580328" target="_blank" rel="noopener">Anthropic&rsquo;s Official Skills Guide</a></h3>
+        <div class="source">0xMarioNawfal (@RoundtableSpace)</div>
         <p>Anthropic published &ldquo;The Complete Guide to Building Skills for Claude&rdquo; &mdash; the foundational patterns behind the tools and frameworks released this week. If you&rsquo;re building Claude Code skills, this is the canonical reference.</p>
       </div>
 
       <div class="insight-card">
-        <h3>&ldquo;Everything is Context&rdquo; &mdash; File-System-as-Memory</h3>
-        <div class="source"><a href="https://x.com/akshay_pachaar/status/2030306809697935556" target="_blank" rel="noopener">Akshay (@akshay_pachaar)</a></div>
+        <h3><a href="https://x.com/akshay_pachaar/status/2030306809697935556" target="_blank" rel="noopener">&ldquo;Everything is Context&rdquo; &mdash; File-System-as-Memory</a></h3>
+        <div class="source">Akshay (@akshay_pachaar)</div>
         <p>Research formalizing the <strong>file-system-as-memory architecture</strong>: memory, tools, and knowledge stored as versioned files (Markdown/JSON) for traceability, auditability, and persistence. This is exactly the pattern OpenClaw uses &mdash; and it&rsquo;s now getting academic validation.</p>
       </div>
     </section>
@@ -550,20 +562,20 @@ footer a:hover {
       <h2>Engineering &amp; Reverse Engineering</h2>
 
       <div class="insight-card">
-        <h3>Codex 5.4 Reverse Engineers a DOS Game</h3>
-        <div class="source"><a href="https://x.com/ammaar/status/2030392563534893381" target="_blank" rel="noopener">Ammaar Reshi (@ammaar)</a></div>
+        <h3><a href="https://x.com/ammaar/status/2030392563534893381" target="_blank" rel="noopener">Codex 5.4 Reverse Engineers a DOS Game</a></h3>
+        <div class="source">Ammaar Reshi (@ammaar)</div>
         <p>Codex 5.4 <strong>autonomously reverse-engineered SkyRoads</strong> from a bare DOS executable. In 6 hours, the agent unpacked assets, disassembled the EXE, rebuilt the renderer, and recompiled a functional version in Rust. No human intervention.</p>
       </div>
 
       <div class="insight-card">
-        <h3><code style="font-size:0.95em">office-agents</code> SDK</h3>
-        <div class="source"><a href="https://x.com/hewliyang/status/2030648851603087392" target="_blank" rel="noopener">Li Yang (@hewliyang)</a></div>
+        <h3><a href="https://x.com/hewliyang/status/2030648851603087392" target="_blank" rel="noopener"><code style="font-size:0.95em">office-agents</code> SDK</a></h3>
+        <div class="source">Li Yang (@hewliyang)</div>
         <p>Renamed <code>open-excel</code> to <code>office-agents</code> and published the SDK to NPM &mdash; a lightweight framework for building AI plugins for Office-like flows (Excel, PowerPoint, etc.).</p>
       </div>
 
       <div class="insight-card">
-        <h3>SuperClaude Framework</h3>
-        <div class="source"><a href="https://github.com/SuperClaude-Org/SuperClaude_Framework" target="_blank" rel="noopener">Tom D&ouml;rr (@tom_doerr)</a></div>
+        <h3><a href="https://github.com/SuperClaude-Org/SuperClaude_Framework" target="_blank" rel="noopener">SuperClaude Framework</a></h3>
+        <div class="source">Tom D&ouml;rr (@tom_doerr)</div>
         <p>Open-source framework for Claude Code with pre-built commands and agentic structures for automating coding workflows.</p>
       </div>
     </section>
@@ -574,14 +586,14 @@ footer a:hover {
       <h2>AI Services &amp; Business</h2>
 
       <div class="insight-card">
-        <h3>The AI Services Playbook</h3>
-        <div class="source"><a href="https://x.com/NoahEpstein_/status/2030274127634776179" target="_blank" rel="noopener">Noah Epstein</a></div>
+        <h3><a href="https://x.com/NoahEpstein_/status/2030274127634776179" target="_blank" rel="noopener">The AI Services Playbook</a></h3>
+        <div class="source">Noah Epstein</div>
         <p>A comprehensive guide on identifying high-value &ldquo;boring&rdquo; niches (HVAC, law firms, accounting) and positioning AI as an <strong>employee amplifier</strong> rather than a replacement. The framing matters &mdash; &ldquo;amplifier&rdquo; sells where &ldquo;replacement&rdquo; triggers resistance.</p>
       </div>
 
       <div class="insight-card">
-        <h3>Google&rsquo;s PaperBanana</h3>
-        <div class="source"><a href="https://x.com/DailyDoseOfDS_/status/2030576783171751956" target="_blank" rel="noopener">Daily Dose of Data Science</a></div>
+        <h3><a href="https://x.com/DailyDoseOfDS_/status/2030576783171751956" target="_blank" rel="noopener">Google&rsquo;s PaperBanana</a></h3>
+        <div class="source">Daily Dose of Data Science</div>
         <p>An agentic framework that automatically generates <strong>publication-ready academic illustrations</strong> from methodology descriptions and captions. No manual design tools needed.</p>
       </div>
     </section>
@@ -592,14 +604,14 @@ footer a:hover {
       <h2>Case Studies</h2>
 
       <div class="highlight-card">
-        <h3>The &ldquo;Larry&rdquo; Case Study &mdash; $7k/Month Autonomous Business</h3>
-        <div class="source"><a href="https://x.com/oliverhenry/status/2030394095399588145" target="_blank" rel="noopener">Oliver Henry</a></div>
+        <h3><a href="https://x.com/oliverhenry/status/2030394095399588145" target="_blank" rel="noopener">The &ldquo;Larry&rdquo; Case Study &mdash; $7k/Month Autonomous Business</a></h3>
+        <div class="source">Oliver Henry</div>
         <p>An agent called <strong>&ldquo;Larry&rdquo;</strong> running on a local gaming PC autonomously manages a business &mdash; marketing, development, analytics &mdash; generating over <strong>$7k/month</strong>. This led to the creation of <strong>LarryBrain</strong>, a marketplace for verified AI agent skills.</p>
       </div>
 
       <div class="insight-card">
-        <h3>Biological DOOM Agent</h3>
-        <div class="source"><a href="https://x.com/markgadala/status/2030405221499732203" target="_blank" rel="noopener">Mark Gadala-Maria</a></div>
+        <h3><a href="https://x.com/markgadala/status/2030405221499732203" target="_blank" rel="noopener">Biological DOOM Agent</a></h3>
+        <div class="source">Mark Gadala-Maria</div>
         <p><strong>800,000 biological human brain cells</strong> in a petri dish have been interfaced with DOOM, exhibiting &ldquo;goal-directed learning&rdquo; by adapting and improving at the game in response to failure. Not practical, but conceptually wild.</p>
       </div>
     </section>
@@ -610,14 +622,14 @@ footer a:hover {
       <h2>Creative &amp; Community</h2>
 
       <div class="insight-card">
-        <h3>AI Cinema Production</h3>
-        <div class="source"><a href="https://x.com/PJaccetturo/status/2029656107434795323" target="_blank" rel="noopener">PJ Ace</a></div>
+        <h3><a href="https://x.com/PJaccetturo/status/2029656107434795323" target="_blank" rel="noopener">AI Cinema Production</a></h3>
+        <div class="source">PJ Ace</div>
         <p>AI agents (Luma) significantly lower the barrier to producing high-end cinema adaptations &mdash; showcasing a <em>Red Rising</em> teaser that would have been impossible at indie budgets a year ago.</p>
       </div>
 
       <div class="insight-card">
-        <h3>Evangelion UI Pack for OpenClaw</h3>
-        <div class="source"><a href="https://x.com/scupytrooples/status/2030465763883339905" target="_blank" rel="noopener">Scoopy Trooples</a></div>
+        <h3><a href="https://x.com/scupytrooples/status/2030465763883339905" target="_blank" rel="noopener">Evangelion UI Pack for OpenClaw</a></h3>
+        <div class="source">Scoopy Trooples</div>
         <p>An Evangelion-inspired UI design skill pack for OpenClaw/Claude. Form meets function.</p>
       </div>
     </section>
