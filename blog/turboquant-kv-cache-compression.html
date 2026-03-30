@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TurboQuant: How Google Solved AI&rsquo;s Memory Problem with One Math Trick</title>
+<meta name="description" content="Google Research&rsquo;s TurboQuant family &mdash; QJL, PolarQuant, and TurboQuant &mdash; compresses LLM memory 6&times; with zero quality loss by eliminating quantization overhead through random rotation. Within days of publication, vLLM and SGLang are already integrating it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep: #faf8f5;
+  --bg-primary: #faf8f5;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f5f0eb;
+  --bg-surface: #f5f0eb;
+  --border: #e8e0d8;
+  --border-bright: #d4ccc4;
+  --text-primary: #2c2521;
+  --text-secondary: #6b5e55;
+  --text-muted: #9a8d84;
+  --teal: #c4632a;
+  --teal-dim: #a8521f;
+  --teal-glow: rgba(196, 99, 42, 0.06);
+  --teal-glow-strong: rgba(196, 99, 42, 0.15);
+  --orange: #c4632a;
+  --orange-dim: #a8521f;
+  --orange-glow: rgba(196, 99, 42, 0.08);
+  --green: #5a8a5e;
+  --red: #c44a3f;
+  --yellow: #b8923a;
+  --purple: #8b6b4a;
+  --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+}
+
+html { scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--border-bright) var(--bg-deep); }
+body { font-family: var(--sans); background: var(--bg-deep); color: var(--text-primary); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+.container { max-width: 960px; margin: 0 auto; padding: 0 2rem; }
+a { color: var(--teal); text-decoration: none; }
+a:hover { color: var(--teal-dim); }
+
+/* NAV */
+nav { position: sticky; top: 0; z-index: 100; background: rgba(250, 248, 245, 0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0.75rem 0; }
+.nav-inner { max-width: 960px; margin: 0 auto; padding: 0 2rem; display: flex; align-items: center; gap: 1.5rem; overflow-x: auto; white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none; }
+.nav-inner::-webkit-scrollbar { display: none; }
+.nav-inner a { font-family: var(--mono); font-size: 0.7rem; font-weight: 500; color: var(--text-muted); letter-spacing: 0.03em; transition: color 0.2s; flex-shrink: 0; }
+.nav-inner a:hover { color: var(--text-primary); }
+.nav-logo { color: var(--teal) !important; font-weight: 600 !important; }
+
+/* HERO */
+#hero { padding: 5rem 0 3.5rem; border-bottom: 1px solid var(--border); }
+.hero-badge { font-family: var(--mono); font-size: 0.65rem; font-weight: 600; color: var(--teal); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 1.5rem; }
+.hero-title { font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 1.25rem; }
+.hero-title .teal { color: var(--teal); }
+.hero-subtitle { font-family: var(--serif); font-size: 1.1rem; color: var(--text-secondary); line-height: 1.75; max-width: 720px; }
+.hero-subtitle em { color: var(--teal); font-style: italic; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 2.5rem; }
+.stat-card { background: var(--bg-card); padding: 1.5rem; transition: background 0.2s; }
+.stat-card:hover { background: var(--bg-card-hover); }
+.stat-number { font-family: var(--mono); font-size: 1.6rem; font-weight: 700; color: var(--teal); margin-bottom: 0.25rem; }
+.stat-label { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.25rem; }
+.stat-detail { font-size: 0.72rem; color: var(--text-muted); line-height: 1.45; }
+
+/* SECTIONS */
+section { padding: 4rem 0; border-bottom: 1px solid var(--border); }
+.section-label { font-family: var(--mono); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--teal); margin-bottom: 0.75rem; }
+section h2 { font-size: clamp(1.5rem, 3.5vw, 2rem); font-weight: 700; letter-spacing: -0.01em; margin-bottom: 1rem; }
+.desc { font-family: var(--serif); font-size: 1rem; color: var(--text-secondary); line-height: 1.8; max-width: 720px; }
+.desc strong { color: var(--text-primary); }
+
+/* THREE PAPERS GRID */
+.branch-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 2rem; }
+.branch-card { background: var(--bg-card); padding: 1.75rem; transition: background 0.2s; }
+.branch-card:hover { background: var(--bg-card-hover); }
+.branch-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.35rem; }
+.branch-card .branch-tag { font-family: var(--mono); font-size: 0.65rem; font-weight: 600; color: var(--teal); margin-bottom: 0.75rem; letter-spacing: 0.04em; }
+.branch-card p { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.65; }
+.branch-card .branch-analogy { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); font-family: var(--serif); font-size: 0.82rem; font-style: italic; color: var(--text-muted); line-height: 1.55; }
+.branch-icon { margin-bottom: 0.75rem; line-height: 1; }
+.branch-icon img { width: 28px; height: 28px; display: block; }
+
+/* EQUATION BOX */
+.gating-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 2rem; margin-top: 2rem; text-align: center; }
+.gating-box h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 1rem; }
+.gating-eq { font-family: var(--mono); font-size: 1.05rem; color: var(--text-primary); letter-spacing: 0.02em; margin-bottom: 1rem; line-height: 1.8; }
+.gating-eq .g { color: var(--teal); font-weight: 600; }
+.gating-eq .dim { color: var(--text-muted); }
+.gating-detail { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6; max-width: 650px; margin: 0 auto; }
+
+/* ANALOGY BOX */
+.analogy-box { background: linear-gradient(135deg, rgba(196, 99, 42, 0.05) 0%, rgba(196, 99, 42, 0.02) 100%); border: 1px solid rgba(196, 99, 42, 0.15); border-radius: 8px; padding: 1.5rem 2rem; margin-top: 2rem; }
+.analogy-box .analogy-label { font-family: var(--mono); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--teal); margin-bottom: 0.5rem; }
+.analogy-box p { font-family: var(--serif); font-size: 0.95rem; color: var(--text-secondary); line-height: 1.75; }
+
+/* KEY STAT */
+.keystat { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 2.5rem; text-align: center; margin-top: 2rem; }
+.keystat .big-num { font-family: var(--mono); font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; color: var(--teal); letter-spacing: -0.02em; }
+.keystat .context { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.65; max-width: 600px; margin: 0.75rem auto 0; }
+.keystat .context strong { color: var(--text-primary); }
+
+/* VISUAL COMPARISON */
+.attention-visual { display: grid; grid-template-columns: 1fr auto 1fr; gap: 2rem; align-items: center; margin-top: 2rem; }
+.attn-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1.75rem; text-align: center; }
+.attn-title { font-family: var(--mono); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 1rem; }
+.attn-arrow { display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 1.5rem; }
+
+/* BIT BARS */
+.bit-bar-container { margin-top: 1.5rem; }
+.bit-row { display: grid; grid-template-columns: 120px 1fr 50px; align-items: center; gap: 1rem; margin-bottom: 0.75rem; }
+.bit-label { font-size: 0.82rem; font-weight: 500; color: var(--text-secondary); }
+.bit-track { height: 28px; background: var(--bg-surface); border-radius: 4px; overflow: hidden; position: relative; display: flex; }
+.bit-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
+.bit-fill.full { background: rgba(196, 74, 63, 0.25); }
+.bit-fill.quant { background: linear-gradient(90deg, var(--teal-dim), var(--teal)); }
+.bit-fill.overhead { background: rgba(196, 74, 63, 0.35); }
+.bit-value { font-family: var(--mono); font-size: 0.8rem; font-weight: 600; color: var(--text-primary); text-align: right; }
+.bit-section-label { font-family: var(--mono); font-size: 0.6rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 1rem; margin-bottom: 0.5rem; }
+.cost-tag { display: inline-block; font-family: var(--mono); font-size: 0.7rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 3px; margin-top: 0.5rem; }
+.cost-bad { color: var(--red); background: rgba(196, 74, 63, 0.08); border: 1px solid rgba(196, 74, 63, 0.2); }
+.cost-good { color: var(--green); background: rgba(90, 138, 94, 0.08); border: 1px solid rgba(90, 138, 94, 0.2); }
+
+/* BENCHMARK TABLE */
+.bench-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 2rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.bench-table thead th { background: var(--bg-surface); font-family: var(--mono); font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 0.8rem 1rem; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.bench-table thead th:first-child { text-align: left; }
+.bench-table thead th.tq-col { color: var(--teal); background: rgba(196, 99, 42, 0.05); }
+.bench-table tbody td { padding: 0.7rem 1rem; text-align: right; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 0.82rem; font-weight: 400; color: var(--text-secondary); white-space: nowrap; }
+.bench-table tbody td:first-child { text-align: left; font-family: var(--sans); font-weight: 500; color: var(--text-primary); }
+.bench-table tbody tr:last-child td { border-bottom: none; }
+.bench-table tbody tr:hover td { background: var(--bg-card-hover); }
+.bench-table td.tq-col { color: var(--teal); font-weight: 600; background: rgba(196, 99, 42, 0.03); }
+.bench-table td.best::after { content: ' \25CF'; color: var(--teal); font-size: 0.5rem; vertical-align: super; }
+.bench-category td { background: var(--bg-deep) !important; color: var(--text-muted) !important; font-family: var(--mono) !important; font-size: 0.6rem !important; font-weight: 700 !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; text-align: left !important; padding: 0.5rem 1rem !important; }
+.bench-note { font-family: var(--mono); font-size: 0.7rem; color: var(--text-muted); margin-top: 0.75rem; display: flex; align-items: center; gap: 0.4rem; }
+
+/* TWO-COL GRID */
+.hw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 2rem; }
+.hw-card { background: var(--bg-card); padding: 1.75rem; transition: background 0.2s; }
+.hw-card:hover { background: var(--bg-card-hover); }
+.hw-card h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; }
+.hw-card p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; }
+.hw-icon { margin-bottom: 0.75rem; line-height: 1; }
+.hw-icon img { width: 28px; height: 28px; display: block; }
+.chip { display: inline-block; font-family: var(--mono); font-size: 0.65rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 3px; margin-top: 0.75rem; letter-spacing: 0.04em; }
+.chip-teal { color: var(--teal); background: var(--teal-glow); border: 1px solid rgba(196, 99, 42, 0.2); }
+.chip-green { color: var(--green); background: rgba(90, 138, 94, 0.08); border: 1px solid rgba(90, 138, 94, 0.15); }
+
+/* ADOPTION TIMELINE */
+.timeline { margin-top: 2rem; position: relative; padding-left: 2rem; }
+.timeline::before { content: ''; position: absolute; left: 0.5rem; top: 0.5rem; bottom: 0.5rem; width: 2px; background: var(--border); }
+.timeline-item { position: relative; margin-bottom: 1.75rem; }
+.timeline-item::before { content: ''; position: absolute; left: -1.65rem; top: 0.5rem; width: 10px; height: 10px; border-radius: 50%; background: var(--teal); border: 2px solid var(--bg-deep); }
+.timeline-item .tl-date { font-family: var(--mono); font-size: 0.65rem; font-weight: 600; color: var(--teal); letter-spacing: 0.06em; margin-bottom: 0.25rem; }
+.timeline-item h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.3rem; }
+.timeline-item p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; }
+
+/* IMPACT GRID */
+.impact-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 2rem; }
+.impact-card { background: var(--bg-card); padding: 1.75rem; transition: background 0.2s; }
+.impact-card:hover { background: var(--bg-card-hover); }
+.impact-card .ic-icon { margin-bottom: 0.75rem; line-height: 1; }
+.impact-card .ic-icon img { width: 28px; height: 28px; display: block; }
+.impact-card h4 { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
+.impact-card p { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; }
+
+/* FOOTER */
+footer { border-top: 1px solid var(--border); padding: 2rem 0; text-align: center; font-family: var(--mono); font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.04em; }
+footer a { color: var(--teal); text-decoration: none; }
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .branch-grid { grid-template-columns: 1fr; }
+  .hw-grid { grid-template-columns: 1fr; }
+  .attention-visual { grid-template-columns: 1fr; gap: 1rem; }
+  .attn-arrow { transform: rotate(90deg); }
+  .impact-grid { grid-template-columns: 1fr; }
+  .bit-row { grid-template-columns: 80px 1fr 50px; }
+}
+
+@media (max-width: 600px) {
+  .stat-grid { grid-template-columns: 1fr; }
+  .bit-row { grid-template-columns: 70px 1fr 45px; }
+  .bit-label { font-size: 0.72rem; }
+}
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.hero-badge { animation: fadeUp 0.6s ease both; }
+.hero-title { animation: fadeUp 0.6s ease 0.1s both; }
+.hero-subtitle { animation: fadeUp 0.6s ease 0.2s both; }
+.stat-grid { animation: fadeUp 0.6s ease 0.35s both; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo" style="color: var(--text-muted); font-weight: 500; margin-right: 0.5rem;">&larr; Home</a>
+    <a href="#hero" class="nav-logo">TurboQuant</a>
+    <a href="#problem">The Problem</a>
+    <a href="#insight">The Insight</a>
+    <a href="#papers">Three Papers</a>
+    <a href="#math">How It Works</a>
+    <a href="#benchmarks">Benchmarks</a>
+    <a href="#adoption">Adoption</a>
+    <a href="#impact">Why It Matters</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="container">
+    <div class="hero-badge">
+      <a href="https://arxiv.org/abs/2504.19874" target="_blank" rel="noopener" style="color: inherit; text-decoration: none; border-bottom: 1px solid rgba(196, 99, 42, 0.3);">&#9670; ICLR 2026</a>
+      &nbsp;&middot;&nbsp;
+      <a href="https://arxiv.org/abs/2502.02617" target="_blank" rel="noopener" style="color: inherit; text-decoration: none; border-bottom: 1px solid rgba(196, 99, 42, 0.3);">AISTATS 2026</a>
+      &nbsp;&middot;&nbsp;
+      <a href="https://arxiv.org/abs/2406.03482" target="_blank" rel="noopener" style="color: inherit; text-decoration: none; border-bottom: 1px solid rgba(196, 99, 42, 0.3);">AAAI 2025</a>
+      &mdash; Google Research
+    </div>
+    <h1 class="hero-title">
+      How Google Made AI Memory<br><span class="teal">6&times; Smaller</span>
+    </h1>
+    <p class="hero-subtitle">
+      Every time an AI model generates a word, it stores a &ldquo;memory&rdquo; of every previous word in the conversation.
+      This <em>KV cache</em> is the single biggest memory consumer during inference. Google Research found a way to
+      compress it <strong>6&times;</strong> with <em>zero quality loss</em> &mdash; using a single elegant math trick that the
+      industry is already racing to adopt.
+    </p>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-number">6&times;</div>
+        <div class="stat-label">Memory Reduction</div>
+        <div class="stat-detail">KV cache at 3 bits vs. 16-bit baseline</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">0</div>
+        <div class="stat-label">Quality Loss</div>
+        <div class="stat-detail">Matches full precision on all benchmarks</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">2.7&times;</div>
+        <div class="stat-label">From Optimal</div>
+        <div class="stat-detail">Provably near information-theoretic limit</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">4 days</div>
+        <div class="stat-label">To Adoption</div>
+        <div class="stat-detail">vLLM &amp; SGLang PRs within a week</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section id="problem">
+  <div class="container">
+    <div class="section-label">The Problem</div>
+    <h2>Every Bit Costs <span style="color: var(--teal);">Extra Bits</span></h2>
+    <p class="desc">
+      When you quantize numbers &mdash; storing them in fewer bits to save memory &mdash; you need to keep track of
+      <strong>how</strong> you quantized them. Every block of quantized data needs a <em>zero point</em> and a <em>scale factor</em>
+      stored in full precision. Depending on block size, this overhead adds <strong>1&ndash;2 extra bits per number</strong>,
+      partially negating the whole point of compressing in the first place.
+    </p>
+
+    <div class="attention-visual">
+      <div class="attn-box">
+        <div class="attn-title" style="color: var(--red);">Traditional Quantization</div>
+        <div class="bit-bar-container">
+          <div class="bit-row">
+            <div class="bit-label">Useful data</div>
+            <div class="bit-track"><div class="bit-fill quant" style="width: 60%;"></div><div class="bit-fill overhead" style="width: 30%;"></div></div>
+            <div class="bit-value">3+2 bits</div>
+          </div>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+          <span style="color:var(--teal);">&#9632;</span> actual data &nbsp;
+          <span style="color:var(--red);">&#9632;</span> overhead (zeros &amp; scales)
+        </div>
+        <div class="cost-tag cost-bad">Up to 40% wasted on bookkeeping</div>
+      </div>
+      <div class="attn-arrow">&rarr;</div>
+      <div class="attn-box">
+        <div class="attn-title" style="color: var(--teal);">TurboQuant</div>
+        <div class="bit-bar-container">
+          <div class="bit-row">
+            <div class="bit-label">Useful data</div>
+            <div class="bit-track"><div class="bit-fill quant" style="width: 90%;"></div></div>
+            <div class="bit-value">3 bits</div>
+          </div>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+          <span style="color:var(--teal);">&#9632;</span> actual data &nbsp; (no overhead)
+        </div>
+        <div class="cost-tag cost-good">Zero overhead &mdash; every bit is data</div>
+      </div>
+    </div>
+
+    <div class="analogy-box">
+      <div class="analogy-label">Think of it like this</div>
+      <p>
+        Imagine you&rsquo;re packing a suitcase. Normal compression is like vacuum-sealing your clothes &mdash;
+        they take less space, but you need to label each bag with its original size.
+        TurboQuant is like discovering that if you <strong>shake the suitcase first</strong>,
+        everything settles into a predictable shape, and you don&rsquo;t need labels at all.
+        The &ldquo;shake&rdquo; is a random rotation, and the predictable shape is a known mathematical distribution.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- INSIGHT -->
+<section id="insight">
+  <div class="container">
+    <div class="section-label">The Core Insight</div>
+    <h2>Random Rotation Makes Everything <span style="color: var(--teal);">Predictable</span></h2>
+    <p class="desc">
+      The key discovery is deceptively simple. If you multiply a vector by a <strong>random rotation matrix</strong>
+      before quantizing it, the resulting coordinates follow a <em>known mathematical distribution</em> &mdash;
+      regardless of what the original data looked like. Since you know the distribution in advance,
+      you can precompute the optimal quantization codebook once and reuse it forever.
+      No per-block statistics. No zero points. No scales. <strong>Zero overhead.</strong>
+    </p>
+
+    <div class="gating-box">
+      <h3>The Two-Stage Algorithm</h3>
+      <div class="gating-eq">
+        <span class="dim">Stage 1:</span> <span class="g">x&#x0303;</span> = <span class="g">Quantize</span>(&#928; &middot; x) <span class="dim">&mdash; b&minus;1 bits, MSE-optimal</span>
+      </div>
+      <div class="gating-eq">
+        <span class="dim">Stage 2:</span> <span class="g">correction</span> = <span class="g">sign</span>(S &middot; residual) <span class="dim">&mdash; 1 bit, unbiased</span>
+      </div>
+      <div class="gating-detail">
+        Stage 1 applies a random rotation &#928;, then quantizes each coordinate using a precomputed codebook.
+        This is MSE-optimal but biased for inner products. Stage 2 applies a 1-bit Johnson-Lindenstrauss
+        transform to the residual error, yielding an <strong>unbiased</strong> inner product estimator.
+        The combination achieves near-optimal distortion within a factor of 2.7&times; of the
+        information-theoretic lower bound.
+      </div>
+    </div>
+
+    <div class="analogy-box">
+      <div class="analogy-label">Why the rotation works</div>
+      <p>
+        Before rotation, each coordinate&rsquo;s distribution depends on the specific data &mdash; some channels might have huge outliers,
+        others might be tightly clustered. You&rsquo;d need to measure and store statistics for each group.
+        After rotation, every coordinate follows the same <strong>Beta distribution</strong> (converging to Gaussian in high dimensions).
+        You know the shape before seeing any data. One codebook fits all.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- THREE PAPERS -->
+<section id="papers">
+  <div class="container">
+    <div class="section-label">The Research</div>
+    <h2>Three Papers, <span style="color: var(--teal);">One Family</span></h2>
+    <p class="desc">
+      TurboQuant is the culmination of a three-paper research arc from the same team at Google Research.
+      Each paper builds on the last, and together they form a complete theoretical and practical framework.
+    </p>
+
+    <div class="branch-grid">
+      <div class="branch-card">
+        <div class="branch-icon"><img src="https://api.iconify.design/lucide/binary.svg?color=%23c4632a&width=28&height=28" alt="Binary"></div>
+        <h3>QJL</h3>
+        <div class="branch-tag">AAAI 2025 &middot; The Foundation</div>
+        <p>
+          Apply a random Gaussian projection to key embeddings, then keep only the <strong>sign bit</strong>.
+          1-bit quantization with zero overhead. The asymmetric trick: quantize the key but leave the query full-precision,
+          yielding an unbiased inner product estimator.
+        </p>
+        <div class="branch-analogy">
+          &gt;5&times; memory reduction at 3 bits, no accuracy drop. Open-source CUDA kernels on GitHub.
+        </div>
+      </div>
+      <div class="branch-card">
+        <div class="branch-icon"><img src="https://api.iconify.design/lucide/rotate-3d.svg?color=%23c4632a&width=28&height=28" alt="Polar"></div>
+        <h3>PolarQuant</h3>
+        <div class="branch-tag">AISTATS 2026 &middot; Multi-Bit Precision</div>
+        <p>
+          Random rotation, then convert to <strong>polar coordinates</strong> and quantize the angles.
+          After rotation, angle distributions are analytically known &mdash; concentrated around &pi;/4
+          at higher recursion levels. Flexible per-level bit allocation.
+        </p>
+        <div class="branch-analogy">
+          4.2&times; compression. Best quality scores among all methods on long-context benchmarks.
+        </div>
+      </div>
+      <div class="branch-card">
+        <div class="branch-icon"><img src="https://api.iconify.design/lucide/zap.svg?color=%23c4632a&width=28&height=28" alt="Turbo"></div>
+        <h3>TurboQuant</h3>
+        <div class="branch-tag">ICLR 2026 &middot; The Unified Framework</div>
+        <p>
+          Combines optimal <strong>Cartesian scalar quantization</strong> (not polar) after rotation
+          with <strong>QJL residual correction</strong> for unbiased inner products.
+          Provably within 2.7&times; of the information-theoretic optimum.
+        </p>
+        <div class="branch-analogy">
+          At 3.5 bits: identical to full precision. At 2.5 bits: 0.62 points below. Vector search 500,000&times; faster indexing than PQ.
+        </div>
+      </div>
+    </div>
+
+    <div class="analogy-box">
+      <div class="analogy-label">A common misconception</div>
+      <p>
+        Google&rsquo;s own blog post describes TurboQuant&rsquo;s first stage as &ldquo;PolarQuant.&rdquo;
+        <strong>This is inaccurate.</strong> TurboQuant uses Cartesian scalar quantization after rotation &mdash;
+        it never converts to polar coordinates. The TurboQuant paper treats PolarQuant as a competing baseline
+        it outperforms, not a component it incorporates. Both share the random-rotation insight, but the
+        quantization mechanics are fundamentally different.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- MATH -->
+<section id="math">
+  <div class="container">
+    <div class="section-label">Under the Hood</div>
+    <h2>The Math That Makes It <span style="color: var(--teal);">Provably Optimal</span></h2>
+    <p class="desc">
+      These aren&rsquo;t engineering heuristics &mdash; they&rsquo;re backed by information-theoretic proofs
+      showing exactly how close to optimal TurboQuant is, and exactly how much room is left to improve.
+    </p>
+
+    <div class="hw-grid">
+      <div class="hw-card">
+        <div class="hw-icon"><img src="https://api.iconify.design/lucide/shuffle.svg?color=%23c4632a&width=28&height=28" alt="Rotation"></div>
+        <h4>Random Rotation &rarr; Known Distribution</h4>
+        <p>
+          After multiplying by a random orthogonal matrix, each coordinate of a unit vector follows
+          a Beta((d&minus;1)/2, (d&minus;1)/2) distribution. In high dimensions, this converges to
+          N(0, 1/d). The distribution is <strong>data-independent</strong> &mdash; no calibration needed.
+        </p>
+        <div class="chip chip-teal">LEMMA 1 &mdash; TURBOQUANT</div>
+      </div>
+      <div class="hw-card">
+        <div class="hw-icon"><img src="https://api.iconify.design/lucide/target.svg?color=%23c4632a&width=28&height=28" alt="Optimal"></div>
+        <h4>Optimal Codebook via Panter-Dite</h4>
+        <p>
+          Since the distribution is known, the optimal scalar quantizer (Lloyd-Max) can be precomputed once.
+          For b&gt;4 bits, the Panter-Dite formula gives distortion = (1/12)&middot;(&int;f(x)<sup>1/3</sup>dx)<sup>3</sup>&middot;4<sup>&minus;b</sup>.
+          The 1/3 power arises from balancing quadratic distortion penalty against linear bit budget.
+        </p>
+        <div class="chip chip-green">THEOREM 1 &mdash; TURBOQUANT</div>
+      </div>
+      <div class="hw-card">
+        <div class="hw-icon"><img src="https://api.iconify.design/lucide/scale.svg?color=%23c4632a&width=28&height=28" alt="Unbiased"></div>
+        <h4>QJL Makes It Unbiased</h4>
+        <p>
+          The MSE-optimal quantizer has multiplicative bias (2/&pi; at 1 bit). Applying a 1-bit
+          Johnson-Lindenstrauss transform to the residual cancels this bias exactly.
+          Quantizing the key to sign bits while leaving the query unquantized gives an <strong>asymmetric unbiased estimator</strong>.
+        </p>
+        <div class="chip chip-teal">THEOREM 2 &mdash; TURBOQUANT</div>
+      </div>
+      <div class="hw-card">
+        <div class="hw-icon"><img src="https://api.iconify.design/lucide/arrow-down-to-line.svg?color=%23c4632a&width=28&height=28" alt="Lower bound"></div>
+        <h4>Provable Lower Bound</h4>
+        <p>
+          Via Shannon&rsquo;s rate-distortion theory and Yao&rsquo;s minimax principle: <strong>no quantizer</strong>
+          can achieve MSE &lt; 1/4<sup>b</sup>. TurboQuant achieves (&radic;3&middot;&pi;/2)/4<sup>b</sup> &asymp; 2.7/4<sup>b</sup>.
+          The gap factor is 2.7&times; worst-case, and just 1.45&times; at 1 bit.
+        </p>
+        <div class="chip chip-green">THEOREM 3 &mdash; TURBOQUANT</div>
+      </div>
+    </div>
+
+    <div class="keystat">
+      <div class="big-num">D<sub>mse</sub> &le; 2.7 / 4<sup>b</sup></div>
+      <div class="context">
+        TurboQuant&rsquo;s distortion is within a constant factor of the <strong>information-theoretic optimum</strong>.
+        No future method &mdash; no matter how clever &mdash; can do better than 1/4<sup>b</sup>.
+        The remaining 2.7&times; gap is the total room left for improvement in all of quantization theory.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BENCHMARKS -->
+<section id="benchmarks">
+  <div class="container">
+    <div class="section-label">Results</div>
+    <h2>Smaller Memory, <span style="color: var(--teal);">Same Quality</span></h2>
+    <p class="desc">
+      Evaluated on Llama-3.1-8B-Instruct across the LongBench suite. TurboQuant at 3.5 bits
+      <strong>exactly matches full 16-bit precision</strong>. Even at 2.5 bits &mdash; over 6&times; compression &mdash;
+      the quality drop is negligible.
+    </p>
+
+    <table class="bench-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>KV bits</th>
+          <th>SingleQA</th>
+          <th>MultiQA</th>
+          <th>Summ.</th>
+          <th>Few-shot</th>
+          <th>Code</th>
+          <th class="tq-col">Avg</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Full Cache</td>
+          <td>16</td>
+          <td>45.29</td>
+          <td>45.16</td>
+          <td>26.55</td>
+          <td>68.38</td>
+          <td>46.28</td>
+          <td class="tq-col">50.06</td>
+        </tr>
+        <tr>
+          <td>KIVI</td>
+          <td>3</td>
+          <td>43.38</td>
+          <td>37.99</td>
+          <td>27.16</td>
+          <td>68.38</td>
+          <td>44.68</td>
+          <td>48.50</td>
+        </tr>
+        <tr>
+          <td>KIVI</td>
+          <td>5</td>
+          <td>45.04</td>
+          <td>45.70</td>
+          <td>26.47</td>
+          <td>68.57</td>
+          <td>46.41</td>
+          <td>50.16</td>
+        </tr>
+        <tr>
+          <td>PolarQuant</td>
+          <td>3.9</td>
+          <td>45.18</td>
+          <td>44.48</td>
+          <td>26.23</td>
+          <td>68.25</td>
+          <td>45.24</td>
+          <td>49.78</td>
+        </tr>
+        <tr>
+          <td><strong>TurboQuant</strong></td>
+          <td>2.5</td>
+          <td>44.16</td>
+          <td>44.96</td>
+          <td>24.80</td>
+          <td>68.01</td>
+          <td>45.76</td>
+          <td>49.44</td>
+        </tr>
+        <tr>
+          <td><strong>TurboQuant</strong></td>
+          <td>3.5</td>
+          <td>45.01</td>
+          <td>45.31</td>
+          <td>26.00</td>
+          <td>68.63</td>
+          <td>46.17</td>
+          <td class="tq-col best">50.06</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="bench-note">
+      <span style="color: var(--teal);">&#9679;</span> TurboQuant matches full precision &nbsp;&nbsp;|&nbsp;&nbsp; Llama-3.1-8B-Instruct on LongBench-V1
+    </div>
+
+    <div class="stat-grid" style="margin-top: 2rem; grid-template-columns: repeat(3, 1fr);">
+      <div class="stat-card">
+        <div class="stat-number">0.997</div>
+        <div class="stat-label">Needle-in-Haystack</div>
+        <div class="stat-detail">Identical to full precision (also 0.997)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">8&times;</div>
+        <div class="stat-label">Compute Speedup</div>
+        <div class="stat-detail">4-bit TurboQuant vs. 32-bit on H100</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">0.002s</div>
+        <div class="stat-label">Index Time</div>
+        <div class="stat-detail">vs. 494s for Product Quantization (d=3072)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ADOPTION -->
+<section id="adoption">
+  <div class="container">
+    <div class="section-label">Industry Response</div>
+    <h2>Four Days from Paper to <span style="color: var(--teal);">Working Code</span></h2>
+    <p class="desc">
+      The Google Research blog post went up March 24, 2026. Within four days, the two most important
+      open-source LLM serving frameworks had working implementations. This is one of the fastest
+      research-to-production transitions I&rsquo;ve seen in ML infrastructure.
+    </p>
+
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="tl-date">March 24 &mdash; Day 0</div>
+        <h4>Google Research Blog Post</h4>
+        <p>TurboQuant paper published at ICLR 2026, blog post goes live. Full paper, proofs, and algorithms available on arXiv.</p>
+      </div>
+      <div class="timeline-item">
+        <div class="tl-date">March 26 &mdash; Day 2</div>
+        <h4>vLLM Feature Request &amp; PR</h4>
+        <p>Issue #38171 opened with 70 thumbs-up, 53 rocket reactions. Working PoC on vllm-omni fork shows 7.5&times; cache reduction on Qwen2.5-7B (H200). PR #38280 follows with full engine integration.</p>
+      </div>
+      <div class="timeline-item">
+        <div class="tl-date">March 28 &mdash; Day 4</div>
+        <h4>vLLM Benchmarks: 21% Throughput Gain</h4>
+        <p>PR author reports 21% throughput improvement at batch size 16, zero latency overhead. Intel validates zero quality loss on XPU hardware. Phase 2 (bit-packed storage) in progress.</p>
+      </div>
+      <div class="timeline-item">
+        <div class="tl-date">March 29 &mdash; Day 5</div>
+        <h4>SGLang Draft PR with 42 Tests</h4>
+        <p>Issue #21618 and draft PR #21617 with core quantization logic, Triton kernels, and full SGLang integration across model_runner, FlashInfer, and Triton backends.</p>
+      </div>
+      <div class="timeline-item">
+        <div class="tl-date">Also In Progress</div>
+        <h4>llama.cpp, Ollama, MLX</h4>
+        <p>Feature requests open in llama.cpp (#20977), Ollama (#15051), Apple MLX, and LM Studio. The entire ecosystem is moving.</p>
+      </div>
+    </div>
+
+    <div class="analogy-box">
+      <div class="analogy-label">Why so fast?</div>
+      <p>
+        The algorithm is dead simple to implement: multiply by a random matrix, look up centroids in a precomputed table,
+        store the indices. No training, no calibration data, no model changes. It&rsquo;s a drop-in replacement &mdash;
+        <code style="font-family: var(--mono); font-size: 0.85em; background: var(--bg-surface); padding: 0.15em 0.4em; border-radius: 3px;">--kv-cache-dtype turboquant</code>
+        and you&rsquo;re done.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- IMPACT -->
+<section id="impact">
+  <div class="container">
+    <div class="section-label">So What</div>
+    <h2>Why This <span style="color: var(--teal);">Matters</span></h2>
+    <p class="desc">
+      This isn&rsquo;t incremental. A 6&times; reduction in the single biggest memory consumer during LLM inference
+      changes the economics of AI deployment. Here&rsquo;s how.
+    </p>
+
+    <div class="impact-grid">
+      <div class="impact-card">
+        <div class="ic-icon"><img src="https://api.iconify.design/lucide/expand.svg?color=%23c4632a&width=28&height=28" alt="Context"></div>
+        <h4>6&times; Longer Context, Same GPU</h4>
+        <p>
+          If KV cache was your bottleneck at 32K tokens, you can now handle 192K on the same hardware.
+          Long-context applications &mdash; document analysis, multi-turn agents, RAG over large corpora &mdash;
+          become practical where they weren&rsquo;t before.
+        </p>
+        <div class="chip chip-teal">CONTEXT LENGTH</div>
+      </div>
+      <div class="impact-card">
+        <div class="ic-icon"><img src="https://api.iconify.design/lucide/users.svg?color=%23c4632a&width=28&height=28" alt="Batch"></div>
+        <h4>6&times; More Users Per GPU</h4>
+        <p>
+          For serving providers, KV cache memory determines how many concurrent users a GPU can handle.
+          Shrinking it 6&times; means serving 6&times; more requests simultaneously &mdash; or using
+          fewer GPUs for the same load.
+        </p>
+        <div class="chip chip-green">COST REDUCTION</div>
+      </div>
+      <div class="impact-card">
+        <div class="ic-icon"><img src="https://api.iconify.design/lucide/search.svg?color=%23c4632a&width=28&height=28" alt="Vector search"></div>
+        <h4>Vector Search Revolution</h4>
+        <p>
+          TurboQuant isn&rsquo;t just for LLMs. For vector databases, it achieves better recall than Product Quantization
+          while building indices <strong>500,000&times; faster</strong> (0.002s vs. 494s at d=3072). No dataset-specific tuning required.
+        </p>
+        <div class="chip chip-teal">VECTOR SEARCH</div>
+      </div>
+      <div class="impact-card">
+        <div class="ic-icon"><img src="https://api.iconify.design/lucide/book-open.svg?color=%23c4632a&width=28&height=28" alt="Open"></div>
+        <h4>Fully Open Research</h4>
+        <p>
+          Complete papers with proofs, algorithms, and pseudocode are on arXiv. QJL has open-source CUDA kernels.
+          The community implemented working integrations in under a week.
+          The math is a public good.
+        </p>
+        <div class="chip chip-green">OPEN ACCESS</div>
+      </div>
+    </div>
+
+    <div class="keystat" style="margin-top: 2rem;">
+      <div class="big-num" style="font-size: clamp(1.4rem, 3vw, 2rem);">Rotate &middot; Quantize &middot; Correct</div>
+      <div class="context">
+        Random rotation makes data predictable. Scalar quantization compresses it optimally.
+        A 1-bit residual correction makes the estimate unbiased. Three steps, zero overhead,
+        provably near-optimal. The elegance is in what&rsquo;s <strong>not</strong> stored &mdash;
+        no zero points, no scales, no per-block statistics. Just a shared rotation matrix
+        and a precomputed codebook.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <p>
+      <a href="/">Nathan Norman</a> &nbsp;&bull;&nbsp; Mar 2026
+    </p>
+    <p style="margin-top: 0.4rem;">
+      Papers:
+      <a href="https://arxiv.org/abs/2504.19874" target="_blank" rel="noopener">TurboQuant</a> &middot;
+      <a href="https://arxiv.org/abs/2502.02617" target="_blank" rel="noopener">PolarQuant</a> &middot;
+      <a href="https://arxiv.org/abs/2406.03482" target="_blank" rel="noopener">QJL</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
