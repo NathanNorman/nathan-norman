@@ -116,6 +116,37 @@ section h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 700; letter-spa
 
 .footer { text-align: center; padding: 3rem 0; font-family: var(--mono); font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.05em; line-height: 2; }
 
+/* Collapsible details */
+details.technical {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  background: var(--surface);
+  overflow: hidden;
+}
+details.technical summary {
+  padding: 0.9rem 1.2rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  user-select: none;
+}
+details.technical summary::-webkit-details-marker { display: none; }
+details.technical summary::before {
+  content: '\25B8';
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+}
+details.technical[open] summary::before { transform: rotate(90deg); }
+details.technical summary:hover { color: var(--text); background: var(--bg-warm); }
+details.technical .details-body { padding: 0 1.2rem 1.2rem; }
+
 @media (max-width: 640px) {
   .stat-grid { grid-template-columns: 1fr; }
   .two-col { grid-template-columns: 1fr; }
@@ -313,117 +344,80 @@ section h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 700; letter-spa
     </div>
   </div>
 
-  <h2 style="margin-top:2rem;">Head-to-head with MemPalace</h2>
+  <details class="technical">
+    <summary>Head-to-head with MemPalace &mdash; retrieval comparison against the closest comparable system</summary>
+    <div class="details-body">
+      <p class="prose" style="margin-top:0.5rem;">
+        MemPalace is the closest comparable system &mdash; they also store raw verbatim text and search it
+        with embeddings. But they use bge-large (335M params, full precision) and ChromaDB.
+        We use bge-base (110M params, 4-bit quantized) and SQLite.
+        A 3&times; smaller model with lossy quantization.
+      </p>
 
-  <p class="prose">
-    MemPalace is the closest comparable system &mdash; they also store raw verbatim text and search it
-    with embeddings. But they use bge-large (335M params, full precision) and ChromaDB.
-    We use bge-base (110M params, 4-bit quantized) and SQLite.
-    A 3&times; smaller model with lossy quantization.
-  </p>
+      <table class="bench-table">
+        <thead>
+          <tr><th>Metric</th><th>claude-memory</th><th>MemPalace</th><th>Winner</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>LongMemEval R@5</td><td>96.4%</td><td class="accent">96.6%</td><td class="dim">MemPalace (+1 question)</td></tr>
+          <tr><td>LoCoMo R@5</td><td>82.9%</td><td class="accent">83.7%</td><td class="dim">MemPalace (+0.8pp)</td></tr>
+          <tr class="ours"><td>LoCoMo R@10</td><td class="accent">91.6%</td><td>88.9%</td><td class="accent">claude-memory (+2.7pp)</td></tr>
+          <tr class="ours"><td>LongMemEval E2E</td><td class="accent">100.0%</td><td>98.8%</td><td class="accent">claude-memory</td></tr>
+          <tr><td>Embedding model</td><td class="dim">bge-base (110M, 4-bit)</td><td class="dim">bge-large (335M, full)</td><td></td></tr>
+          <tr><td>Search method</td><td class="dim">FTS5 + vector + RRF</td><td class="dim">Vector only</td><td></td></tr>
+        </tbody>
+      </table>
 
-  <table class="bench-table">
-    <thead>
-      <tr><th>Metric</th><th>claude-memory</th><th>MemPalace</th><th>Winner</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>LongMemEval R@5</td><td>96.4%</td><td class="accent">96.6%</td><td class="dim">MemPalace (+1 question)</td></tr>
-      <tr><td>LoCoMo R@5</td><td>82.9%</td><td class="accent">83.7%</td><td class="dim">MemPalace (+0.8pp)</td></tr>
-      <tr class="ours"><td>LoCoMo R@10</td><td class="accent">91.6%</td><td>88.9%</td><td class="accent">claude-memory (+2.7pp)</td></tr>
-      <tr class="ours"><td>LongMemEval E2E</td><td class="accent">100.0%</td><td>98.8%</td><td class="accent">claude-memory</td></tr>
-      <tr><td>Embedding model</td><td class="dim">bge-base (110M, 4-bit)</td><td class="dim">bge-large (335M, full)</td><td></td></tr>
-      <tr><td>Search method</td><td class="dim">FTS5 + vector + RRF</td><td class="dim">Vector only</td><td></td></tr>
-    </tbody>
-  </table>
-
-  <p class="prose">
-    They win R@5 (precision). We win R@10 (recall). Their vector-only search puts the best result higher;
-    our RRF hybrid spreads results more evenly across the top 10. Both approaches are valid.
-    The difference is we do it with a <strong>3&times; smaller model and 4-bit quantization</strong>.
-  </p>
+      <p class="prose">
+        They win R@5 (precision). We win R@10 (recall). Their vector-only search puts the best result higher;
+        our RRF hybrid spreads results more evenly across the top 10. Both approaches are valid.
+        The difference is we do it with a <strong>3&times; smaller model and 4-bit quantization</strong>.
+      </p>
+    </div>
+  </details>
 </section>
 
 <!-- ════════════════════════════════ -->
 <section>
-  <div class="section-label">Experiments</div>
-  <h2>Everything I tried to make it better (that didn&rsquo;t work)</h2>
+  <div class="section-label">Methodology</div>
+  <h2>Are these numbers trustworthy?</h2>
 
   <p class="prose">
-    I spent a day running ablation experiments on the retrieval pipeline. Cross-encoder reranking,
-    chunk overlap tuning, different models. Eight experiments, 1,536 questions each. Here&rsquo;s the full table:
+    Every number on this page is reproducible from scripts committed to the repository.
+    Single run, no cherry-picking, all result files committed. We use independent judges
+    (GPT-4o for LongMemEval, Sonnet for LoCoMo) to eliminate self-grading bias.
   </p>
 
-  <table class="bench-table">
-    <thead>
-      <tr><th>Configuration</th><th>R@5</th><th>R@10</th><th>R@10 vs Baseline</th></tr>
-    </thead>
-    <tbody>
-      <tr class="ours"><td>Baseline (RRF hybrid)</td><td class="accent">82.9%</td><td class="accent">91.6%</td><td>&mdash;</td></tr>
-      <tr><td>No chunk overlap</td><td>83.6%</td><td>91.8%</td><td class="green">+0.2pp</td></tr>
-      <tr><td>+ Cross-encoder (mxbai, 200M)</td><td>82.7%</td><td>88.0%</td><td class="red">&minus;3.6pp</td></tr>
-      <tr><td>+ CE mxbai + no overlap</td><td>84.2%</td><td>88.9%</td><td class="red">&minus;2.7pp</td></tr>
-      <tr><td>+ CE MiniLM-L6 (Mem0&rsquo;s default)</td><td>76.8%</td><td>83.3%</td><td class="red">&minus;8.3pp</td></tr>
-      <tr><td>+ Haiku LLM rerank (1 conv)</td><td>84.7%</td><td>93.3%</td><td class="green">+1.7pp</td></tr>
-    </tbody>
-  </table>
+  <details class="technical">
+    <summary>The MemPalace Audit &mdash; what happens when you check someone else&rsquo;s homework</summary>
+    <div class="details-body">
+      <p class="prose" style="margin-top:0.5rem;">
+        On April 7, 2026, MemPalace&rsquo;s founders published &ldquo;A Note from Milla &amp; Ben&rdquo;
+        admitting the community caught five problems in their README within hours of launch.
+        I ran each claim against our system.
+      </p>
 
-  <div class="two-col">
-    <div class="col-card">
-      <h3 class="red">Cross-encoders hurt</h3>
-      <p><strong>They&rsquo;re trained on the wrong domain.</strong> Models like mxbai-rerank and MiniLM-L-6
-      learned relevance from MS MARCO &mdash; web search queries paired with web pages.
-      Conversational memory looks nothing like web search results.</p>
-      <p>The cross-encoder confidently promotes chunks that look relevant by web-search standards
-      and demotes chunks our RRF correctly ranked. R@5 improves slightly, but R@10 tanks.</p>
+      <table class="bench-table">
+        <thead>
+          <tr><th>Issue</th><th>MemPalace</th><th>claude-memory</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Token counting</td><td class="dim">len(text)//3 &mdash; overestimates by 58%</td><td>tiktoken (verified)</td></tr>
+          <tr><td>Compression claims</td><td class="dim">&ldquo;30&times; lossless&rdquo; &mdash; actually lossy, &minus;12pp</td><td>No compression. Raw text.</td></tr>
+          <tr><td>&ldquo;+34% palace boost&rdquo;</td><td class="dim">Standard ChromaDB metadata filtering</td><td>No rebranded features</td></tr>
+          <tr><td>Contradiction detection</td><td class="dim">Exists but not wired in</td><td>Don&rsquo;t claim unimplemented features</td></tr>
+          <tr><td>100% Haiku rerank</td><td class="dim">Not in public scripts</td><td>100% E2E is reproducible</td></tr>
+        </tbody>
+      </table>
+
+      <p class="prose">
+        The point isn&rsquo;t to dunk on MemPalace &mdash; they acknowledged the issues publicly, which is more
+        than most companies do. The point is that <strong>every number on my benchmark page is reproducible
+        from scripts committed to the repository</strong>. No &ldquo;internal result files.&rdquo;
+        No rebranded standard features. No heuristic token counting.
+      </p>
     </div>
-    <div class="col-card">
-      <h3 class="green">Haiku reranking works</h3>
-      <p><strong>An LLM actually reads.</strong> Haiku understands that &ldquo;I went to the LGBTQ group on May 7th&rdquo;
-      answers &ldquo;When did Caroline go to the support group?&rdquo; A cross-encoder trained on web search can&rsquo;t
-      make that connection.</p>
-      <p>But adding Haiku reranking means API calls, cost, and latency &mdash; making our system
-      a copy of MemPalace&rsquo;s approach rather than a genuinely different architecture.</p>
-    </div>
-  </div>
-
-  <div class="pullquote">
-    Our edge is the hybrid search architecture, not stacking more models on top.
-    FTS5 keyword matching catches what vector search misses. RRF fusion combines both signals
-    without needing a reranker to fix mistakes. There&rsquo;s nothing to fix.
-    The architecture is the advantage.
-  </div>
-</section>
-
-<!-- ════════════════════════════════ -->
-<section>
-  <div class="section-label">The MemPalace Audit</div>
-  <h2>What happens when you check someone else&rsquo;s homework</h2>
-
-  <p class="prose">
-    On April 7, 2026, MemPalace&rsquo;s founders published &ldquo;A Note from Milla &amp; Ben&rdquo;
-    admitting the community caught five problems in their README within hours of launch.
-    I ran each claim against our system.
-  </p>
-
-  <table class="bench-table">
-    <thead>
-      <tr><th>Issue</th><th>MemPalace</th><th>claude-memory</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>Token counting</td><td class="dim">len(text)//3 &mdash; overestimates by 58%</td><td>tiktoken (verified)</td></tr>
-      <tr><td>Compression claims</td><td class="dim">&ldquo;30&times; lossless&rdquo; &mdash; actually lossy, &minus;12pp</td><td>No compression. Raw text.</td></tr>
-      <tr><td>&ldquo;+34% palace boost&rdquo;</td><td class="dim">Standard ChromaDB metadata filtering</td><td>No rebranded features</td></tr>
-      <tr><td>Contradiction detection</td><td class="dim">Exists but not wired in</td><td>Don&rsquo;t claim unimplemented features</td></tr>
-      <tr><td>100% Haiku rerank</td><td class="dim">Not in public scripts</td><td>100% E2E is reproducible</td></tr>
-    </tbody>
-  </table>
-
-  <p class="prose">
-    The point isn&rsquo;t to dunk on MemPalace &mdash; they acknowledged the issues publicly, which is more
-    than most companies do. The point is that <strong>every number on my benchmark page is reproducible
-    from scripts committed to the repository</strong>. No &ldquo;internal result files.&rdquo;
-    No rebranded standard features. No heuristic token counting.
-  </p>
+  </details>
 </section>
 
 <!-- ════════════════════════════════ -->
@@ -514,8 +508,8 @@ section h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 700; letter-spa
     Combining them with RRF beats both &mdash; and it beat MemPalace on R@10 despite using a 3&times; smaller model.
   </p>
   <p class="prose">
-    <strong>3. More models &ne; better results.</strong> Cross-encoder reranking, the standard
-    technique for improving retrieval, made our R@10 <em>worse</em> by 3.6pp.
+    <strong>3. More models &ne; better results.</strong> When the base retrieval is already strong,
+    stacking rerankers on top introduces more errors than it fixes.
     Sometimes the pipeline you have is already the right one.
   </p>
   <p class="prose">
