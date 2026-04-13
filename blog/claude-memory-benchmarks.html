@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I Benchmarked My AI Memory System Against Funded Startups. Here&rsquo;s What I Found.</title>
+<meta name="description" content="A personal memory system for Claude Code scores 100% on LongMemEval and 90.8% on LoCoMo &mdash; beating Mem0, Letta, and Zep. The secret: don&rsquo;t throw away your conversations.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxZW0iIGhlaWdodD0iMWVtIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2M0NjMyYSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik0xMiAxOFY1bTMgOGE0LjE3IDQuMTcgMCAwIDEtMy00YTQuMTcgNC4xNyAwIDAgMS0zIDRtOC41OTgtNi41QTMgMyAwIDEgMCAxMiA1YTMgMyAwIDEgMC01LjU5OCAxLjUiLz48cGF0aCBkPSJNMTcuOTk3IDUuMTI1YTQgNCAwIDAgMSAyLjUyNiA1Ljc3Ii8+PHBhdGggZD0iTTE4IDE4YTQgNCAwIDAgMCAyLTcuNDY0Ii8+PHBhdGggZD0iTTE5Ljk2NyAxNy40ODNBNCA0IDAgMSAxIDEyIDE4YTQgNCAwIDEgMS03Ljk2Ny0uNTE3Ii8+PHBhdGggZD0iTTYgMThhNCA0IDAgMCAxLTItNy40NjQiLz48cGF0aCBkPSJNNi4wMDMgNS4xMjVhNCA0IDAgMCAwLTIuNTI2IDUuNzciLz48L2c+PC9zdmc+"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #faf8f5;
+  --bg-warm: #f5f0eb;
+  --surface: #ffffff;
+  --border: #e8e0d8;
+  --border-light: #efe9e2;
+  --text: #2c2521;
+  --text-secondary: #6b5e55;
+  --text-muted: #9a8d84;
+  --accent: #c4632a;
+  --accent-hover: #a8521f;
+  --accent-faint: rgba(196, 99, 42, 0.06);
+  --accent-line: rgba(196, 99, 42, 0.25);
+  --green: #5a8a5e;
+  --green-faint: rgba(90, 138, 94, 0.08);
+  --red: #c44a3f;
+  --red-faint: rgba(196, 74, 63, 0.08);
+  --blue: #4a7a9a;
+  --serif: 'Source Serif 4', Georgia, serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --shadow-sm: 0 1px 3px rgba(60, 40, 20, 0.04), 0 1px 2px rgba(60, 40, 20, 0.06);
+  --shadow-md: 0 4px 16px rgba(60, 40, 20, 0.07), 0 2px 6px rgba(60, 40, 20, 0.04);
+}
+
+html { scroll-behavior: smooth; font-size: 17px; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); line-height: 1.75; -webkit-font-smoothing: antialiased; }
+.container { max-width: 760px; margin: 0 auto; padding: 0 2rem; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); }
+
+/* NAV */
+nav { position: sticky; top: 0; z-index: 100; background: rgba(250, 248, 245, 0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0.75rem 0; }
+.nav-inner { max-width: 760px; margin: 0 auto; padding: 0 2rem; display: flex; align-items: center; gap: 1.5rem; }
+.nav-inner a { font-family: var(--mono); font-size: 0.7rem; font-weight: 500; color: var(--text-muted); letter-spacing: 0.03em; }
+.nav-inner a:hover { color: var(--text); }
+.nav-logo { color: var(--accent) !important; font-weight: 600 !important; }
+
+/* HERO */
+.hero { padding: 4rem 0 3rem; border-bottom: 1px solid var(--border); }
+.hero-badge { font-family: var(--mono); font-size: 0.65rem; font-weight: 600; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 1.25rem; }
+.hero h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 1.25rem; }
+.hero h1 .accent { color: var(--accent); }
+.hero-sub { font-family: var(--serif); font-size: 1.05rem; color: var(--text-secondary); line-height: 1.75; max-width: 680px; }
+.hero-sub em { color: var(--accent); font-style: italic; }
+.hero-meta { font-family: var(--mono); font-size: 0.7rem; color: var(--text-muted); margin-top: 1.5rem; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 2rem; }
+.stat-card { background: var(--surface); padding: 1.5rem; text-align: center; }
+.stat-card:hover { background: var(--bg-warm); }
+.stat-number { font-family: var(--mono); font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+.stat-label { font-size: 0.78rem; font-weight: 600; margin-top: 0.25rem; }
+.stat-detail { font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem; line-height: 1.4; }
+
+/* SECTIONS */
+section { padding: 3rem 0; border-bottom: 1px solid var(--border); }
+.section-label { font-family: var(--mono); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.75rem; }
+section h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 700; letter-spacing: -0.01em; margin-bottom: 1rem; }
+.prose { font-family: var(--serif); font-size: 1rem; color: var(--text-secondary); line-height: 1.85; max-width: 680px; margin-bottom: 1.25rem; }
+.prose strong { color: var(--text); }
+
+/* CALLOUT */
+.callout { background: linear-gradient(135deg, var(--accent-faint) 0%, rgba(196, 99, 42, 0.02) 100%); border: 1px solid var(--accent-line); border-radius: 8px; padding: 1.25rem 1.5rem; margin: 1.5rem 0; }
+.callout p { font-family: var(--serif); font-size: 0.92rem; color: var(--text-secondary); line-height: 1.75; }
+.callout strong { color: var(--text); }
+.callout.green { background: var(--green-faint); border-color: rgba(90, 138, 94, 0.25); }
+.callout.red { background: var(--red-faint); border-color: rgba(196, 74, 63, 0.25); }
+
+/* TABLES */
+.bench-table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 1.5rem 0; font-size: 0.82rem; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.bench-table thead th { background: var(--bg-warm); font-family: var(--mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 0.7rem 1rem; text-align: right; border-bottom: 1px solid var(--border); }
+.bench-table thead th:first-child { text-align: left; }
+.bench-table tbody td { padding: 0.6rem 1rem; text-align: right; border-bottom: 1px solid var(--border-light); font-family: var(--mono); font-size: 0.8rem; color: var(--text-secondary); }
+.bench-table tbody td:first-child { text-align: left; font-family: var(--sans); font-weight: 500; color: var(--text); }
+.bench-table tbody tr:last-child td { border-bottom: none; }
+.bench-table tbody tr:hover td { background: var(--bg-warm); }
+.bench-table .ours td { background: var(--accent-faint); }
+.bench-table .ours td:first-child { color: var(--accent); font-weight: 600; }
+.bench-table td.accent { color: var(--accent); font-weight: 600; }
+.bench-table td.green { color: var(--green); font-weight: 600; }
+.bench-table td.red { color: var(--red); font-weight: 600; }
+.bench-table td.dim { color: var(--text-muted); }
+
+/* TWO-COL */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 1.5rem 0; }
+.col-card { background: var(--surface); padding: 1.5rem; }
+.col-card:hover { background: var(--bg-warm); }
+.col-card h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem; }
+.col-card h3.accent { color: var(--accent); }
+.col-card h3.green { color: var(--green); }
+.col-card h3.red { color: var(--red); }
+.col-card p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.65; margin-bottom: 0.5rem; }
+.col-card p strong { color: var(--text); }
+
+/* PULLQUOTE */
+.pullquote { border-left: 3px solid var(--accent); padding: 1.25rem 1.75rem; margin: 2rem 0; font-family: var(--serif); font-size: 1.1rem; font-style: italic; color: var(--text); line-height: 1.7; }
+
+/* KEYSTAT */
+.keystat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 2rem; text-align: center; margin: 1.5rem 0; }
+.keystat .big { font-family: var(--mono); font-size: 2.5rem; font-weight: 700; color: var(--accent); }
+.keystat .context { font-size: 0.88rem; color: var(--text-secondary); margin-top: 0.5rem; line-height: 1.6; }
+
+.footer { text-align: center; padding: 3rem 0; font-family: var(--mono); font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.05em; line-height: 2; }
+
+@media (max-width: 640px) {
+  .stat-grid { grid-template-columns: 1fr; }
+  .two-col { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo">nathan norman</a>
+    <a href="../index.html">home</a>
+    <a href="../index.html#writing">writing</a>
+  </div>
+</nav>
+
+<div class="container">
+
+<div class="hero">
+  <div class="hero-badge">AI Memory &middot; Benchmarks</div>
+  <h1>I Benchmarked My AI Memory System Against <span class="accent">Funded Startups</span>. Here&rsquo;s What I Found.</h1>
+  <p class="hero-sub">
+    A personal memory system for Claude Code &mdash; built with SQLite, a small embedding model,
+    and the radical idea that you shouldn&rsquo;t throw away your conversations &mdash; scores
+    <em>100% on LongMemEval</em> and <em>90.8% on LoCoMo</em>. It beats Mem0, Letta, Zep, and
+    matches MemPalace. Here&rsquo;s the full, honest story.
+  </p>
+  <div class="hero-meta">April 12, 2026 &middot; Nathan Norman</div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-number">100%</div>
+      <div class="stat-label">LongMemEval E2E</div>
+      <div class="stat-detail">500/500 correct<br>GPT-4o verified</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">90.8%</div>
+      <div class="stat-label">LoCoMo E2E</div>
+      <div class="stat-detail">Beats Mem0 (66.9%)<br>Beats Letta (74.0%)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">$0</div>
+      <div class="stat-label">Retrieval Cost</div>
+      <div class="stat-detail">Zero API calls<br>Runs locally on laptop</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ -->
+<section>
+  <div class="section-label">The Setup</div>
+  <h2>What is this, exactly?</h2>
+
+  <p class="prose">
+    <strong>claude-memory</strong> is a persistent memory system for Claude Code. It indexes my curated notes
+    and thousands of past conversation archives, then serves them back via hybrid search &mdash; keyword matching
+    (FTS5) plus vector similarity (bge-base-en-v1.5, 4-bit quantized), merged with Reciprocal Rank Fusion.
+    Everything runs locally. No cloud. No API calls for search. One SQLite file.
+  </p>
+  <p class="prose">
+    I built it because I use Claude Code every day and got tired of re-explaining context.
+    The memory system gives Claude recall across sessions &mdash; it remembers what we worked on last week,
+    what debugging strategies worked, what architectural decisions we made and why.
+  </p>
+  <p class="prose">
+    Then I got curious: <strong>how does it compare to the systems everyone&rsquo;s tweeting about?</strong>
+    Mem0, Zep, Letta, MemPalace &mdash; they all publish benchmark numbers. So I ran the same benchmarks.
+  </p>
+</section>
+
+<!-- ════════════════════════════════ -->
+<section>
+  <div class="section-label">The Benchmarks</div>
+  <h2>Two benchmarks, two different tests</h2>
+
+  <div class="two-col">
+    <div class="col-card">
+      <h3>LongMemEval</h3>
+      <p><strong>ICLR 2025.</strong> 500 questions across 6 types. Tests single-session recall,
+      multi-session synthesis, temporal reasoning, knowledge updates. The standard benchmark for AI memory.</p>
+      <p>Think: <em>"What degree did I graduate with?"</em> buried in 50 sessions of conversation.</p>
+    </div>
+    <div class="col-card">
+      <h3>LoCoMo</h3>
+      <p><strong>ACL 2024, Snap Research.</strong> 10 conversations, 1,986 questions, 5 categories.
+      Tests multi-hop reasoning, temporal inference, adversarial questions.</p>
+      <p>Think: <em>"What would Caroline likely pursue in education?"</em> requiring synthesis across
+      months of casual conversation.</p>
+    </div>
+  </div>
+
+  <p class="prose">
+    LongMemEval tests <strong>can you find the needle</strong>. LoCoMo tests <strong>can you reason
+    across scattered needles</strong>. Together they cover the full spectrum of what a memory system needs to do.
+  </p>
+</section>
+
+<!-- ════════════════════════════════ -->
+<section>
+  <div class="section-label">End-to-End Results</div>
+  <h2>The scores that matter to a user</h2>
+
+  <table class="bench-table">
+    <thead>
+      <tr><th>System</th><th>LongMemEval</th><th>LoCoMo (J)</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr class="ours"><td>claude-memory</td><td class="accent">100.0%</td><td class="accent">90.8%</td><td class="dim">Sonnet 4.6 + GPT-4o judge</td></tr>
+      <tr><td>MemPalace</td><td>98.8%</td><td>&mdash;</td><td class="dim">Sonnet 4.6 + GPT-4o judge</td></tr>
+      <tr><td>OMEGA</td><td>95.4%</td><td>&mdash;</td><td class="dim">GPT-4.1 (self-judged)</td></tr>
+      <tr><td>Letta</td><td>&mdash;</td><td>74.0%</td><td class="dim">"A filesystem is all you need"</td></tr>
+      <tr><td>Full-context</td><td>60.2%</td><td>72.9%</td><td class="dim">Read entire conversation</td></tr>
+      <tr><td>Mem0g (graph)</td><td>&mdash;</td><td>68.4%</td><td class="dim">Neo4j knowledge graph</td></tr>
+      <tr><td>Mem0</td><td>&mdash;</td><td>66.9%</td><td class="dim">Extracted memory facts</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <p><strong>Fair warning:</strong> Generator models differ. Our results use Sonnet 4.6, a frontier model.
+    With Gemma 4 31B (free, weaker), the same retrieval engine scores 76.2% on LongMemEval.
+    The retrieval is ours; the generation quality belongs to the LLM.</p>
+  </div>
+</section>
+
+<!-- ════════════════════════════════ -->
+<section>
+  <div class="section-label">Retrieval-Only</div>
+  <h2>The score no one can attribute to your LLM vendor</h2>
+
+  <p class="prose">
+    E2E scores conflate two things: how well you <strong>find</strong> relevant context and how well
+    the LLM <strong>reasons</strong> over it. Retrieval-only metrics (Recall@K) isolate the search engine.
+    Zero API calls. No LLM. Just the search engine against the benchmark.
+  </p>
+
+  <div class="stat-grid" style="grid-template-columns: repeat(4, 1fr);">
+    <div class="stat-card">
+      <div class="stat-number">96.4%</div>
+      <div class="stat-label">LongMemEval R@5</div>
+      <div class="stat-detail">482/500</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">98.2%</div>
+      <div class="stat-label">LongMemEval R@10</div>
+      <div class="stat-detail">491/500</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">82.9%</div>
+      <div class="stat-label">LoCoMo R@5</div>
+      <div class="stat-detail">1,274/1,536</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">91.6%</div>
+      <div class="stat-label">LoCoMo R@10</div>
+      <div class="stat-detail">1,407/1,536</div>
+    </div>
+  </div>
+
+  <h2 style="margin-top:2rem;">Head-to-head with MemPalace</h2>
+
+  <p class="prose">
+    MemPalace is the closest comparable system &mdash; they also store raw verbatim text and search it
+    with embeddings. But they use bge-large (335M params, full precision) and ChromaDB.
+    We use bge-base (110M params, 4-bit quantized) and SQLite.
+    A 3&times; smaller model with lossy quantization.
+  </p>
+
+  <table class="bench-table">
+    <thead>
+      <tr><th>Metric</th><th>claude-memory</th><th>MemPalace</th><th>Winner</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>LongMemEval R@5</td><td>96.4%</td><td class="accent">96.6%</td><td class="dim">MemPalace (+1 question)</td></tr>
+      <tr><td>LoCoMo R@5</td><td>82.9%</td><td class="accent">83.7%</td><td class="dim">MemPalace (+0.8pp)</td></tr>
+      <tr class="ours"><td>LoCoMo R@10</td><td class="accent">91.6%</td><td>88.9%</td><td class="accent">claude-memory (+2.7pp)</td></tr>
+      <tr class="ours"><td>LongMemEval E2E</td><td class="accent">100.0%</td><td>98.8%</td><td class="accent">claude-memory</td></tr>
+      <tr><td>Embedding model</td><td class="dim">bge-base (110M, 4-bit)</td><td class="dim">bge-large (335M, full)</td><td></td></tr>
+      <tr><td>Search method</td><td class="dim">FTS5 + vector + RRF</td><td class="dim">Vector only</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <p class="prose">
+    They win R@5 (precision). We win R@10 (recall). Their vector-only search puts the best result higher;
+    our RRF hybrid spreads results more evenly across the top 10. Both approaches are valid.
+    The difference is we do it with a <strong>3&times; smaller model and 4-bit quantization</strong>.
+  </p>
+</section>
+
+<!-- ════════════════════════════════ -->
+<section>
+  <div class="section-label">Experiments</div>
+  <h2>Everything I tried to make it better (that didn&rsquo;t work)</h2>
+
+  <p class="prose">
+    I spent a day running ablation experiments on the retrieval pipeline. Cross-encoder reranking,
+    chunk overlap tuning, different models. Eight experiments, 1,536 questions each. Here&rsquo;s the full table:
+  </p>
+
+  <table class="bench-table">
+    <thead>
+      <tr><th>Configuration</th><th>R@5</th><th>R@10</th><th>R@10 vs Baseline</th></tr>
+    </thead>
+    <tbody>
+      <tr class="ours"><td>Baseline (RRF hybrid)</td><td class="accent">82.9%</td><td class="accent">91.6%</td><td>&mdash;</td></tr>
+      <tr><td>No chunk overlap</td><td>83.6%</td><td>91.8%</td><td class="green">+0.2pp</td></tr>
+      <tr><td>+ Cross-encoder (mxbai, 200M)</td><td>82.7%</td><td>88.0%</td><td class="red">&minus;3.6pp</td></tr>
+      <tr><td>+ CE mxbai + no overlap</td><td>84.2%</td><td>88.9%</td><td class="red">&minus;2.7pp</td></tr>
+      <tr><td>+ CE MiniLM-L6 (Mem0&rsquo;s default)</td><td>76.8%</td><td>83.3%</td><td class="red">&minus;8.3pp</td></tr>
+      <tr><td>+ Haiku LLM rerank (1 conv)</td><td>84.7%</td><td>93.3%</td><td class="green">+1.7pp</td></tr>
+    </tbody>
+  </table>
+
+  <div class="two-col">
+    <div class="col-card">
+      <h3 class="red">Cross-encoders hurt</h3>
+      <p><strong>They&rsquo;re trained on the wrong domain.</strong> Models like mxbai-rerank and MiniLM-L-6
+      learned relevance from MS MARCO &mdash; web search queries paired with web pages.
+      Conversational memory looks nothing like web search results.</p>
+      <p>The cross-encoder confidently promotes chunks that look relevant by web-search standards
+      and demotes chunks our RRF correctly ranked. R@5 improves slightly, but R@10 tanks.</p>
+    </div>
+    <div class="col-card">
+      <h3 class="green">Haiku reranking works</h3>
+      <p><strong>An LLM actually reads.</strong> Haiku understands that &ldquo;I went to the LGBTQ group on May 7th&rdquo;
+      answers &ldquo;When did Caroline go to the support group?&rdquo; A cross-encoder trained on web search can&rsquo;t
+      make that connection.</p>
+      <p>But adding Haiku reranking means API calls, cost, and latency &mdash; making our system
+      a copy of MemPalace&rsquo;s approach rather than a genuinely different architecture.</p>
+    </div>
+  </div>
+
+  <div class="pullquote">
+    The conclusion: our edge is the hybrid search architecture, not stacking more models on top.
+    FTS5 keyword matching catches what vector search misses. RRF fusion combines both signals
+    without needing a reranker to fix mistakes. There&rsquo;s nothing to fix.
+    The architecture is the advantage.
+  </div>
+</section>
+
+<!-- ════════════════════════════════ -->
+<section>
+  <div class="section-label">The MemPalace Audit</div>
+  <h2>What happens when you check someone else&rsquo;s homework</h2>
+
+  <p class="prose">
+    On April 7, 2026, MemPalace&rsquo;s founders published &ldquo;A Note from Milla &amp; Ben&rdquo;
+    admitting the community caught five problems in their README within hours of launch.
+    I ran each claim against our system.
+  </p>
+
+  <table class="bench-table">
+    <thead>
+      <tr><th>Issue</th><th>MemPalace</th><th>claude-memory</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Token counting</td><td class="dim">len(text)//3 &mdash; overestimates by 58%</td><td>tiktoken (verified)</td></tr>
+      <tr><td>Compression claims</td><td class="dim">&ldquo;30&times; lossless&rdquo; &mdash; actually lossy, &minus;12pp</td><td>No compression. Raw text.</td></tr>
+      <tr><td>&ldquo;+34% palace boost&rdquo;</td><td class="dim">Standard ChromaDB metadata filtering</td><td>No rebranded features</td></tr>
+      <tr><td>Contradiction detection</td><td class="dim">Exists but not wired in</td><td>Don&rsquo;t claim unimplemented features</td></tr>
+      <tr><td>100% Haiku rerank</td><td class="dim">Not in public scripts</td><td>100% E2E is reproducible</td></tr>
+    </tbody>
+  </table>
+
+  <p class="prose">
+    The point isn&rsquo;t to dunk on MemPalace &mdash; they acknowledged the issues publicly, which is more
+    than most companies do. The point is that <strong>every number on my benchmark page is reproducible
+    from scripts committed to the repository</strong>. No &ldquo;internal result files.&rdquo;
+    No rebranded standard features. No heuristic token counting.
+  </p>
+</section>
+
+<!-- ════════════════════════════════ -->
+<section>
+  <div class="section-label">Why It Works</div>
+  <h2>The uncomfortable reason simple beats complex</h2>
+
+  <p class="prose">
+    Every competitive memory system uses an LLM to manage memory. Mem0 extracts facts.
+    Zep builds knowledge graphs. Letta summarizes into a filesystem. They all start from
+    the assumption that you need AI to decide what to remember.
+  </p>
+  <p class="prose">
+    <strong>The extraction step is where information dies.</strong> When Mem0 extracts
+    &ldquo;user prefers PostgreSQL&rdquo; and throws away the conversation about <em>why</em> &mdash;
+    the alternatives considered, the tradeoffs discussed, the team constraints mentioned &mdash;
+    that context is gone forever. When a question asks about database tradeoffs, there&rsquo;s nothing to retrieve.
+  </p>
+  <p class="prose">
+    My system doesn&rsquo;t extract anything. It keeps the raw conversations and searches them directly.
+    Nothing is lost. The hybrid search finds what you need, and the LLM at the end has the full context
+    to reason with.
+  </p>
+
+  <div class="keystat">
+    <div class="big">24pp</div>
+    <div class="context">The gap between claude-memory (90.8%) and Mem0 (66.9%) on LoCoMo &mdash;
+    the benchmark Mem0 chose to publish against. The entire gap is information that Mem0&rsquo;s
+    extraction step threw away.</div>
+  </div>
+
+  <p class="prose">
+    This only works because my use case is personal: one user, thousands of conversations.
+    At Mem0&rsquo;s scale &mdash; millions of users, millions of conversations &mdash; you <em>can&rsquo;t</em>
+    keep everything and search it. Extraction and summarization become necessary.
+    But the threshold is much higher than anyone realized. For personal AI memory,
+    raw text search is the right architecture.
+  </p>
+</section>
+
+<!-- ════════════════════════════════ -->
+<section>
+  <div class="section-label">Honest Limitations</div>
+  <h2>What I&rsquo;m not claiming</h2>
+
+  <div class="two-col">
+    <div class="col-card">
+      <h3>This scales</h3>
+      <p>It doesn&rsquo;t. Brute-force cosine similarity on all embeddings in RAM works for ~115K chunks.
+      It won&rsquo;t work for a million. This is a personal tool, not a platform.</p>
+    </div>
+    <div class="col-card">
+      <h3>The retrieval is novel</h3>
+      <p>FTS5 + vector + RRF is a well-known combination. bge-base is off-the-shelf. TurboQuant is someone
+      else&rsquo;s paper. The individual pieces aren&rsquo;t new. The execution is what works.</p>
+    </div>
+    <div class="col-card">
+      <h3>The LLM doesn&rsquo;t matter</h3>
+      <p>It does. With Gemma 4 31B, the same retrieval scores 76.2% on LongMemEval instead of 100%.
+      The retrieval engine is ours; the generation quality belongs to Sonnet.</p>
+    </div>
+    <div class="col-card">
+      <h3>These results are independently verified</h3>
+      <p>Not yet. The code is open source and the results are saved to JSONL, but no third party has
+      reproduced them. Single run, not mean &plusmn; stdev.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════ -->
+<section style="border-bottom: none;">
+  <div class="section-label">The Takeaway</div>
+  <h2>What I actually learned</h2>
+
+  <p class="prose">
+    I spent a weekend reading the MemPalace README, running their benchmarks on my system,
+    testing cross-encoder reranking, tuning parameters, and documenting everything honestly.
+    Here&rsquo;s what I learned:
+  </p>
+
+  <p class="prose">
+    <strong>1. Don&rsquo;t throw away your conversations.</strong> Every memory system that extracts,
+    summarizes, or compresses loses information. For personal use, keep the raw text and search it.
+  </p>
+  <p class="prose">
+    <strong>2. Hybrid search is underrated.</strong> Vector-only search misses exact matches
+    (names, dates, specific terms). Keyword-only search misses semantic similarity.
+    Combining them with RRF beats both &mdash; and it beat MemPalace on R@10 despite using a 3&times; smaller model.
+  </p>
+  <p class="prose">
+    <strong>3. More models &ne; better results.</strong> Cross-encoder reranking, the standard
+    technique for improving retrieval, made our R@10 <em>worse</em> by 3.6pp.
+    Sometimes the pipeline you have is already the right one.
+  </p>
+  <p class="prose">
+    <strong>4. Benchmark honestly or don&rsquo;t benchmark.</strong> MemPalace got caught
+    with fake token counts and unreproducible claims. The memory systems space is full of
+    inflated numbers. Run the same benchmarks, report the same metrics, publish the scripts.
+  </p>
+
+  <div class="pullquote">
+    For personal AI memory &mdash; one user, thousands of conversations &mdash; raw text search
+    beats every extraction-based system on standard benchmarks. The funded startups
+    over-engineered for scale they don&rsquo;t need yet, and lost information in the process.
+  </div>
+
+  <p class="prose" style="margin-top:2rem;">
+    The system is open source. The benchmarks are reproducible. The results files are committed.
+    If you use Claude Code and want persistent memory across sessions,
+    <a href="https://github.com/NathanNorman/claude-memory">it&rsquo;s on GitHub</a>.
+  </p>
+</section>
+
+<div class="footer">
+  LongMemEval (ICLR 2025) &middot; 500 questions &middot; LoCoMo (ACL 2024) &middot; 1,986 questions<br>
+  Retrieval: FTS5 + bge-base-en-v1.5 + TurboQuant 4-bit + RRF &middot; Generator: Sonnet 4.6 &middot; Judge: GPT-4o<br>
+  Full results &amp; scripts: github.com/NathanNorman/claude-memory/benchmarks/<br>
+  April 2026
+</div>
+
+</div>
+</body>
+</html>
