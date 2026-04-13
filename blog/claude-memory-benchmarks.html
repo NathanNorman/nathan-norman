@@ -138,8 +138,8 @@ section h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 700; letter-spa
   <div class="hero-badge">AI Memory &middot; Benchmarks</div>
   <h1>I Benchmarked My AI Memory System Against <span class="accent">Funded Startups</span>. Here&rsquo;s What I Found.</h1>
   <p class="hero-sub">
-    A personal memory system for Claude Code &mdash; built with SQLite, a small embedding model,
-    and the radical idea that you shouldn&rsquo;t throw away your conversations &mdash; scores
+    A local-only memory system with hybrid keyword + vector search and no LLM dependency in its retrieval pipeline
+    achieves the highest published scores on both major memory benchmarks:
     <em>100% on LongMemEval</em> and <em>87.3% on LoCoMo</em>. It beats Mem0, Letta, Zep, and
     matches MemPalace. Here&rsquo;s the full, honest story.
   </p>
@@ -348,7 +348,7 @@ section h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 700; letter-spa
   </div>
 
   <div class="pullquote">
-    The conclusion: our edge is the hybrid search architecture, not stacking more models on top.
+    Our edge is the hybrid search architecture, not stacking more models on top.
     FTS5 keyword matching catches what vector search misses. RRF fusion combines both signals
     without needing a reranker to fix mistakes. There&rsquo;s nothing to fix.
     The architecture is the advantage.
@@ -493,6 +493,7 @@ section h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 700; letter-spa
 
   <p class="prose" style="margin-top:2rem;">
     The system is open source. The benchmarks are reproducible. The results files are committed.
+    LongMemEval_S is likely saturated at 100%, but temporal reasoning (68.8% on LoCoMo) remains the hardest category, and fully-local inference with smaller models is the next frontier.
     If you use Claude Code and want persistent memory across sessions,
     <a href="https://github.com/NathanNorman/claude-memory">it&rsquo;s on GitHub</a>.
   </p>
