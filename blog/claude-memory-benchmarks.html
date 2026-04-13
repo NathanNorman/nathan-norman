@@ -166,24 +166,63 @@ section h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 700; letter-spa
 
 <!-- ════════════════════════════════ -->
 <section>
-  <div class="section-label">The Setup</div>
-  <h2>What is this, exactly?</h2>
+  <div class="section-label">The Problem</div>
+  <h2>AI assistants forget everything</h2>
 
   <p class="prose">
-    <strong>claude-memory</strong> is a persistent memory system for Claude Code. It indexes my curated notes
-    and thousands of past conversation archives, then serves them back via hybrid search &mdash; keyword matching
-    (FTS5) plus vector similarity (bge-base-en-v1.5, 4-bit quantized), merged with Reciprocal Rank Fusion.
-    Everything runs locally. No cloud. No API calls for search. One SQLite file.
+    You explain your project setup, your preferences, the decisions you made last week &mdash;
+    and then you do it again tomorrow. Every conversation starts from zero.
+  </p>
+  <p class="prose">
+    Memory systems exist. Mem0, Zep, Letta, and dozens of others promise persistent recall.
+    But most of them <em>extract and compress</em>: they pull out facts, discard the original conversation,
+    and store a summary. The nuance &mdash; the debugging session that revealed why you chose
+    one architecture over another &mdash; is gone.
+  </p>
+  <p class="prose">
+    What if you just kept everything and built a search engine good enough to find it?
+  </p>
+</section>
+
+<!-- ════════════════════════════════ -->
+<section>
+  <div class="section-label">The Solution</div>
+  <h2>What claude-memory does</h2>
+
+  <p class="prose">
+    <strong>claude-memory</strong> gives Claude Code persistent recall across sessions.
+    It indexes your curated notes and thousands of past conversation archives, so the AI remembers
+    what you discussed last week, last month, or six months ago. Everything runs on your machine &mdash;
+    no cloud storage, no API calls for search. One SQLite file.
+  </p>
+  <p class="prose">
+    The search pipeline combines two approaches: keyword matching
+    (FTS5, SQLite&rsquo;s full-text search engine) catches exact names and dates,
+    while vector similarity (bge-base-en-v1.5 embeddings, compressed 8&times; via 4-bit quantization)
+    catches paraphrases and related concepts. Results from both are merged using
+    Reciprocal Rank Fusion (RRF) &mdash; a technique that combines ranked lists without needing
+    to calibrate their scores.
   </p>
   <p class="prose">
     I built it because I use Claude Code every day and got tired of re-explaining context.
-    The memory system gives Claude recall across sessions &mdash; it remembers what we worked on last week,
-    what debugging strategies worked, what architectural decisions we made and why.
-  </p>
-  <p class="prose">
     Then I got curious: <strong>how does it compare to the systems everyone&rsquo;s tweeting about?</strong>
     Mem0, Zep, Letta, MemPalace &mdash; they all publish benchmark numbers. So I ran the same benchmarks.
   </p>
+</section>
+
+<!-- ════════════════════════════════ -->
+<section>
+  <div class="section-label">Reading Guide</div>
+  <h2>How to read these results</h2>
+
+  <div class="callout">
+    <p>
+      <strong>R@5 / R@10</strong> &mdash; Recall at 5 or 10: did the correct answer appear in the top 5 or 10 search results? Measures the retrieval engine alone, independent of the LLM.<br>
+      <strong>J-score (LLM-as-Judge)</strong> &mdash; A judge LLM reads the question, gold answer, and generated answer, then scores CORRECT or WRONG.<br>
+      <strong>F1</strong> &mdash; Token-level overlap between generated and gold answer. Strict &mdash; even correct answers score low if worded differently.<br>
+      <strong>E2E (End-to-End)</strong> &mdash; The full pipeline: retrieve context, generate an answer, judge it. Tests retrieval + reasoning together.
+    </p>
+  </div>
 </section>
 
 <!-- ════════════════════════════════ -->
