@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>I Benchmarked My AI Memory System Against Funded Startups. Here&rsquo;s What I Found.</title>
-<meta name="description" content="A personal memory system for Claude Code scores 100% on LongMemEval and 90.8% on LoCoMo &mdash; beating Mem0, Letta, and Zep. The secret: don&rsquo;t throw away your conversations.">
+<meta name="description" content="A personal memory system for Claude Code scores 100% on LongMemEval and 87.3% on LoCoMo &mdash; beating Mem0, Letta, and Zep. The secret: don&rsquo;t throw away your conversations.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxZW0iIGhlaWdodD0iMWVtIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2M0NjMyYSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik0xMiAxOFY1bTMgOGE0LjE3IDQuMTcgMCAwIDEtMy00YTQuMTcgNC4xNyAwIDAgMS0zIDRtOC41OTgtNi41QTMgMyAwIDEgMCAxMiA1YTMgMyAwIDEgMC01LjU5OCAxLjUiLz48cGF0aCBkPSJNMTcuOTk3IDUuMTI1YTQgNCAwIDAgMSAyLjUyNiA1Ljc3Ii8+PHBhdGggZD0iTTE4IDE4YTQgNCAwIDAgMCAyLTcuNDY0Ii8+PHBhdGggZD0iTTE5Ljk2NyAxNy40ODNBNCA0IDAgMSAxIDEyIDE4YTQgNCAwIDEgMS03Ljk2Ny0uNTE3Ii8+PHBhdGggZD0iTTYgMThhNCA0IDAgMCAxLTItNy40NjQiLz48cGF0aCBkPSJNNi4wMDMgNS4xMjVhNCA0IDAgMCAwLTIuNTI2IDUuNzciLz48L2c+PC9zdmc+"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -140,7 +140,7 @@ section h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 700; letter-spa
   <p class="hero-sub">
     A personal memory system for Claude Code &mdash; built with SQLite, a small embedding model,
     and the radical idea that you shouldn&rsquo;t throw away your conversations &mdash; scores
-    <em>100% on LongMemEval</em> and <em>90.8% on LoCoMo</em>. It beats Mem0, Letta, Zep, and
+    <em>100% on LongMemEval</em> and <em>87.3% on LoCoMo</em>. It beats Mem0, Letta, Zep, and
     matches MemPalace. Here&rsquo;s the full, honest story.
   </p>
   <div class="hero-meta">April 12, 2026 &middot; Nathan Norman</div>
@@ -152,9 +152,9 @@ section h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 700; letter-spa
       <div class="stat-detail">500/500 correct<br>GPT-4o verified</div>
     </div>
     <div class="stat-card">
-      <div class="stat-number">90.8%</div>
+      <div class="stat-number">87.3%</div>
       <div class="stat-label">LoCoMo E2E</div>
-      <div class="stat-detail">Beats Mem0 (66.9%)<br>Beats Letta (74.0%)</div>
+      <div class="stat-detail">1,540 questions (10 convos)<br>Beats Letta (74.0%)</div>
     </div>
     <div class="stat-card">
       <div class="stat-number">$0</div>
@@ -223,7 +223,7 @@ section h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 700; letter-spa
       <tr><th>System</th><th>LongMemEval</th><th>LoCoMo (J)</th><th>Notes</th></tr>
     </thead>
     <tbody>
-      <tr class="ours"><td>claude-memory</td><td class="accent">100.0%</td><td class="accent">90.8%</td><td class="dim">Sonnet 4.6 + GPT-4o judge</td></tr>
+      <tr class="ours"><td>claude-memory</td><td class="accent">100.0%</td><td class="accent">87.3%</td><td class="dim">Full 10 convos, 1,540 Qs</td></tr>
       <tr><td>MemPalace</td><td>98.8%</td><td>&mdash;</td><td class="dim">Sonnet 4.6 + GPT-4o judge</td></tr>
       <tr><td>OMEGA</td><td>95.4%</td><td>&mdash;</td><td class="dim">GPT-4.1 (self-judged)</td></tr>
       <tr><td>Letta</td><td>&mdash;</td><td>74.0%</td><td class="dim">"A filesystem is all you need"</td></tr>
@@ -410,8 +410,8 @@ section h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 700; letter-spa
   </p>
 
   <div class="keystat">
-    <div class="big">24pp</div>
-    <div class="context">The gap between claude-memory (90.8%) and Mem0 (66.9%) on LoCoMo &mdash;
+    <div class="big">20pp</div>
+    <div class="context">The gap between claude-memory (87.3%) and Mem0 (66.9%) on LoCoMo &mdash;
     the benchmark Mem0 chose to publish against. The entire gap is information that Mem0&rsquo;s
     extraction step threw away.</div>
   </div>
@@ -499,7 +499,7 @@ section h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 700; letter-spa
 </section>
 
 <div class="footer">
-  LongMemEval (ICLR 2025) &middot; 500 questions &middot; LoCoMo (ACL 2024) &middot; 1,986 questions<br>
+  LongMemEval (ICLR 2025) &middot; 500 questions &middot; LoCoMo (ACL 2024) &middot; 1,540 questions (cats 1&ndash;4, 10 convos)<br>
   Retrieval: FTS5 + bge-base-en-v1.5 + TurboQuant 4-bit + RRF &middot; Generator: Sonnet 4.6 &middot; Judge: GPT-4o<br>
   Full results &amp; scripts: github.com/NathanNorman/claude-memory/benchmarks/<br>
   April 2026
