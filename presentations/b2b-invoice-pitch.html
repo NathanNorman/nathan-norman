@@ -128,7 +128,10 @@
       padding: 0.5rem 1rem;
       border-radius: 100px;
       border: 1px solid rgba(255,255,250,0.15);
+      opacity: 1;
+      transition: opacity 0.5s ease;
     }
+    .nav.hidden { opacity: 0; pointer-events: none; }
     .nav button {
       background: rgba(255,255,250,0.12);
       border: 1px solid rgba(255,255,250,0.2);
@@ -231,7 +234,22 @@
       if (!gate.classList.contains('hidden')) return;
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { if (cur < total - 1) goTo(cur + 1); }
       if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { if (cur > 0) goTo(cur - 1); }
+      showNav();
     });
+
+    // Auto-hide nav after 3s of inactivity
+    const nav = document.querySelector('.nav');
+    let hideTimer;
+
+    function showNav() {
+      nav.classList.remove('hidden');
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => nav.classList.add('hidden'), 3000);
+    }
+
+    document.addEventListener('mousemove', showNav);
+    document.addEventListener('touchstart', showNav);
+    showNav();
   </script>
 </body>
 </html>
