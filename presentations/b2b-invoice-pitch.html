@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>B2B Invoice Intelligence — Pitch Deck</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -11,9 +13,6 @@
       background: #0d5c63;
       font-family: 'DM Sans', system-ui, sans-serif;
       height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       overflow: hidden;
     }
 
@@ -27,7 +26,6 @@
       justify-content: center;
       z-index: 100;
     }
-
     #gate.hidden { display: none; }
 
     .gate-box {
@@ -38,7 +36,6 @@
       text-align: center;
       box-shadow: 0 32px 80px rgba(0,0,0,0.35);
     }
-
     .gate-box h1 {
       font-size: 1.1rem;
       font-weight: 600;
@@ -46,13 +43,11 @@
       margin-bottom: 0.35rem;
       letter-spacing: -0.01em;
     }
-
     .gate-box p {
       font-size: 0.85rem;
       color: #44a1a0;
       margin-bottom: 2rem;
     }
-
     .gate-box input {
       width: 100%;
       padding: 0.75rem 1rem;
@@ -66,17 +61,13 @@
       background: #fffffa;
       transition: border-color 0.2s;
     }
-
     .gate-box input:focus { border-color: #44a1a0; }
-
     .gate-box input.error { border-color: #e05c5c; animation: shake 0.3s; }
-
     @keyframes shake {
       0%,100% { transform: translateX(0); }
       25% { transform: translateX(-6px); }
       75% { transform: translateX(6px); }
     }
-
     .gate-box button {
       margin-top: 1rem;
       width: 100%;
@@ -90,9 +81,7 @@
       cursor: pointer;
       transition: background 0.2s;
     }
-
     .gate-box button:hover { background: #247b7b; }
-
     .gate-hint {
       margin-top: 0.75rem;
       font-size: 0.75rem;
@@ -100,75 +89,66 @@
       min-height: 1rem;
     }
 
-    /* ── Slides ── */
+    /* ── Deck ── */
     #deck {
       width: 100vw;
       height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      position: relative;
     }
 
     .slide {
       display: none;
-      width: 100%;
-      height: 100%;
+      position: absolute;
+      inset: 0;
       align-items: center;
       justify-content: center;
-      position: relative;
+      background: #0d5c63;
     }
-
     .slide.active { display: flex; }
 
-    /* Slide 1 */
-    #slide-1 {
-      background: #0d5c63;
-      flex-direction: column;
+    .slide img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      display: block;
     }
 
-    #slide-1 h1 {
-      font-size: clamp(2rem, 5vw, 3.5rem);
-      color: #fffffa;
-      text-align: center;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-
-    /* Nav */
+    /* ── Nav ── */
     .nav {
       position: fixed;
-      bottom: 2rem;
+      bottom: 1.5rem;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      gap: 1rem;
+      gap: 0.75rem;
       align-items: center;
       z-index: 10;
-    }
-
-    .nav button {
-      background: rgba(255,255,250,0.15);
-      border: 1px solid rgba(255,255,250,0.3);
-      color: #fffffa;
-      padding: 0.5rem 1.25rem;
+      background: rgba(13, 92, 99, 0.75);
+      backdrop-filter: blur(8px);
+      padding: 0.5rem 1rem;
       border-radius: 100px;
-      font-size: 0.85rem;
-      cursor: pointer;
-      transition: background 0.2s;
+      border: 1px solid rgba(255,255,250,0.15);
     }
-
-    .nav button:hover { background: rgba(255,255,250,0.25); }
+    .nav button {
+      background: rgba(255,255,250,0.12);
+      border: 1px solid rgba(255,255,250,0.2);
+      color: #fffffa;
+      padding: 0.4rem 1rem;
+      border-radius: 100px;
+      font-size: 0.82rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .nav button:hover { background: rgba(255,255,250,0.22); }
     .nav button:disabled { opacity: 0.3; cursor: default; }
-
     .nav .counter {
-      color: rgba(255,255,250,0.6);
+      color: rgba(255,255,250,0.7);
       font-size: 0.8rem;
-      min-width: 3rem;
+      min-width: 3.5rem;
       text-align: center;
     }
   </style>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -185,25 +165,34 @@
 
   <!-- Deck -->
   <div id="deck">
-    <div class="slide active" id="slide-1">
-      <h1>Slide 1</h1>
-    </div>
+    <div class="slide active"><img src="slide1.png" alt="Slide 1"></div>
+    <div class="slide"><img src="slide2.png" alt="Slide 2"></div>
+    <div class="slide"><img src="slide3.png" alt="Slide 3"></div>
+    <div class="slide"><img src="slide4.png" alt="Slide 4"></div>
+    <div class="slide"><img src="slide5.png" alt="Slide 5"></div>
+    <div class="slide"><img src="slide6.png" alt="Slide 6"></div>
+    <div class="slide"><img src="slide7.png" alt="Slide 7"></div>
+    <div class="slide"><img src="slide8.png" alt="Slide 8"></div>
+    <div class="slide"><img src="slide9.png" alt="Slide 9"></div>
+    <div class="slide"><img src="slide10.png" alt="Slide 10"></div>
+    <div class="slide"><img src="slide11.png" alt="Slide 11"></div>
+    <div class="slide"><img src="slide12.png" alt="Slide 12"></div>
+    <div class="slide"><img src="slide13.png" alt="Slide 13"></div>
+    <div class="slide"><img src="slide14.png" alt="Slide 14"></div>
   </div>
 
   <!-- Nav -->
   <div class="nav">
     <button id="prev" disabled>← Prev</button>
-    <span class="counter" id="counter">1 / 1</span>
-    <button id="next" disabled>Next →</button>
+    <span class="counter" id="counter">1 / 14</span>
+    <button id="next">Next →</button>
   </div>
 
   <script>
-    // ── Password gate ──
     const PASS = 'tcPUAJhv3xNkQorGtFiZSm3P';
     const gate = document.getElementById('gate');
     const input = document.getElementById('pw-input');
     const hint = document.getElementById('pw-hint');
-    const submitBtn = document.getElementById('pw-submit');
 
     function unlock() {
       if (input.value === PASS) {
@@ -217,37 +206,32 @@
       }
     }
 
-    if (sessionStorage.getItem('pitch-unlocked') === '1') {
-      gate.classList.add('hidden');
-    }
-
-    submitBtn.addEventListener('click', unlock);
+    if (sessionStorage.getItem('pitch-unlocked') === '1') gate.classList.add('hidden');
+    document.getElementById('pw-submit').addEventListener('click', unlock);
     input.addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); });
 
-    // ── Slide navigation ──
+    // Slides
     const slides = document.querySelectorAll('.slide');
-    let current = 0;
+    const total = slides.length;
+    let cur = 0;
 
     function goTo(n) {
-      slides[current].classList.remove('active');
-      current = n;
-      slides[current].classList.add('active');
-      document.getElementById('counter').textContent = `${current + 1} / ${slides.length}`;
-      document.getElementById('prev').disabled = current === 0;
-      document.getElementById('next').disabled = current === slides.length - 1;
+      slides[cur].classList.remove('active');
+      cur = n;
+      slides[cur].classList.add('active');
+      document.getElementById('counter').textContent = `${cur + 1} / ${total}`;
+      document.getElementById('prev').disabled = cur === 0;
+      document.getElementById('next').disabled = cur === total - 1;
     }
 
-    document.getElementById('prev').addEventListener('click', () => goTo(current - 1));
-    document.getElementById('next').addEventListener('click', () => goTo(current + 1));
+    document.getElementById('prev').addEventListener('click', () => goTo(cur - 1));
+    document.getElementById('next').addEventListener('click', () => goTo(cur + 1));
 
     document.addEventListener('keydown', e => {
-      if (gate.classList.contains('hidden')) {
-        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { if (current < slides.length - 1) goTo(current + 1); }
-        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { if (current > 0) goTo(current - 1); }
-      }
+      if (!gate.classList.contains('hidden')) return;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { if (cur < total - 1) goTo(cur + 1); }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { if (cur > 0) goTo(cur - 1); }
     });
-
-    goTo(0);
   </script>
 </body>
 </html>
