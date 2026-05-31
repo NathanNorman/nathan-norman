@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teaching a Network to Play Wingspan</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦅</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #F5F0E8;
+      --bg-card:   #FAF7F2;
+      --bg-dark:   #2C2820;
+      --text:      #2C2820;
+      --text-mid:  #5C5548;
+      --text-muted:#8B8177;
+      --accent:    #8B6914;
+      --accent2:   #4A7C59;
+      --accent3:   #7A4F3A;
+      --border:    #DDD5C8;
+      --code-bg:   #EDE8E0;
+      --font-serif: 'Lora', Georgia, serif;
+      --font-sans:  'Source Sans 3', system-ui, sans-serif;
+      --font-mono:  'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 17px;
+      line-height: 1.7;
+    }
+
+    /* Back link */
+    .back-link {
+      position: fixed; top: 16px; left: 20px; z-index: 9999;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--font-mono); font-size: 0.7rem;
+      color: var(--text-muted); text-decoration: none;
+      opacity: 0.7; transition: opacity 0.2s;
+    }
+    .back-link:hover { opacity: 1; }
+
+    /* Layout */
+    .container { max-width: 780px; margin: 0 auto; padding: 0 24px; }
+    .container-wide { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+    /* Hero */
+    .hero {
+      padding: 96px 0 64px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(ellipse at 70% 40%, rgba(139,105,20,0.07) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .hero-kicker {
+      font-family: var(--font-mono); font-size: 0.72rem;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-family: var(--font-serif); font-size: clamp(2rem, 4.5vw, 3.1rem);
+      font-weight: 600; line-height: 1.18; color: var(--bg-dark);
+      margin-bottom: 24px; max-width: 640px;
+    }
+    .hero-subtitle {
+      font-size: 1.08rem; color: var(--text-mid);
+      max-width: 580px; margin-bottom: 36px; line-height: 1.65;
+    }
+    .hero-meta {
+      display: flex; gap: 28px; flex-wrap: wrap;
+      font-family: var(--font-mono); font-size: 0.72rem;
+      color: var(--text-muted); letter-spacing: 0.04em;
+    }
+    .hero-meta span { display: flex; align-items: center; gap: 6px; }
+
+    /* Section scaffold */
+    section { padding: 72px 0; border-bottom: 1px solid var(--border); }
+    section:last-of-type { border-bottom: none; }
+
+    h2 {
+      font-family: var(--font-serif); font-size: 1.75rem;
+      font-weight: 600; color: var(--bg-dark); margin-bottom: 20px;
+      line-height: 1.25;
+    }
+    h3 {
+      font-family: var(--font-sans); font-size: 0.8rem;
+      font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 14px; margin-top: 40px;
+    }
+    h3:first-child { margin-top: 0; }
+
+    p { margin-bottom: 18px; color: var(--text-mid); }
+    p:last-child { margin-bottom: 0; }
+    p strong { color: var(--text); font-weight: 600; }
+
+    /* Metric cards */
+    .metrics {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px; margin: 32px 0;
+    }
+    .metric-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 20px 18px;
+    }
+    .metric-num {
+      font-family: var(--font-mono); font-size: 1.9rem; font-weight: 500;
+      color: var(--accent); line-height: 1; margin-bottom: 6px;
+    }
+    .metric-label {
+      font-size: 0.78rem; font-weight: 500; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+    .metric-sub {
+      font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;
+    }
+
+    /* Comparison cards */
+    .comparison {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 16px; margin: 28px 0;
+    }
+    @media (max-width: 600px) { .comparison { grid-template-columns: 1fr; } }
+    .cmp-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 22px 20px;
+    }
+    .cmp-card.before { border-left: 3px solid var(--accent3); }
+    .cmp-card.after  { border-left: 3px solid var(--accent2); }
+    .cmp-label {
+      font-family: var(--font-mono); font-size: 0.68rem;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+    .cmp-card.before .cmp-label { color: var(--accent3); }
+    .cmp-card.after  .cmp-label { color: var(--accent2); }
+    .cmp-card p { font-size: 0.92rem; margin-bottom: 10px; }
+
+    /* SVG diagrams */
+    .diagram { margin: 32px 0; }
+    .diagram svg { width: 100%; height: auto; display: block; }
+    .diagram-caption {
+      font-size: 0.78rem; color: var(--text-muted); text-align: center;
+      margin-top: 10px; font-style: italic;
+    }
+
+    /* Code blocks */
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 18px 20px; overflow-x: auto;
+      font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.6;
+      color: var(--text); margin: 24px 0;
+    }
+    code {
+      font-family: var(--font-mono); font-size: 0.85em;
+      background: var(--code-bg); padding: 2px 5px; border-radius: 3px;
+      color: var(--text);
+    }
+    pre code { background: none; padding: 0; font-size: inherit; }
+
+    /* Pull quotes */
+    .pull-quote {
+      border-left: 3px solid var(--accent);
+      padding: 16px 24px; margin: 32px 0;
+      background: var(--bg-card);
+    }
+    .pull-quote p {
+      font-family: var(--font-serif); font-size: 1.08rem;
+      font-style: italic; color: var(--text); margin: 0;
+    }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; margin: 28px 0; }
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    th {
+      text-align: left; padding: 10px 14px;
+      font-family: var(--font-mono); font-size: 0.72rem;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--text-muted); border-bottom: 2px solid var(--border);
+    }
+    td {
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+      color: var(--text-mid); vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    td strong { color: var(--text); }
+    td.num { font-family: var(--font-mono); color: var(--accent); font-weight: 500; }
+
+    /* Pipeline strip */
+    .pipeline {
+      display: flex; gap: 0; margin: 32px 0;
+      overflow-x: auto;
+    }
+    .pipeline-step {
+      flex: 1; min-width: 110px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      padding: 16px 14px; position: relative;
+      text-align: center;
+    }
+    .pipeline-step:not(:first-child) {
+      border-left: none;
+    }
+    .pipeline-step:first-child { border-radius: 8px 0 0 8px; }
+    .pipeline-step:last-child  { border-radius: 0 8px 8px 0; }
+    .pipeline-step::after {
+      content: '→'; position: absolute; right: -12px; top: 50%;
+      transform: translateY(-50%); font-size: 0.9rem;
+      color: var(--text-muted); z-index: 2;
+    }
+    .pipeline-step:last-child::after { display: none; }
+    .pipeline-num {
+      font-family: var(--font-mono); font-size: 0.65rem;
+      color: var(--accent); margin-bottom: 4px;
+    }
+    .pipeline-label {
+      font-size: 0.8rem; font-weight: 600; color: var(--text);
+      margin-bottom: 4px;
+    }
+    .pipeline-sub { font-size: 0.72rem; color: var(--text-muted); }
+
+    /* Bug hall cards */
+    .bug-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px; margin: 28px 0;
+    }
+    .bug-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 20px 18px;
+      border-top: 3px solid var(--accent3);
+    }
+    .bug-name {
+      font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500;
+      color: var(--accent3); margin-bottom: 8px;
+    }
+    .bug-desc { font-size: 0.88rem; color: var(--text-mid); margin-bottom: 10px; }
+    .bug-fix {
+      font-size: 0.78rem; color: var(--accent2); font-weight: 500;
+    }
+
+    /* Expandable detail */
+    details {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 8px; margin: 20px 0;
+    }
+    summary {
+      padding: 14px 18px; font-weight: 600; font-size: 0.88rem;
+      cursor: pointer; list-style: none; display: flex;
+      align-items: center; justify-content: space-between;
+      color: var(--text);
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: '+'; font-size: 1.1rem; color: var(--accent); }
+    details[open] summary::after { content: '−'; }
+    details .detail-body { padding: 0 18px 16px; }
+    details .detail-body p { font-size: 0.9rem; }
+
+    /* Footer */
+    footer {
+      padding: 40px 0; text-align: center;
+      font-family: var(--font-mono); font-size: 0.72rem;
+      color: var(--text-muted); letter-spacing: 0.04em;
+    }
+
+    /* Scroll reveal */
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.5s ease, transform 0.5s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    /* Run timeline */
+    .timeline { margin: 32px 0; }
+    .tl-row {
+      display: grid; grid-template-columns: 56px 1fr;
+      gap: 0 16px; margin-bottom: 4px; align-items: stretch;
+    }
+    .tl-run {
+      font-family: var(--font-mono); font-size: 0.72rem; font-weight: 500;
+      color: var(--accent); padding: 10px 0; text-align: right;
+    }
+    .tl-bar-wrap { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+    .tl-bar {
+      height: 28px; border-radius: 3px; background: var(--accent);
+      opacity: 0.15; position: relative; min-width: 8px;
+      display: flex; align-items: center;
+    }
+    .tl-bar.peak { opacity: 0.7; }
+    .tl-label { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
+
+    /* Sim scan chart */
+    .sim-chart { margin: 28px 0; }
+    .sim-row {
+      display: grid; grid-template-columns: 60px 1fr 60px;
+      gap: 8px; align-items: center; margin-bottom: 10px;
+    }
+    .sim-label { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted); text-align: right; }
+    .sim-bar-wrap { background: var(--border); border-radius: 3px; height: 24px; overflow: hidden; }
+    .sim-bar { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.8s ease; }
+    .sim-val { font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent); font-weight: 500; }
+  </style>
+</head>
+<body>
+
+<a href="/" class="back-link">
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1.5 7L7 1.5L12.5 7M3 5.5V12H5.5V9H8.5V12H11V5.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  All Explainers
+</a>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-kicker">Wingspan AI · Self-Play Training Log</div>
+    <h1>Teaching a Network to Play Wingspan</h1>
+    <p class="hero-subtitle">Nine training runs, three months, and one broken ruler. An AlphaZero implementation for a complex card game: what broke, what worked, and why the numbers we watched for most of it were wrong.</p>
+    <div class="hero-meta">
+      <span>🦅 446 birds</span>
+      <span>📊 9 training runs</span>
+      <span>🔬 MCTS + AlphaZero</span>
+      <span>📅 May 2026</span>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 1: THE GAME & THE GOAL -->
+<section id="game">
+  <div class="container">
+    <div class="reveal">
+      <h2>The Game and the Goal</h2>
+      <p>Wingspan is a tableau-building card game where players draft bird cards, place them across three habitats, and activate chain reactions of special powers. Each bird has a food cost, an egg capacity, a habitat preference, a power type, and sometimes a chain of effects that triggers other birds. After four rounds and ~190 decisions, whoever has built the most efficient scoring engine wins.</p>
+      <p>The benchmark is <strong>SmartHeuristicAgent</strong>: a hand-coded agent that uses prospective scoring, food accumulation strategy, round-awareness, and habitat preference. It wins 90.5% of games against a random opponent and averages a score of 55. Beating it consistently requires planning several turns ahead, the kind of look-ahead that 50 tree search simulations cannot provide.</p>
+
+      <div class="metrics">
+        <div class="metric-card">
+          <div class="metric-num">446</div>
+          <div class="metric-label">Unique Birds</div>
+          <div class="metric-sub">4 expansions, each with distinct power types</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-num">~190</div>
+          <div class="metric-label">Decisions / Game</div>
+          <div class="metric-sub">Fully delayed terminal reward, no intermediate signal</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-num">55.0</div>
+          <div class="metric-label">Heuristic Avg Score</div>
+          <div class="metric-sub">The benchmark to beat</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-num">20+</div>
+          <div class="metric-label">Decision Types</div>
+          <div class="metric-sub">PLAY_BIRD, GAIN_FOOD, LAY_EGGS, POWER_CHOICE…</div>
+        </div>
+      </div>
+
+      <div class="diagram">
+        <svg viewBox="0 0 720 230" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background -->
+          <rect width="720" height="230" fill="#EDE8E0" rx="10"/>
+          <!-- Habitat boxes -->
+          <rect x="30" y="30" width="190" height="80" rx="6" fill="#FAF7F2" stroke="#DDD5C8" stroke-width="1.5"/>
+          <text x="125" y="52" text-anchor="middle" font-family="'Source Sans 3',sans-serif" font-size="11" font-weight="600" fill="#5C5548">FOREST</text>
+          <text x="125" y="70" text-anchor="middle" font-family="monospace" font-size="9.5" fill="#8B8177">gain food · brown powers</text>
+          <rect x="48" y="82" width="30" height="18" rx="3" fill="#DDD5C8"/>
+          <rect x="84" y="82" width="30" height="18" rx="3" fill="#DDD5C8"/>
+          <rect x="120" y="82" width="30" height="18" rx="3" fill="#8B6914" opacity="0.4"/>
+          <text x="125" y="95" text-anchor="middle" font-family="monospace" font-size="8" fill="#FAF7F2">bird</text>
+          <rect x="156" y="82" width="30" height="18" rx="3" fill="#DDD5C8"/>
+          <rect x="192" y="82" width="30" height="18" rx="3" fill="#DDD5C8" opacity="0.4"/>
+
+          <rect x="265" y="30" width="190" height="80" rx="6" fill="#FAF7F2" stroke="#DDD5C8" stroke-width="1.5"/>
+          <text x="360" y="52" text-anchor="middle" font-family="'Source Sans 3',sans-serif" font-size="11" font-weight="600" fill="#5C5548">GRASSLAND</text>
+          <text x="360" y="70" text-anchor="middle" font-family="monospace" font-size="9.5" fill="#8B8177">lay eggs · pink powers</text>
+          <rect x="283" y="82" width="30" height="18" rx="3" fill="#8B6914" opacity="0.4"/>
+          <text x="298" y="95" text-anchor="middle" font-family="monospace" font-size="8" fill="#FAF7F2">bird</text>
+          <rect x="319" y="82" width="30" height="18" rx="3" fill="#8B6914" opacity="0.4"/>
+          <text x="334" y="95" text-anchor="middle" font-family="monospace" font-size="8" fill="#FAF7F2">bird</text>
+          <rect x="355" y="82" width="30" height="18" rx="3" fill="#DDD5C8"/>
+          <rect x="391" y="82" width="30" height="18" rx="3" fill="#DDD5C8"/>
+          <rect x="427" y="82" width="30" height="18" rx="3" fill="#DDD5C8"/>
+
+          <rect x="500" y="30" width="190" height="80" rx="6" fill="#FAF7F2" stroke="#DDD5C8" stroke-width="1.5"/>
+          <text x="595" y="52" text-anchor="middle" font-family="'Source Sans 3',sans-serif" font-size="11" font-weight="600" fill="#5C5548">WETLAND</text>
+          <text x="595" y="70" text-anchor="middle" font-family="monospace" font-size="9.5" fill="#8B8177">draw cards · teal powers</text>
+          <rect x="518" y="82" width="30" height="18" rx="3" fill="#DDD5C8"/>
+          <rect x="554" y="82" width="30" height="18" rx="3" fill="#DDD5C8"/>
+          <rect x="590" y="82" width="30" height="18" rx="3" fill="#DDD5C8"/>
+          <rect x="626" y="82" width="30" height="18" rx="3" fill="#DDD5C8"/>
+          <rect x="662" y="82" width="30" height="18" rx="3" fill="#DDD5C8"/>
+
+          <!-- Decision flow -->
+          <text x="360" y="148" text-anchor="middle" font-family="'Source Sans 3',sans-serif" font-size="11" font-weight="600" fill="#5C5548">Decision Stack (LIFO)</text>
+          <!-- Decision type pills -->
+          <rect x="60" y="162" width="100" height="22" rx="11" fill="#8B6914" opacity="0.15"/>
+          <text x="110" y="177" text-anchor="middle" font-family="monospace" font-size="9" fill="#8B6914">PLAY_BIRD</text>
+          <rect x="175" y="162" width="110" height="22" rx="11" fill="#4A7C59" opacity="0.15"/>
+          <text x="230" y="177" text-anchor="middle" font-family="monospace" font-size="9" fill="#4A7C59">CHOOSE_FOOD</text>
+          <rect x="300" y="162" width="120" height="22" rx="11" fill="#7A4F3A" opacity="0.15"/>
+          <text x="360" y="177" text-anchor="middle" font-family="monospace" font-size="9" fill="#7A4F3A">POWER_CHOICE</text>
+          <rect x="435" y="162" width="100" height="22" rx="11" fill="#8B6914" opacity="0.15"/>
+          <text x="485" y="177" text-anchor="middle" font-family="monospace" font-size="9" fill="#8B6914">LAY_EGGS</text>
+          <rect x="550" y="162" width="130" height="22" rx="11" fill="#4A7C59" opacity="0.15"/>
+          <text x="615" y="177" text-anchor="middle" font-family="monospace" font-size="9" fill="#4A7C59">CHOOSE_BIRD_TO_PLAY</text>
+
+          <text x="360" y="215" text-anchor="middle" font-family="monospace" font-size="9" fill="#8B8177">~190 decisions/game · terminal reward only · no lookahead intermediate signal</text>
+        </svg>
+        <p class="diagram-caption">Three habitats, a LIFO decision stack, and 20+ decision types, each requiring its own policy head.</p>
+      </div>
+
+      <div class="pull-quote">
+        <p>A neural network playing Wingspan can't tell whether a move was good until the game ends, sometimes 180 decisions later. Every intermediate step is a credit assignment problem with no partial answer key.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 2: SUPERVISED PRETRAINING -->
+<section id="pretraining">
+  <div class="container">
+    <div class="reveal">
+      <h2>Phase 1: Supervised Pretraining</h2>
+      <p>Before any self-play, the network spends 200,000 gradient steps imitating SmartHeuristicAgent across 900,000 generated games. The policy head learns to copy the heuristic's move choices; the value head learns to predict game outcomes from position. After 17 hours on a c7i.8xlarge, policyLoss drops from 22.6 to 0.245 and valueLoss reaches 0.007.</p>
+      <p>Then we test it: run HeuristicEval using greedy argmax against SmartHeuristicAgent. The win rate is 14.4%. Against a random agent, it's 50%. Exactly coin-flip.. The policy head has memorized a move distribution, but <strong>argmax of that distribution plays at random quality</strong>. MCTS is not optional. The policy head is a prior for tree search, not a standalone decision-maker.</p>
+
+      <!-- Loss curve -->
+      <div class="diagram">
+        <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg">
+          <rect width="720" height="200" fill="#EDE8E0" rx="10"/>
+          <!-- Axes -->
+          <line x1="70" y1="20" x2="70" y2="160" stroke="#DDD5C8" stroke-width="1.5"/>
+          <line x1="70" y1="160" x2="680" y2="160" stroke="#DDD5C8" stroke-width="1.5"/>
+          <!-- Y axis labels -->
+          <text x="60" y="25" text-anchor="end" font-family="monospace" font-size="9" fill="#8B8177">22</text>
+          <text x="60" y="67" text-anchor="end" font-family="monospace" font-size="9" fill="#8B8177">12</text>
+          <text x="60" y="113" text-anchor="end" font-family="monospace" font-size="9" fill="#8B8177">4</text>
+          <text x="60" y="155" text-anchor="end" font-family="monospace" font-size="9" fill="#8B8177">0.2</text>
+          <!-- X axis labels -->
+          <text x="70" y="175" text-anchor="middle" font-family="monospace" font-size="9" fill="#8B8177">0</text>
+          <text x="222" y="175" text-anchor="middle" font-family="monospace" font-size="9" fill="#8B8177">50k</text>
+          <text x="375" y="175" text-anchor="middle" font-family="monospace" font-size="9" fill="#8B8177">100k</text>
+          <text x="527" y="175" text-anchor="middle" font-family="monospace" font-size="9" fill="#8B8177">150k</text>
+          <text x="678" y="175" text-anchor="middle" font-family="monospace" font-size="9" fill="#8B8177">200k</text>
+          <!-- policyLoss curve: starts high (22→0.245), exponential decay -->
+          <path d="M70,24 C140,24 170,50 222,72 C300,100 350,120 440,138 C530,150 600,155 678,157"
+                stroke="#8B6914" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <!-- valueLoss curve: starts lower, falls faster to near zero -->
+          <path d="M70,80 C120,82 160,100 222,120 C300,138 380,148 480,154 C560,157 620,158 678,158"
+                stroke="#4A7C59" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="5,3"/>
+          <!-- Legend -->
+          <line x1="90" y1="188" x2="115" y2="188" stroke="#8B6914" stroke-width="2.5"/>
+          <text x="120" y="192" font-family="monospace" font-size="9" fill="#8B6914">policyLoss (22.6 → 0.245)</text>
+          <line x1="320" y1="188" x2="345" y2="188" stroke="#4A7C59" stroke-width="2" stroke-dasharray="5,3"/>
+          <text x="350" y="192" font-family="monospace" font-size="9" fill="#4A7C59">valueLoss (1.32 → 0.007)</text>
+        </svg>
+        <p class="diagram-caption">200,000 training steps on 900k expert games. Both losses converge but greedy evaluation reveals the network can't play without search.</p>
+      </div>
+
+      <div class="comparison">
+        <div class="cmp-card before">
+          <div class="cmp-label">Greedy argmax (0 sims)</div>
+          <p>Win rate vs SmartHeuristic: <strong>14.4%</strong></p>
+          <p>Win rate vs Random: <strong>50.0%</strong></p>
+          <p>The policy head learned the shape of expert play but argmax picks the single highest-probability move, which averages out to random quality against a fixed opponent.</p>
+        </div>
+        <div class="cmp-card after">
+          <div class="cmp-label">With MCTS (50 sims)</div>
+          <p>Win rate vs SmartHeuristic: <strong>>2%</strong></p>
+          <p>The policy head is a <em>prior</em> for tree search. MCTS uses it to guide exploration and the value head to evaluate leaf nodes. Even 50 simulations produce coherent play.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3: THE MCTS LOOP -->
+<section id="mcts">
+  <div class="container">
+    <div class="reveal">
+      <h2>Building the MCTS Loop</h2>
+      <p>The AlphaZero training loop is a feedback cycle: the network generates self-play games using MCTS, those games produce training targets, and gradient descent updates the network. Repeat until the network gets good enough that its own games are better training data than yesterday's.</p>
+
+      <div class="diagram">
+        <svg viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg">
+          <rect width="720" height="260" fill="#EDE8E0" rx="10"/>
+          <!-- Central network box -->
+          <rect x="280" y="90" width="160" height="80" rx="8" fill="#FAF7F2" stroke="#8B6914" stroke-width="2"/>
+          <text x="360" y="124" text-anchor="middle" font-family="'Source Sans 3',sans-serif" font-size="11" font-weight="600" fill="#2C2820">WingspanNet</text>
+          <text x="360" y="140" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#8B8177">trunk → policy + value</text>
+          <text x="360" y="155" text-anchor="middle" font-family="monospace" font-size="8" fill="#8B8177">512→512→256</text>
+
+          <!-- MCTS box left -->
+          <rect x="60" y="100" width="140" height="60" rx="6" fill="#FAF7F2" stroke="#DDD5C8" stroke-width="1.5"/>
+          <text x="130" y="125" text-anchor="middle" font-family="'Source Sans 3',sans-serif" font-size="10" font-weight="600" fill="#2C2820">MCTS (N sims)</text>
+          <text x="130" y="142" text-anchor="middle" font-family="monospace" font-size="8" fill="#8B8177">PUCT + Dirichlet</text>
+          <text x="130" y="155" text-anchor="middle" font-family="monospace" font-size="8" fill="#8B8177">visit dist → π(a)</text>
+
+          <!-- Arrow: net → MCTS -->
+          <path d="M280,125 L210,125" stroke="#8B6914" stroke-width="1.5" marker-end="url(#arr)" fill="none"/>
+          <text x="245" y="118" text-anchor="middle" font-family="monospace" font-size="8" fill="#8B6914">prior p(a), v</text>
+
+          <!-- Replay buffer box bottom -->
+          <rect x="240" y="196" width="240" height="44" rx="6" fill="#FAF7F2" stroke="#DDD5C8" stroke-width="1.5"/>
+          <text x="360" y="214" text-anchor="middle" font-family="'Source Sans 3',sans-serif" font-size="10" font-weight="600" fill="#2C2820">Replay Buffer</text>
+          <text x="360" y="230" text-anchor="middle" font-family="monospace" font-size="8" fill="#8B8177">15,000 examples · last ~8 iters</text>
+
+          <!-- Arrow: MCTS → buffer -->
+          <path d="M130,160 L130,218 L240,218" stroke="#DDD5C8" stroke-width="1.5" marker-end="url(#arr2)" fill="none"/>
+          <text x="170" y="213" font-family="monospace" font-size="8" fill="#8B8177">(obs, π, z)</text>
+
+          <!-- Arrow: buffer → net -->
+          <path d="M480,218 L560,218 L560,130 L440,130" stroke="#4A7C59" stroke-width="1.5" marker-end="url(#arr3)" fill="none"/>
+          <text x="510" y="213" font-family="monospace" font-size="8" fill="#4A7C59">batch</text>
+
+          <!-- Loss box right -->
+          <rect x="520" y="90" width="150" height="70" rx="6" fill="#FAF7F2" stroke="#DDD5C8" stroke-width="1.5"/>
+          <text x="595" y="114" text-anchor="middle" font-family="'Source Sans 3',sans-serif" font-size="10" font-weight="600" fill="#2C2820">Training Step</text>
+          <text x="595" y="130" text-anchor="middle" font-family="monospace" font-size="8" fill="#8B8177">policyLoss = CE(logits, π)</text>
+          <text x="595" y="143" text-anchor="middle" font-family="monospace" font-size="8" fill="#8B8177">valueLoss = MSE(v, z)×0.25</text>
+          <text x="595" y="156" text-anchor="middle" font-family="monospace" font-size="8" fill="#8B8177">Adam, lr=1e-4</text>
+
+          <!-- Arrow: net → train -->
+          <path d="M440,125 L520,125" stroke="#DDD5C8" stroke-width="1.5" marker-end="url(#arr2)" fill="none"/>
+
+          <!-- Labels -->
+          <text x="360" y="22" text-anchor="middle" font-family="'Source Sans 3',sans-serif" font-size="11" font-weight="600" fill="#5C5548">AlphaZero Self-Play Loop</text>
+          <text x="130" y="175" text-anchor="middle" font-family="monospace" font-size="8" fill="#8B8177">56 parallel workers</text>
+
+          <!-- Tau label -->
+          <rect x="60" y="18" width="200" height="32" rx="5" fill="#FAF7F2" stroke="#DDD5C8"/>
+          <text x="160" y="31" text-anchor="middle" font-family="monospace" font-size="8" fill="#8B8177">τ=1.0 (iters 1-50) → τ→0.3 (iters 51-150)</text>
+          <text x="160" y="43" text-anchor="middle" font-family="monospace" font-size="8" fill="#8B8177">temperature annealing → commit to best moves</text>
+
+          <!-- Arrow markers -->
+          <defs>
+            <marker id="arr" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" fill="#8B6914"/>
+            </marker>
+            <marker id="arr2" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" fill="#DDD5C8"/>
+            </marker>
+            <marker id="arr3" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" fill="#4A7C59"/>
+            </marker>
+          </defs>
+        </svg>
+        <p class="diagram-caption">The AlphaZero training loop. MCTS uses the network's policy prior and value estimate to build a search tree; the resulting visit distribution becomes the policy training target.</p>
+      </div>
+
+      <h3>The Network Architecture</h3>
+      <p>The network is a flat MLP with a shared trunk and 20+ per-decision-type policy heads, plus one value head:</p>
+      <pre>Input (~400-dim observation)
+  └─ trunk: Linear(→512) → ReLU → Linear(→512) → ReLU → Linear(→256) → ReLU
+       ├─ policy_PLAY_BIRD:      Linear(256→70)   → visit distribution
+       ├─ policy_CHOOSE_FOOD:    Linear(256→6)    → visit distribution
+       ├─ policy_POWER_CHOICE:   Linear(256→100)  → visit distribution
+       ├─ … (20+ heads, one per DecisionType)
+       └─ value:                 Linear(256→1)    → sigmoid → [0,1]</pre>
+      <p>One detail that causes problems: the value head and all 20+ policy heads compete for the same 256-dimensional trunk output. This matters a lot (more on it in the bugs section).</p>
+
+      <details>
+        <summary>How MCTS uses the network at each decision</summary>
+        <div class="detail-body">
+          <p>For each game decision, MCTS runs N simulations. Each simulation walks the tree using PUCT selection (which balances exploitation of high-value nodes with exploration of under-visited ones), eventually reaching a leaf node. At the leaf, the network evaluates the board state: the policy head provides prior probabilities for each legal action, and the value head estimates the probability the current player wins from here. The value is backed up through the tree, updating visit counts and Q-values. After N simulations, the visit distribution at the root becomes the training target π(a) for that decision.</p>
+          <p>Dirichlet noise is added to root priors during training to ensure exploration. The noise alpha scales with the action space: <code>α = 10 / |actions|</code>, so a 5-action decision gets α=2.0 (broad noise) while a 50-action decision gets α=0.2 (concentrated noise).</p>
+        </div>
+      </details>
+
+      <h3>Three bugs that took months to find</h3>
+      <div class="comparison">
+        <div class="cmp-card before">
+          <div class="cmp-label">Bug: HeuristicEval at 0 sims</div>
+          <p>The evaluator was hardcoded to use <code>mctsSimulations=0</code>, measuring greedy argmax of the MCTS prior. A network trained to spread probability mass across actions always scored 0% wins. <strong>The eval was measuring the wrong thing entirely.</strong></p>
+        </div>
+        <div class="cmp-card after">
+          <div class="cmp-label">Fix: Pass config sims to evaluator</div>
+          <p>Always evaluate with the same MCTS wrapper used during training. The policy head is a prior, not a policy. Greedy argmax is meaningless without the search that gives it structure.</p>
+        </div>
+      </div>
+      <div class="comparison">
+        <div class="cmp-card before">
+          <div class="cmp-label">Bug: c_puct ≈ 0.07 effective</div>
+          <p>Using the DeepMind log-scale formula with <code>C_BASE=19652</code> at 50 simulations: <code>cPuct_eff = 1.0 × √(2 ln(19703/19652)) = 0.071</code>. Near-greedy tree search. MCTS barely improved on the raw prior.</p>
+        </div>
+        <div class="cmp-card after">
+          <div class="cmp-label">Fix: c_puct=5.0 (flat)</div>
+          <p>The log-scale formula is calibrated for 800 simulations. At 50 sims, use a flat coefficient. <code>c_puct=5.0</code> gives effective exploration comparable to AlphaZero's configuration at full sim count.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 4: THE PLATEAU -->
+<section id="plateau">
+  <div class="container">
+    <div class="reveal">
+      <h2>The Plateau, or So We Thought</h2>
+      <p>After fixing the evaluation bug and the c_puct formula, training started producing real results. The network won games. HeuristicEval (net vs SmartHeuristic, 100 games, 50 MCTS simulations) showed net avg scores rising from the low 20s toward 24-25.</p>
+      <p>Then it stopped. Every run, every configuration, the same result: net avg peaked around 24-25 somewhere between iter 20 and iter 80, then declined or stagnated. Six runs across two months, all hitting the same ceiling. We changed the opponent mix, the replay buffer size, the historical opponent fraction, the instance type. The ceiling didn't move.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Run</th>
+              <th>Key change</th>
+              <th>Peak net avg</th>
+              <th>Peak iter</th>
+              <th>Outcome</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>v3</code></td>
+              <td>All bugs fixed, 50 sims, c_puct=1.0</td>
+              <td class="num">24.1</td>
+              <td>iter 30</td>
+              <td>Killed; c_puct still too low</td>
+            </tr>
+            <tr>
+              <td><code>v5</code></td>
+              <td>c_puct=5.0, historicalFrac=0.35</td>
+              <td class="num">24.4</td>
+              <td>iter 20</td>
+              <td>Plateau, distribution shift</td>
+            </tr>
+            <tr>
+              <td><code>v6</code></td>
+              <td>historicalFrac=0.50, buffer 30k→15k</td>
+              <td class="num">23.8</td>
+              <td>iter 20</td>
+              <td>Migrated to ARM instance</td>
+            </tr>
+            <tr>
+              <td><code>v7</code></td>
+              <td>ARM c8g.16xlarge, BF16, 200 iters</td>
+              <td class="num">25.3</td>
+              <td>iter 80</td>
+              <td>OOM crash at iter 125</td>
+            </tr>
+            <tr>
+              <td><code>v8</code></td>
+              <td>BF16 removed, valueLoss×0.25</td>
+              <td class="num">27.7</td>
+              <td>iter 140</td>
+              <td>Killed to run eval suite</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>The numbers were discouraging. SmartHeuristic averages 55; we were stuck at 24-25. That's a 30-point gap. We ran three parallel research agents across AlphaZero literature, value head architecture studies, and sim count theory. The research confirmed what we suspected: <strong>the network probably wasn't as bad as the numbers showed.</strong></p>
+
+      <div class="pull-quote">
+        <p>Six runs. Same ceiling. We had been solving a training problem that was partly a measurement problem all along.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 5: THE MEASUREMENT PROBLEM -->
+<section id="measurement">
+  <div class="container">
+    <div class="reveal">
+      <h2>The Measurement Problem</h2>
+      <p>Every HeuristicEval during training used 50 MCTS simulations, the same count used during training. The logic seemed sound: test the same way you train. But MCTS is a search algorithm. The strength of the resulting play scales with simulation count. Running 50 sims at eval time wasn't measuring how good the network was. It was measuring how good the network was <em>given a very shallow search.</em></p>
+      <p>Taking the v7 iter-80 checkpoint and running the same 100-game eval at different sim counts:</p>
+
+      <div class="sim-chart">
+        <div class="sim-row">
+          <div class="sim-label">50</div>
+          <div class="sim-bar-wrap"><div class="sim-bar" style="width:45%"></div></div>
+          <div class="sim-val">25.0</div>
+        </div>
+        <div class="sim-row">
+          <div class="sim-label">100</div>
+          <div class="sim-bar-wrap"><div class="sim-bar" style="width:49%"></div></div>
+          <div class="sim-val">27.2</div>
+        </div>
+        <div class="sim-row">
+          <div class="sim-label">200</div>
+          <div class="sim-bar-wrap"><div class="sim-bar" style="width:60%"></div></div>
+          <div class="sim-val">32.9</div>
+        </div>
+        <div class="sim-row">
+          <div class="sim-label">400</div>
+          <div class="sim-bar-wrap"><div class="sim-bar" style="width:64%"></div></div>
+          <div class="sim-val">35.1</div>
+        </div>
+      </div>
+      <p style="font-size:0.82rem; color:var(--text-muted); margin-top:-8px">Same checkpoint. Net avg score vs SmartHeuristic. Max = heuristic avg of 55.</p>
+
+      <p>The same network that scored 25.0 at 50 sims scored 32.9 at 200 sims, a 7.9-point improvement from changing only the eval configuration. The 50-sim ceiling wasn't a training failure. It was an instrument error.</p>
+
+      <p>The natural next question: if 50-sim eval misrepresents all of these checkpoints, what does the real learning curve look like? Running 200-sim eval across all 12 checkpoints in the v7 pool:</p>
+
+      <div class="diagram">
+        <svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg">
+          <rect width="720" height="220" fill="#EDE8E0" rx="10"/>
+          <!-- Axes -->
+          <line x1="70" y1="15" x2="70" y2="175" stroke="#DDD5C8" stroke-width="1.5"/>
+          <line x1="70" y1="175" x2="680" y2="175" stroke="#DDD5C8" stroke-width="1.5"/>
+          <!-- Y labels -->
+          <text x="60" y="20" text-anchor="end" font-family="monospace" font-size="9" fill="#8B8177">40</text>
+          <text x="60" y="65" text-anchor="end" font-family="monospace" font-size="9" fill="#8B8177">36</text>
+          <text x="60" y="110" text-anchor="end" font-family="monospace" font-size="9" fill="#8B8177">33</text>
+          <text x="60" y="155" text-anchor="end" font-family="monospace" font-size="9" fill="#8B8177">30</text>
+          <!-- X labels (iters) -->
+          <text x="95"  y="190" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#8B8177">10</text>
+          <text x="145" y="190" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#8B8177">20</text>
+          <text x="196" y="190" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#8B8177">30</text>
+          <text x="247" y="190" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#8B8177">40</text>
+          <text x="298" y="190" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#8B8177">50</text>
+          <text x="349" y="190" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#8B8177">60</text>
+          <text x="400" y="190" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#8B8177">70</text>
+          <text x="451" y="190" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#8B8177">80</text>
+          <text x="502" y="190" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#8B8177">90</text>
+          <text x="552" y="190" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#8B8177">100</text>
+          <text x="603" y="190" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#8B8177">110</text>
+          <text x="654" y="190" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#8B8177">120</text>
+          <!-- 50-sim "ceiling" reference line -->
+          <line x1="70" y1="145" x2="680" y2="145" stroke="#8B8177" stroke-width="1" stroke-dasharray="4,4"/>
+          <text x="685" y="148" font-family="monospace" font-size="8" fill="#8B8177">50-sim ceiling (~25)</text>
+          <!-- 200-sim curve points:
+               iter10=35.0→y=65, iter20=36.0→y=43, iter30=35.3→y=55, iter40=34.6→y=66,
+               iter50=37.1→y=30, iter60=38.1→y=20, iter70=34.4→y=68,
+               iter80=33.9→y=73, iter90=34.4→y=68, iter100=31.6→y=93,
+               iter110=33.8→y=74, iter120=32.6→y=86
+               Scale: 40→y=15, 30→y=155; 1pt ≈ 14px -->
+          <polyline
+            points="95,68 145,48 196,57 247,67 298,35 349,23 400,70 451,74 502,70 552,96 603,75 654,87"
+            fill="none" stroke="#8B6914" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+          <!-- Dots -->
+          <circle cx="95"  cy="68" r="4" fill="#8B6914"/>
+          <circle cx="145" cy="48" r="4" fill="#8B6914"/>
+          <circle cx="196" cy="57" r="4" fill="#8B6914"/>
+          <circle cx="247" cy="67" r="4" fill="#8B6914"/>
+          <circle cx="298" cy="35" r="5" fill="#8B6914"/>
+          <circle cx="349" cy="23" r="6" fill="#8B6914"/>
+          <text x="349" y="16" text-anchor="middle" font-family="monospace" font-size="8" fill="#8B6914">38.1 peak</text>
+          <circle cx="400" cy="70" r="4" fill="#8B6914"/>
+          <circle cx="451" cy="74" r="4" fill="#8B6914"/>
+          <circle cx="502" cy="70" r="4" fill="#8B6914"/>
+          <circle cx="552" cy="96" r="4" fill="#8B8177"/>
+          <circle cx="603" cy="75" r="4" fill="#8B8177"/>
+          <circle cx="654" cy="87" r="4" fill="#8B8177"/>
+          <!-- Legend -->
+          <line x1="90" y1="206" x2="115" y2="206" stroke="#8B6914" stroke-width="2.5"/>
+          <text x="120" y="210" font-family="monospace" font-size="9" fill="#8B6914">200-sim eval (true score)</text>
+          <line x1="360" y1="206" x2="385" y2="206" stroke="#8B8177" stroke-width="1" stroke-dasharray="4,4"/>
+          <text x="390" y="210" font-family="monospace" font-size="9" fill="#8B8177">50-sim training ceiling</text>
+        </svg>
+        <p class="diagram-caption">The true 200-sim learning curve across all v7 checkpoints. The network was at 35-38 from iter 10 onward, invisible at 50 sims. The real peak was iter 60 (38.1), exactly where we killed every clean run.</p>
+      </div>
+
+      <p>Every decision to kill a run at the "plateau" was made watching 50-sim evals report 24-25. The network had already crossed 35 at iter 10. The plateau wasn't the network giving up. It was the thermometer being 10 degrees short.</p>
+
+      <div class="pull-quote">
+        <p>We killed runs at iter 50-60 because the numbers looked stuck. At 200 sims, iter 60 is the all-time peak for those checkpoints: 38.1 net avg, 19% win rate.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 6: BUG HALL OF FAME -->
+<section id="bugs">
+  <div class="container">
+    <div class="reveal">
+      <h2>What We Actually Broke Along the Way</h2>
+      <p>Each of these bugs was silent: the training loop kept running, losses kept moving, and the problem only showed up in eval results or crash logs. None of them were obvious from the code.</p>
+
+      <div class="bug-grid">
+        <div class="bug-card">
+          <div class="bug-name">DNNL_DEFAULT_FPMATH_MODE=BF16</div>
+          <div class="bug-desc">Added as an inference optimization for the ARM instance. The environment variable applies to all oneDNN primitives, including backward GEMMs. BF16 has 7 mantissa bits; small value head gradients underflowed to zero. The value head froze at valueLoss=0.60 for 125 iterations while policyLoss kept declining.</div>
+          <div class="bug-fix">Fix: Remove entirely. BF16 mode is documented for inference, never for training. The DJL page that recommends it is titled "Inference Performance Optimization."</div>
+        </div>
+        <div class="bug-card">
+          <div class="bug-name">Reading freed NDArrays after gc.backward()</div>
+          <div class="bug-desc">Loss scalar values were extracted after the gradient collector's <code>use{}</code> block closed. DJL frees NDArrays when the collector exits. Without BF16, freed memory actually clears, returning NaN. BF16 mode had left the memory readable, masking the bug entirely. First run without BF16: both losses reported NaN, weights corrupted on step 1.</div>
+          <div class="bug-fix">Fix: Extract scalar values inside the <code>use{}</code> block, before <code>gc.backward()</code>.</div>
+        </div>
+        <div class="bug-card">
+          <div class="bug-name">80:1 gradient ratio (value head starvation)</div>
+          <div class="bug-desc">Setting value loss weight to 0.25 with 20 decision types produces an 80:1 effective gradient ratio on the trunk (20 policy heads × 4x weight). The trunk specializes for policy-useful features. The value head, reading a policy-specialized 256-dim vector with no private hidden layer, sees an increasingly hostile input distribution. valueLoss rises over 100+ iterations.</div>
+          <div class="bug-fix">Fix: Either raise value weight back toward 1.0, or add a private hidden layer to the value head so it can transform policy-specialized trunk features.</div>
+        </div>
+        <div class="bug-card">
+          <div class="bug-name">Heuristic opponents poisoning avgZ</div>
+          <div class="bug-desc">With 50% of training games using SmartHeuristicAgent as opponent, those games had z≈0.05 (the net lost badly). The replay buffer filled with "I always lose" examples. The value head learned to output near-zero everywhere. MCTS, relying on value estimates for leaf evaluation, became effectively greedy. HeuristicEval dropped to 16-18 net avg, worse than the starting checkpoint.</div>
+          <div class="bug-fix">Fix: Zero heuristic opponents. Use only self-play, historical pool, and random agents. avgZ immediately stabilized at 0.48-0.50.</div>
+        </div>
+        <div class="bug-card">
+          <div class="bug-name">Heuristic anchor games in replay buffer</div>
+          <div class="bug-desc">Running 50 heuristic-vs-heuristic games per iteration to prevent catastrophic forgetting sounded sensible. These produce 1-hot policy targets (deterministic heuristic choice). MCTS games produce visit distribution targets (soft probability). Both landed in the same replay buffer. The policy head received contradictory gradient signals for 40 iterations, policyLoss stalled at 14+.</div>
+          <div class="bug-fix">Fix: Zero anchor games. The supervised pretrained checkpoint already provides the base knowledge. MCTS should build from there without re-injecting 1-hot supervision.</div>
+        </div>
+        <div class="bug-card">
+          <div class="bug-name">tau=1.0 training exploratory agents</div>
+          <div class="bug-desc">Temperature τ=1.0 means moves are sampled proportionally to visit counts. The network never commits to its best move during training. With 1.9M training positions all labeled with exploratory distributions, the network learned "spread probability mass like a 50-sim explorer." Evaluated near-greedily against SmartHeuristic, it played stochastically against a deterministic opponent. policyLoss of 13.5-14 nats ≈ near-uniform distributions (ln(1M) ≈ 13.8).</div>
+          <div class="bug-fix">Fix: Let tau decay run past iter 51. v8 was the first run to survive long enough to see tau drop below 0.5. Net avg rose from 25.4 → 27.7 directly in step with the decay.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 7: V9 -->
+<section id="v9">
+  <div class="container">
+    <div class="reveal">
+      <h2>v9: The First Clean Run</h2>
+      <p>With the measurement problem diagnosed, the fix for training was clear: use 200 simulations during training itself, not just at eval time. More sims during self-play means deeper trees, sharper visit distributions as policy targets, and less noise in the learning signal. The policy head trains toward "what MCTS recommends after real search" rather than "what a 50-sim random walk happens to visit."</p>
+
+      <p>v9 starts from v8's best checkpoint (38.5 net avg at 200-sim eval) and runs 200 sims per move during generation. Gen time rises from 120s to ~480s per iteration, 4× slower, but the training signal quality is meaningfully higher.</p>
+
+      <div class="metrics">
+        <div class="metric-card">
+          <div class="metric-num">39.4</div>
+          <div class="metric-label">Net avg @ iter 20</div>
+          <div class="metric-sub">New all-time high. Previous best: 38.1 (v7 iter 60).</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-num">20%</div>
+          <div class="metric-label">Win rate @ iter 20</div>
+          <div class="metric-sub">vs SmartHeuristic. Previous best: 19%.</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-num">35-38</div>
+          <div class="metric-label">Self-play avg score</div>
+          <div class="metric-sub">vs 28-32 in v8. Better games during training.</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-num">37.5</div>
+          <div class="metric-label">Net avg @ iter 50</div>
+          <div class="metric-sub">No collapse. v7 at iter 50: 37.1. Still holding.</div>
+        </div>
+      </div>
+
+      <p>The iter-60 mode collapse that ended every previous clean run has not appeared. At iter 50, where v7 began declining, v9 is holding at 37.5. The tau decay schedule (τ=1.0 for iters 1-50, then annealing toward 0.3) has just begun. Iter 60 will tell the story.</p>
+
+      <div class="pipeline">
+        <div class="pipeline-step">
+          <div class="pipeline-num">v1-v2</div>
+          <div class="pipeline-label">Cold start</div>
+          <div class="pipeline-sub">20 sims, bugs, no eval fix</div>
+        </div>
+        <div class="pipeline-step">
+          <div class="pipeline-num">Phase 1</div>
+          <div class="pipeline-label">Supervised</div>
+          <div class="pipeline-sub">900k games, 200k steps</div>
+        </div>
+        <div class="pipeline-step">
+          <div class="pipeline-num">v3-v6</div>
+          <div class="pipeline-label">Bug fixes</div>
+          <div class="pipeline-sub">eval, c_puct, opponents, anchor games</div>
+        </div>
+        <div class="pipeline-step">
+          <div class="pipeline-num">v7</div>
+          <div class="pipeline-label">ARM + BF16</div>
+          <div class="pipeline-sub">Faster gen, frozen value head</div>
+        </div>
+        <div class="pipeline-step">
+          <div class="pipeline-num">v8</div>
+          <div class="pipeline-label">BF16 removed</div>
+          <div class="pipeline-sub">Tau decay confirmed, 27.7 peak</div>
+        </div>
+        <div class="pipeline-step">
+          <div class="pipeline-num">v9</div>
+          <div class="pipeline-label">200 sims</div>
+          <div class="pipeline-sub">39.4 peak, running</div>
+        </div>
+      </div>
+
+      <details>
+        <summary>Why self-play scores rose so much at 200 sims</summary>
+        <div class="detail-body">
+          <p>Self-play avg scores jumped from 28-32 (v8) to 35-38 (v9). Both players improved.. With deeper search, both sides find better moves, and the resulting games are higher-quality. This feeds back into better training targets: visit distributions from 200-sim trees are sharper and more informative than from 50-sim trees. The policy head trains against more clearly differentiated action preferences, so it learns more per gradient step.</p>
+          <p>At 50 sims with branching factor B=20, the top move gets ~15-20 visits and most get 0-1. The visit distribution is mostly prior-shaped with small MCTS corrections. At 200 sims, the top move gets 60-80 visits, creating a meaningfully peaked distribution that the policy head can actually learn from.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 8: WHATS NEXT -->
+<section id="next">
+  <div class="container">
+    <div class="reveal">
+      <h2>What's Next</h2>
+      <p>v9 addresses the sim count problem. Three structural improvements remain, each with independent estimated gains based on AlphaZero literature and ablation studies from Leela Chess Zero and KataGo.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Change</th><th>What it fixes</th><th>Est. gain</th><th>Cost</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Private value head hidden layer</strong><br><code>Linear(256→128)→ReLU→Linear(128→1)</code></td>
+              <td>Value head has no private representational capacity. Reading a policy-specialized 256-dim trunk output with a single linear layer limits what value estimation can learn. All reference implementations (AlphaZero, Leela, KataGo) use a hidden layer.</td>
+              <td class="num">+3-5 pts</td>
+              <td>New supervised pretraining run (~17h). Supervised checkpoint already staged on ARM.</td>
+            </tr>
+            <tr>
+              <td><strong>Q-value target mixing</strong><br><code>target = 0.5z + 0.5q</code></td>
+              <td>Terminal outcome z at move 1 of a 190-decision game is extremely noisy as a training signal. Blending with the MCTS root Q-value provides a local signal for early positions. Oracle/AlphaZero paper confirms consistent improvement.</td>
+              <td class="num">+2-4 pts</td>
+              <td>Medium code change. Expose root Q from MctsAgent, modify TrainingExample.</td>
+            </tr>
+            <tr>
+              <td><strong>Residual skip in trunk</strong></td>
+              <td>A flat 3-layer MLP has no skip connections. Value head gradients travel through 3 dense transforms with no bypass path. Skip connection improves gradient flow for the value signal.</td>
+              <td class="num">+1-3 pts</td>
+              <td>5-line code change. Add with architectural fix.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Stacked, these push the projected ceiling to 40-46 net avg, potentially making the network competitive with SmartHeuristic's 55 within the next two runs. The architectural fix requires new supervised pretraining because weight dimensions change; the supervised checkpoint is already staged on the ARM instance at <code>~/wingspan-supervised-checkpoint/</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 9: LESSONS -->
+<section id="lessons">
+  <div class="container">
+    <div class="reveal">
+      <h2>Four Things That Transfer</h2>
+
+      <h3>1. Eval sim count is not training sim count</h3>
+      <p>MCTS strength scales with simulation count. Evaluating at 50 sims when training at 50 sims seems consistent, but you're measuring search quality at the cheapest setting, not network quality. Run eval at 2-4× training sims to see what the network actually knows. The 10-point gap between 50-sim and 200-sim eval was the most consequential finding in this entire project.</p>
+
+      <h3>2. tau=1.0 trains exploratory agents</h3>
+      <p>AlphaGo Zero's temperature schedule is per-game (τ=1.0 for first 30 moves, then greedy). Holding τ=1.0 for 50+ full training iterations trains the network to sample proportionally to visit counts, not to select best moves. The resulting agent plays stochastically against deterministic opponents. Tau decay needs to happen. The effect is measurable and rapid once it does.</p>
+
+      <h3>3. BF16 is an inference optimization, full stop</h3>
+      <p><code>DNNL_DEFAULT_FPMATH_MODE=BF16</code> appears in DJL's inference tuning documentation for a reason. It routes all oneDNN GEMMs through BF16, including weight gradient computation. For batch-1 inference on ARM, it's a meaningful speedup. For training, it corrupts the backward pass for any head whose gradients are small-magnitude, exactly the value head, which always gets smaller gradients than the combined policy signal.</p>
+
+      <h3>4. A single Linear value head cannot co-exist with 20+ policy heads</h3>
+      <p>Every serious AlphaZero implementation uses a hidden layer in the value head. The reason is structural: the shared trunk gets pulled toward policy-useful representations by whichever gradient signal is largest. A value head with no private transformation capacity reads whatever the policy gradient leaves behind. At 0.25 value weight with 20 decision types, that's an 80:1 gradient ratio. The trunk moves faster than a single linear layer can track. The hidden layer gives the value head its own feature space to work with, independent of trunk specialization.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    wingspan-simulator-v3 · self-play-training branch · May 2026
+  </div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+</script>
+</body>
+</html>
