@@ -276,6 +276,23 @@
       color: var(--text-muted); letter-spacing: 0.04em;
     }
 
+    /* Bird strip */
+    .bird-strip {
+      display: flex; gap: 32px; align-items: center;
+      margin-top: 40px; flex-wrap: wrap;
+    }
+    .bird-strip img {
+      width: 52px; height: 52px; opacity: 0.55;
+      transition: opacity 0.2s, transform 0.2s;
+      filter: sepia(0.3);
+    }
+    .bird-strip img:hover { opacity: 0.9; transform: translateY(-3px); }
+    .bird-strip .bird-name {
+      font-family: var(--font-mono); font-size: 0.62rem;
+      color: var(--text-muted); text-align: center; margin-top: 4px;
+    }
+    .bird-figure { display: flex; flex-direction: column; align-items: center; }
+
     /* Scroll reveal */
     .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.5s ease, transform 0.5s ease; }
     .reveal.visible { opacity: 1; transform: none; }
@@ -329,6 +346,28 @@
       <span>📊 9 training runs</span>
       <span>🔬 MCTS + AlphaZero</span>
       <span>📅 May 2026</span>
+    </div>
+    <div class="bird-strip">
+      <figure class="bird-figure">
+        <img src="https://api.iconify.design/game-icons/barn-owl.svg?color=%238B6914&width=52&height=52" alt="Barn Owl">
+        <div class="bird-name">Barn Owl</div>
+      </figure>
+      <figure class="bird-figure">
+        <img src="https://api.iconify.design/game-icons/heron.svg?color=%238B6914&width=52&height=52" alt="Great Blue Heron">
+        <div class="bird-name">Great Blue Heron</div>
+      </figure>
+      <figure class="bird-figure">
+        <img src="https://api.iconify.design/game-icons/eating-pelican.svg?color=%238B6914&width=52&height=52" alt="American White Pelican">
+        <div class="bird-name">White Pelican</div>
+      </figure>
+      <figure class="bird-figure">
+        <img src="https://api.iconify.design/game-icons/flamingo.svg?color=%238B6914&width=52&height=52" alt="Flamingo">
+        <div class="bird-name">Flamingo</div>
+      </figure>
+      <figure class="bird-figure">
+        <img src="https://api.iconify.design/game-icons/eagle-head.svg?color=%238B6914&width=52&height=52" alt="Bald Eagle">
+        <div class="bird-name">Bald Eagle</div>
+      </figure>
     </div>
   </div>
 </section>
