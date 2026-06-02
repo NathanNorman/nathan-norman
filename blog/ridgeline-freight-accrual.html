@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How to Close the Books on Freight: A Rate-Card Accrual Engine</title>
+<meta name="description" content="Building a freight accrual engine that beats the trailing-average method — calibrating against invoice history, tracking quarterly tier resets, and producing a journal entry Marcus can trust.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<style>
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #faf8f5;
+  --bg-warm: #f5f0eb;
+  --bg-dark: #1a1410;
+  --surface: #ffffff;
+  --border: #e8e0d8;
+  --border-light: #efe9e2;
+  --text: #2c2521;
+  --text-secondary: #6b5e55;
+  --text-muted: #9a8d84;
+  --accent: #c4632a;
+  --accent-hover: #a8521f;
+  --accent-faint: rgba(196,99,42,0.06);
+  --accent-line: rgba(196,99,42,0.25);
+  --green: #2d7a47;
+  --green-faint: rgba(45,122,71,0.08);
+  --red: #c0392b;
+  --red-faint: rgba(192,57,43,0.08);
+  --serif: 'Source Serif 4', Georgia, serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --shadow-sm: 0 1px 3px rgba(60,40,20,0.04), 0 1px 2px rgba(60,40,20,0.06);
+  --shadow-md: 0 4px 16px rgba(60,40,20,0.07), 0 2px 6px rgba(60,40,20,0.04);
+  --shadow-lg: 0 8px 30px rgba(60,40,20,0.08), 0 4px 10px rgba(60,40,20,0.04);
+  --r: 8px;
+}
+
+html { scroll-behavior: smooth; font-size: 17px; scrollbar-width: thin; scrollbar-color: var(--border) var(--bg); overflow-x: hidden; }
+body { font-family: var(--serif); background: var(--bg); color: var(--text); line-height: 1.75; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 9999;
+}
+
+a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
+a:hover { color: var(--accent-hover); }
+::selection { background: var(--accent); color: #fff; }
+
+/* NAV */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(250,248,245,0.88);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-light);
+  padding: 0 2rem;
+}
+.nav-inner {
+  max-width: 860px; margin: 0 auto;
+  display: flex; align-items: center; gap: 0.25rem; height: 52px; overflow-x: auto;
+}
+nav a {
+  font-family: var(--sans); font-size: 0.72rem; font-weight: 500;
+  letter-spacing: 0.03em; color: var(--text-muted);
+  padding: 0.4rem 0.75rem; border-radius: 4px; white-space: nowrap; transition: all 0.2s;
+}
+nav a:hover { color: var(--accent); background: var(--accent-faint); }
+.nav-home { font-weight: 500; margin-right: 0.5rem; }
+.nav-title { font-weight: 600; font-size: 0.76rem; color: var(--accent); margin-right: 1rem; letter-spacing: 0.01em; }
+
+/* CONTAINER */
+.container { max-width: 860px; margin: 0 auto; padding: 0 clamp(1.25rem, 4vw, 3rem); position: relative; z-index: 1; }
+.container-wide { max-width: 1100px; margin: 0 auto; padding: 0 clamp(1.25rem, 4vw, 3rem); position: relative; z-index: 1; }
+
+/* HERO */
+.hero {
+  padding: 5rem 0 4rem;
+  border-bottom: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(196,99,42,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-badge {
+  font-family: var(--sans); font-size: 0.68rem; font-weight: 600;
+  color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase;
+  margin-bottom: 1.25rem; display: inline-block;
+  padding: 0.2rem 0.6rem; background: var(--accent-faint); border-radius: 2px;
+}
+.hero h1 {
+  font-family: var(--sans);
+  font-size: clamp(2.2rem, 4.5vw, 3.8rem);
+  font-weight: 700; line-height: 1.1; letter-spacing: -0.04em;
+  color: var(--text); margin-bottom: 1.5rem;
+  max-width: 820px;
+}
+.hero h1 em { font-style: italic; color: var(--accent); }
+.hero .subtitle {
+  font-family: var(--serif); font-size: 1.15rem; color: var(--text-secondary);
+  line-height: 1.8; max-width: 640px; margin-bottom: 2.5rem;
+}
+.hero-meta {
+  display: flex; gap: 2rem; flex-wrap: wrap;
+  font-family: var(--sans); font-size: 0.78rem; color: var(--text-muted);
+}
+.hero-meta span { display: flex; align-items: center; gap: 0.4rem; }
+
+/* ACCRUAL SUMMARY CARDS */
+.summary-section { padding: 4rem 0; border-bottom: 1px solid var(--border); }
+.summary-label {
+  font-family: var(--sans); font-size: 0.72rem; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+  margin-bottom: 2rem;
+}
+.carrier-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem; margin-bottom: 1.5rem;
+}
+@media (max-width: 700px) { .carrier-grid { grid-template-columns: 1fr; } }
+
+.carrier-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1.5rem;
+  box-shadow: var(--shadow-sm); position: relative; overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+.carrier-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.carrier-card.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-line); }
+.carrier-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--accent); opacity: 0; transition: opacity 0.3s;
+}
+.carrier-card:hover::before, .carrier-card.active::before { opacity: 1; }
+.carrier-name {
+  font-family: var(--sans); font-size: 0.72rem; font-weight: 600;
+  letter-spacing: 0.05em; color: var(--text-muted); text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+.carrier-total {
+  font-family: var(--sans); font-size: 2rem; font-weight: 700;
+  letter-spacing: -0.03em; color: var(--text); margin-bottom: 0.4rem;
+}
+.carrier-delta {
+  font-family: var(--mono); font-size: 0.78rem; font-weight: 500;
+  padding: 0.15rem 0.5rem; border-radius: 3px; display: inline-block;
+}
+.delta-up { color: var(--red); background: var(--red-faint); }
+.delta-down { color: var(--green); background: var(--green-faint); }
+.carrier-denise {
+  font-family: var(--sans); font-size: 0.73rem; color: var(--text-muted);
+  margin-top: 0.6rem;
+}
+.carrier-ships {
+  font-family: var(--sans); font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;
+}
+
+.grand-total-bar {
+  background: var(--bg-dark); border-radius: var(--r);
+  padding: 1.75rem 2rem; display: flex; align-items: center;
+  justify-content: space-between; gap: 2rem; flex-wrap: wrap;
+}
+.grand-total-label {
+  font-family: var(--sans); font-size: 0.72rem; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.5);
+  margin-bottom: 0.3rem;
+}
+.grand-total-number {
+  font-family: var(--sans); font-size: 2.4rem; font-weight: 700;
+  letter-spacing: -0.04em; color: #fff;
+}
+.grand-total-right {
+  text-align: right;
+}
+.grand-total-vs {
+  font-family: var(--sans); font-size: 0.78rem; color: rgba(255,255,255,0.5);
+  margin-bottom: 0.25rem;
+}
+.grand-total-delta-pill {
+  font-family: var(--mono); font-size: 0.85rem; font-weight: 500;
+  background: rgba(196,99,42,0.3); color: #f4a06a;
+  padding: 0.25rem 0.75rem; border-radius: 20px; display: inline-block;
+}
+
+/* METHODOLOGY BENTO */
+.methodology-section { padding: 4.5rem 0; border-bottom: 1px solid var(--border); }
+.section-heading {
+  font-family: var(--sans); font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 700; letter-spacing: -0.03em; color: var(--text);
+  margin-bottom: 0.75rem;
+}
+.section-sub {
+  font-family: var(--serif); font-size: 1.05rem; color: var(--text-secondary);
+  line-height: 1.8; max-width: 600px; margin-bottom: 2.5rem;
+}
+
+.bento { display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-flow: dense; gap: 1rem; }
+@media (max-width: 800px) { .bento { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px) { .bento { grid-template-columns: 1fr; } }
+
+.bento-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1.5rem;
+  box-shadow: var(--shadow-sm); overflow: hidden; position: relative;
+}
+.bento-card.span2 { grid-column: span 2; }
+.bento-card.dark {
+  background: var(--bg-dark); border-color: transparent; color: #fff;
+}
+.bento-card.accent {
+  background: var(--accent); border-color: transparent; color: #fff;
+}
+.bento-title {
+  font-family: var(--sans); font-size: 0.72rem; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 0.75rem;
+}
+.bento-card.dark .bento-title { color: rgba(255,255,255,0.45); }
+.bento-card.accent .bento-title { color: rgba(255,255,255,0.65); }
+.bento-value {
+  font-family: var(--sans); font-size: 2rem; font-weight: 700;
+  letter-spacing: -0.035em; color: var(--text); line-height: 1;
+}
+.bento-card.dark .bento-value { color: #fff; }
+.bento-card.accent .bento-value { color: #fff; }
+.bento-desc {
+  font-family: var(--serif); font-size: 0.88rem; color: var(--text-secondary);
+  line-height: 1.6; margin-top: 0.6rem;
+}
+.bento-card.dark .bento-desc { color: rgba(255,255,255,0.55); }
+.bento-card.accent .bento-desc { color: rgba(255,255,255,0.75); }
+
+.rate-table {
+  font-family: var(--mono); font-size: 0.75rem; width: 100%;
+  border-collapse: collapse; margin-top: 0.5rem;
+}
+.rate-table td { padding: 0.3rem 0; }
+.rate-table .td-label { color: var(--text-muted); }
+.rate-table .td-old { text-decoration: line-through; color: var(--text-muted); }
+.rate-table .td-new { color: var(--accent); font-weight: 600; }
+
+/* GSAP REVEAL SECTION */
+.reveal-section {
+  padding: 5rem 0; border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.reveal-text {
+  font-family: var(--sans); font-size: clamp(1.6rem, 3vw, 2.6rem);
+  font-weight: 700; letter-spacing: -0.035em; line-height: 1.35;
+  max-width: 760px; color: var(--text);
+}
+.reveal-text .word {
+  display: inline-block; opacity: 0.1;
+  transition: opacity 0.3s;
+}
+
+/* DRILL-DOWN TABLES */
+.drilldown-section { padding: 4rem 0; border-bottom: 1px solid var(--border); }
+.tab-bar {
+  display: flex; gap: 0.5rem; margin-bottom: 1.75rem; flex-wrap: wrap;
+}
+.tab-btn {
+  font-family: var(--sans); font-size: 0.78rem; font-weight: 600;
+  padding: 0.5rem 1.1rem; border-radius: 4px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-secondary); cursor: pointer;
+  transition: all 0.2s;
+}
+.tab-btn:hover { border-color: var(--accent); color: var(--accent); }
+.tab-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r); }
+.data-table {
+  width: 100%; border-collapse: collapse; font-size: 0.82rem;
+  font-family: var(--sans);
+}
+.data-table th {
+  background: var(--bg-warm); font-size: 0.68rem; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted);
+  padding: 0.65rem 1rem; text-align: left; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.data-table td {
+  padding: 0.55rem 1rem; border-bottom: 1px solid var(--border-light);
+  color: var(--text); white-space: nowrap;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--accent-faint); }
+.data-table .mono { font-family: var(--mono); font-size: 0.78rem; }
+.data-table .muted { color: var(--text-muted); }
+.data-table .total-col { font-weight: 600; color: var(--text); }
+.data-table .badge {
+  font-family: var(--mono); font-size: 0.68rem; font-weight: 500;
+  padding: 0.1rem 0.4rem; border-radius: 3px; display: inline-block;
+}
+.badge-card { background: var(--accent-faint); color: var(--accent); }
+.badge-derived { background: #fff3e0; color: #e65100; }
+.badge-z1 { background: #e8f4fd; color: #1565c0; }
+.badge-z2 { background: #e8f5e9; color: #2e7d32; }
+.badge-z3 { background: #fff8e1; color: #f57f17; }
+.badge-z4 { background: #fce4ec; color: #c62828; }
+.badge-t1 { background: var(--bg-warm); color: var(--text-muted); }
+.badge-t2 { background: var(--green-faint); color: var(--green); }
+.badge-socal  { background: #e8f4fd; color: #1565c0; }
+.badge-norcal { background: #e8f5e9; color: #2e7d32; }
+.badge-pnw    { background: #f3e5f5; color: #6a1b9a; }
+.flag-row td { background: #fff8f6 !important; }
+.error-row td { background: #fff5f5 !important; color: var(--red) !important; }
+.table-footer {
+  font-family: var(--sans); font-size: 0.78rem; font-weight: 600;
+  padding: 0.75rem 1rem; background: var(--bg-warm);
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  border-radius: 0 0 var(--r) var(--r);
+}
+
+/* JOURNAL ENTRY */
+.journal-section { padding: 4rem 0; border-bottom: 1px solid var(--border); }
+.je-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow-md);
+}
+.je-header {
+  background: var(--bg-dark); padding: 1.25rem 1.75rem;
+  display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;
+}
+.je-header-left h3 {
+  font-family: var(--sans); font-size: 0.88rem; font-weight: 600; color: #fff;
+  margin-bottom: 0.2rem;
+}
+.je-header-left p {
+  font-family: var(--mono); font-size: 0.72rem; color: rgba(255,255,255,0.4);
+}
+.je-meta {
+  font-family: var(--mono); font-size: 0.72rem; color: rgba(255,255,255,0.4);
+  text-align: right;
+}
+.je-body { padding: 0; }
+.je-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.82rem; }
+.je-table th {
+  font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-muted); background: var(--bg-warm);
+  padding: 0.6rem 1.75rem; text-align: left; border-bottom: 1px solid var(--border);
+}
+.je-table td { padding: 0.65rem 1.75rem; border-bottom: 1px solid var(--border-light); }
+.je-table tr:last-child td { border-bottom: none; }
+.je-table .debit  { font-weight: 600; color: var(--text); }
+.je-table .credit { color: var(--text-secondary); padding-left: 3.5rem; }
+.je-table .amount { text-align: right; font-weight: 600; }
+.je-table .credit .amount { color: var(--text-secondary); }
+.je-footer {
+  background: var(--bg-warm); padding: 1rem 1.75rem;
+  font-family: var(--sans); font-size: 0.78rem; color: var(--text-muted);
+  border-top: 1px solid var(--border); display: flex; gap: 2rem; flex-wrap: wrap;
+}
+
+/* FLAGS */
+.flags-section { padding: 3.5rem 0; border-bottom: 1px solid var(--border); }
+.flag-list { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem; }
+.flag-item {
+  display: flex; gap: 1rem; align-items: flex-start;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1rem 1.25rem; box-shadow: var(--shadow-sm);
+}
+.flag-item.warning { border-left: 3px solid #f59e0b; }
+.flag-item.error   { border-left: 3px solid var(--red); }
+.flag-icon {
+  font-family: var(--mono); font-size: 0.68rem; font-weight: 700;
+  padding: 0.2rem 0.5rem; border-radius: 3px; flex-shrink: 0; margin-top: 0.1rem;
+}
+.warning .flag-icon { background: #fef3c7; color: #92400e; }
+.error   .flag-icon { background: var(--red-faint); color: var(--red); }
+.flag-content { flex: 1; }
+.flag-id { font-family: var(--mono); font-size: 0.78rem; font-weight: 600; color: var(--text); margin-bottom: 0.2rem; }
+.flag-msg { font-family: var(--sans); font-size: 0.82rem; color: var(--text-secondary); }
+.flag-carrier { font-family: var(--sans); font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+/* ARTICLE BODY */
+article { padding: clamp(2.5rem, 5vw, 4rem) 0; }
+article section { margin-bottom: 3rem; }
+article h2 {
+  font-family: var(--sans); font-size: 1.45rem; font-weight: 700;
+  letter-spacing: -0.02em; color: var(--text); margin-bottom: 1rem; padding-top: 0.5rem;
+}
+article h3 {
+  font-family: var(--sans); font-size: 1.05rem; font-weight: 600;
+  color: var(--text); margin-top: 1.75rem; margin-bottom: 0.6rem;
+}
+article p { margin-bottom: 1.25rem; color: var(--text-secondary); font-size: 1rem; }
+article p:last-child { margin-bottom: 0; }
+article strong { color: var(--text); font-weight: 600; }
+article em { color: var(--accent); font-style: italic; }
+
+.callout {
+  background: var(--accent-faint); border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r) var(--r) 0; padding: 1rem 1.25rem;
+  margin: 1.5rem 0; font-size: 0.95rem;
+}
+.callout p { color: var(--text-secondary); margin: 0; }
+
+pre[data-lang] {
+  background: var(--bg-dark); border-radius: var(--r); padding: 1.25rem 1.5rem;
+  overflow-x: auto; margin: 1.5rem 0; position: relative;
+}
+pre[data-lang]::before {
+  content: attr(data-lang);
+  position: absolute; top: 0.6rem; right: 0.75rem;
+  font-family: var(--mono); font-size: 0.62rem; font-weight: 600;
+  letter-spacing: 0.08em; color: rgba(255,255,255,0.25); text-transform: uppercase;
+}
+pre[data-lang] code {
+  font-family: var(--mono); font-size: 0.8rem; color: #e8ddd4; line-height: 1.7;
+}
+
+/* FOOTER */
+footer {
+  background: var(--bg-dark); padding: 3rem 0;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.footer-inner {
+  max-width: 860px; margin: 0 auto; padding: 0 clamp(1.25rem, 4vw, 3rem);
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 1rem;
+}
+footer p {
+  font-family: var(--sans); font-size: 0.78rem; color: rgba(255,255,255,0.35);
+}
+footer a { color: rgba(255,255,255,0.5); }
+footer a:hover { color: #fff; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-home">nathannorman.me</a>
+    <span class="nav-title">Finance Engineer Cup</span>
+    <a href="#accrual">Accrual</a>
+    <a href="#methodology">Methodology</a>
+    <a href="#drilldown">Shipments</a>
+    <a href="#journal">Journal Entry</a>
+    <a href="#flags">Flags</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- HERO -->
+  <div class="hero" id="top">
+    <div class="hero-badge">Finance Engineer Cup &mdash; Round 1</div>
+    <h1>Closing the books on freight,<br><em>without waiting for the invoice</em></h1>
+    <p class="subtitle">A rate-card accrual engine for Ridgeline Foods that detects stale rate cards, tracks quarterly tier resets, and produces a journal entry Marcus can post on day 8 of close.</p>
+    <div class="hero-meta">
+      <span>Ridgeline Foods &mdash; April 2026</span>
+      <span>161 shipments</span>
+      <span>3 carriers</span>
+      <span>Built June 2026</span>
+    </div>
+  </div>
+
+  <!-- ACCRUAL SUMMARY -->
+  <div class="summary-section" id="accrual">
+    <div class="summary-label">April 2026 Accrual Estimate</div>
+
+    <div class="carrier-grid">
+
+      <div class="carrier-card" id="card-peak" onclick="switchTab('peak')">
+        <div class="carrier-name">Peak Logistics</div>
+        <div class="carrier-total">$33,216.01</div>
+        <div class="carrier-delta delta-down">$1,190.34 vs Denise</div>
+        <div class="carrier-denise">Trailing avg: $34,406.35</div>
+        <div class="carrier-ships">41 shipments &middot; Mountain West</div>
+      </div>
+
+      <div class="carrier-card" id="card-heartland" onclick="switchTab('heartland')">
+        <div class="carrier-name">Heartland Freight</div>
+        <div class="carrier-total">$39,025.35</div>
+        <div class="carrier-delta delta-up">+$3,692.02 vs Denise</div>
+        <div class="carrier-denise">Trailing avg: $35,333.33</div>
+        <div class="carrier-ships">65 shipments &middot; Midwest</div>
+      </div>
+
+      <div class="carrier-card" id="card-coastal" onclick="switchTab('coastal')">
+        <div class="carrier-name">Coastal Express</div>
+        <div class="carrier-total">$25,860.51</div>
+        <div class="carrier-delta delta-up">+$327.18 vs Denise</div>
+        <div class="carrier-denise">Trailing avg: $25,533.33</div>
+        <div class="carrier-ships">55 shipments &middot; West Coast</div>
+      </div>
+
+    </div>
+
+    <div class="grand-total-bar">
+      <div>
+        <div class="grand-total-label">Total Accrual &mdash; April 2026</div>
+        <div class="grand-total-number">$98,101.87</div>
+      </div>
+      <div class="grand-total-right">
+        <div class="grand-total-vs">Denise&rsquo;s trailing average: $95,273.01</div>
+        <div class="grand-total-delta-pill">+$2,828.86</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- METHODOLOGY BENTO -->
+  <div class="methodology-section" id="methodology">
+    <div class="section-heading">Why the rate card isn&rsquo;t enough</div>
+    <p class="section-sub">All three carriers apply undocumented monthly adjustments to their published rate schedules. The rate card is a structural template, not a billing schedule. Denise averaged against the wrong numbers.</p>
+
+    <div class="bento">
+
+      <div class="bento-card dark span2">
+        <div class="bento-title">The core discovery</div>
+        <div class="bento-value" style="font-size:1.35rem; line-height:1.4">Rate cards drift from actuals by 15&ndash;25% per month. We calibrate against the last 3 months of invoices instead.</div>
+      </div>
+
+      <div class="bento-card">
+        <div class="bento-title">Heartland rate delta</div>
+        <div class="bento-value">+22.7%</div>
+        <div class="bento-desc">Q1 2026 contract renewal raised zone rates. Rate card never updated. Denise missed $7,133 in January alone.</div>
+      </div>
+
+      <div class="bento-card">
+        <div class="bento-title">Coastal multiplier</div>
+        <div class="bento-value">1.17&times;</div>
+        <div class="bento-desc">Effective per-lb rates are 17% above published card (Jan&ndash;Mar 2026 trend). FSC and accessorial fees match exactly.</div>
+      </div>
+
+      <div class="bento-card accent">
+        <div class="bento-title">Q2 tier reset</div>
+        <div class="bento-value">Apr 1</div>
+        <div class="bento-desc">Heartland QTD counter resets every quarter. April ships 1&ndash;50 pay full rate; 51&ndash;65 get 5% off. Trailing average bakes in prior-quarter discounts.</div>
+      </div>
+
+      <div class="bento-card span2">
+        <div class="bento-title">Calibrated Heartland zone rates (actual vs. published)</div>
+        <table class="rate-table">
+          <tr><td class="td-label">Zone 1 (KC metro)</td><td class="td-old">$320</td><td>&rarr;</td><td class="td-new">$393</td></tr>
+          <tr><td class="td-label">Zone 2 (Midwest)</td><td class="td-old">$485</td><td>&rarr;</td><td class="td-new">$595</td></tr>
+          <tr><td class="td-label">Zone 3 (IL/MN/WI)</td><td class="td-old">$610</td><td>&rarr;</td><td class="td-new">$748</td></tr>
+          <tr><td class="td-label">Zone 4 (Long-haul)</td><td class="td-old">$780</td><td>&rarr;</td><td class="td-new">$957</td></tr>
+        </table>
+      </div>
+
+      <div class="bento-card">
+        <div class="bento-title">Peak mileage gaps filled</div>
+        <div class="bento-value">5/6</div>
+        <div class="bento-desc">Rate card only covers 11 destinations. We back-calculated implied miles from invoice history for Fort Collins, Pueblo, Grand Junction, Laramie, and Casper.</div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- GSAP REVEAL -->
+<div class="reveal-section">
+  <div class="container">
+    <div class="reveal-text" id="reveal-text">
+      Denise averaged three months of invoices and called it an accrual.
+      When Heartland raised rates in January, her model had no idea.
+      When April opened at full tier pricing, her trailing average
+      smoothed in months of discounts that no longer existed.
+      We detected the rate increase from the invoice data itself,
+      rebuilt the effective rate schedule, and tracked the tier reset from day one.
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- DRILLDOWN TABLES -->
+  <div class="drilldown-section" id="drilldown">
+    <div class="section-heading">Every shipment, every charge</div>
+    <p class="section-sub">Each estimate shows the exact inputs used: miles, rate tier, zone, region, accessorials. Every row is auditable back to the rate card or invoice source.</p>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-peak" onclick="switchTab('peak')">Peak Logistics &mdash; $33,216.01</button>
+      <button class="tab-btn" id="tab-heartland" onclick="switchTab('heartland')">Heartland Freight &mdash; $39,025.35</button>
+      <button class="tab-btn" id="tab-coastal" onclick="switchTab('coastal')">Coastal Express &mdash; $25,860.51</button>
+    </div>
+
+    <!-- Peak Table -->
+    <div class="tab-panel active" id="panel-peak">
+      <div class="table-wrap">
+        <table class="data-table" id="tbl-peak"></table>
+        <div class="table-footer">
+          <span>41 shipments &middot; 1 unestimated (Reno, NV)</span>
+          <span>$33,216.01</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Heartland Table -->
+    <div class="tab-panel" id="panel-heartland">
+      <div class="table-wrap">
+        <table class="data-table" id="tbl-heartland"></table>
+        <div class="table-footer">
+          <span>65 shipments &middot; Tier 2 kicks in at seq 51 (5% off)</span>
+          <span>$39,025.35</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coastal Table -->
+    <div class="tab-panel" id="panel-coastal">
+      <div class="table-wrap">
+        <table class="data-table" id="tbl-coastal"></table>
+        <div class="table-footer">
+          <span>55 shipments &middot; 27 residential</span>
+          <span>$25,860.51</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JOURNAL ENTRY -->
+  <div class="journal-section" id="journal">
+    <div class="section-heading">Journal entry</div>
+    <p class="section-sub">Ready to post. Reverses on invoice receipt; variance hits the freight variance account for Marcus to review.</p>
+
+    <div class="je-card">
+      <div class="je-header">
+        <div class="je-header-left">
+          <h3>Freight Accrual &mdash; April 2026</h3>
+          <p>Auto-generated &middot; accrual_engine.py &middot; Run 2026-06-02</p>
+        </div>
+        <div class="je-meta">
+          <div>Post date: April 30, 2026</div>
+          <div>Reverse: May 8&ndash;12 (on invoice receipt)</div>
+        </div>
+      </div>
+      <div class="je-body">
+        <table class="je-table">
+          <tr>
+            <th>Account</th><th>Description</th><th style="text-align:right">Debit</th><th style="text-align:right">Credit</th>
+          </tr>
+          <tr>
+            <td class="debit">5XX &mdash; Freight Expense (COGS)</td>
+            <td class="muted">April 2026 freight accrual &mdash; all carriers</td>
+            <td class="amount">$98,101.87</td>
+            <td class="amount muted">&mdash;</td>
+          </tr>
+          <tr>
+            <td class="credit">2XX &mdash; Accrued Freight Liability</td>
+            <td class="muted">Peak Logistics ($33,216.01) + Heartland ($39,025.35) + Coastal ($25,860.51)</td>
+            <td class="amount muted">&mdash;</td>
+            <td class="amount">$98,101.87</td>
+          </tr>
+        </table>
+      </div>
+      <div class="je-footer">
+        <span>On invoice receipt: Dr. Accrued Freight Liability / Cr. AP &mdash; variance to 5XX-VAR Freight Variance</span>
+        <span>Materiality threshold: &plusmn;10% per carrier</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLAGS -->
+  <div class="flags-section" id="flags">
+    <div class="section-heading">Exceptions requiring follow-up</div>
+    <div class="flag-list" id="flag-list"></div>
+  </div>
+
+  <!-- NARRATIVE -->
+  <article>
+    <section>
+      <h2>The problem with Denise&rsquo;s method</h2>
+      <p>Ridgeline&rsquo;s three freight carriers invoice between the 8th and 12th of the following month. Close is on business day 8. The accrual has to be booked before the invoices exist. Denise handled this by averaging the last three months of actual invoices per carrier and booking that as the estimate. It&rsquo;s intuitive, but it has three fatal flaws.</p>
+      <p>First, it doesn&rsquo;t know what happened this month. A spike in residential Coastal orders, a surge of heavy Heartland Zone 4 shipments &mdash; none of that shows up in a trailing average. Second, it can&rsquo;t see rate changes. When Heartland raised their contract rates in January 2026, Denise&rsquo;s model had no idea for three months until the new rates were fully averaged in. Third, it treats quarterly tier resets as noise. When April opens at Tier 1 pricing (0% discount), the trailing average from February and March &mdash; when Heartland was deep into Tier 3 &mdash; is systematically low.</p>
+
+      <div class="callout"><p><strong>The January miss:</strong> Heartland&rsquo;s Q1 2026 contract renewal raised zone rates by ~22.7%. Denise accrued $31,067 against $38,200 actual &mdash; a $7,133 gap. The April Q2 reset is the same problem: trailing average sees discounted rates, reality opens at full price.</p></div>
+    </section>
+
+    <section>
+      <h2>What the engine does differently</h2>
+      <p>Instead of averaging invoice totals, the engine estimates charges bottom-up: shipment by shipment, applying the effective rate for each carrier against the actual April activity. The key insight is that the published rate cards are structural templates, not billing schedules. Every carrier applies undocumented adjustments on top of them. We detected this pattern by back-calculating implied rates from six months of historical invoices and derived calibration multipliers for each carrier.</p>
+      <p>For Peak Logistics, we back-calculated implied mileage per lane from the formula <code>base_charge &divide; rate_per_mile</code> for the six destinations not in the rate card. For Coastal Express, we computed the monthly effective per-pound rate from large commercial invoices where weight is significant, revealing a 1.17&times; multiplier applied uniformly across all regions. For Heartland, we identified that the Q1 2026 base rates are ~22.7% above the published card and tracked the quarterly volume discount tier prospectively from April 1.</p>
+
+      <pre data-lang="python"><code>def calc_heartland(shipment, qtd_sequence):
+    zone = zip_to_zone(shipment['destination_zip'])
+    # Q2 reset: Tier 1 for first 50, Tier 2 after
+    discount = 0.05 if qtd_sequence > 50 else 0.0
+    # Calibrated Q1/Q2 2026 rates, not the published card
+    base = CALIBRATED_RATES[zone] * (1 - discount)
+    acc  = ACCESSORIAL_FEES.get(shipment['special_handling'], 0)
+    return base + acc  # fuel included in flat rate</code></pre>
+    </section>
+
+    <section>
+      <h2>Repeatability</h2>
+      <p>Next month, swap in the May shipment CSV. The engine re-runs in under a second. The calibration multipliers and effective mileage table persist &mdash; update them quarterly by back-calculating from the most recent 3 months of invoices. If a carrier raises rates, the variance report on the next invoice cycle will show the drift; recalibrate and the model self-corrects within one month rather than three.</p>
+      <p>Every estimate row carries its source: <code>rate_card</code> for destinations in the Peak mileage table, <code>invoice_derived</code> for back-calculated lanes, <code>calibrated_q2_2026</code> for Heartland. An auditor can reproduce any number by following the chain.</p>
+    </section>
+  </article>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="footer-inner">
+    <p>Built for the Numeric Finance Engineer Cup, June 2026.</p>
+    <p><a href="/">nathannorman.me</a></p>
+  </div>
+</footer>
+
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+// Word-by-word scroll reveal
+const revealEl = document.getElementById('reveal-text');
+const text = revealEl.innerText;
+revealEl.innerHTML = text.split(' ').map(w => `<span class="word">${w}</span>`).join(' ');
+const words = revealEl.querySelectorAll('.word');
+gsap.to(words, {
+  opacity: 1,
+  stagger: 0.04,
+  ease: 'none',
+  scrollTrigger: {
+    trigger: revealEl,
+    start: 'top 80%',
+    end: 'bottom 30%',
+    scrub: 0.5,
+  }
+});
+
+// Carrier card scroll entrance
+gsap.from('.carrier-card', {
+  opacity: 0, y: 24, stagger: 0.12, duration: 0.7, ease: 'power2.out',
+  scrollTrigger: { trigger: '.carrier-grid', start: 'top 85%' }
+});
+
+// Bento card entrance
+gsap.from('.bento-card', {
+  opacity: 0, y: 20, stagger: 0.08, duration: 0.6, ease: 'power2.out',
+  scrollTrigger: { trigger: '.bento', start: 'top 85%' }
+});
+
+// Grand total count-up
+function countUp(el, target, prefix) {
+  const dur = 1200, steps = 60, step = dur / steps;
+  let cur = 0, i = 0;
+  const timer = setInterval(() => {
+    i++;
+    cur = target * (i / steps);
+    el.textContent = prefix + cur.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+    if (i >= steps) { clearInterval(timer); el.textContent = prefix + target.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+  }, step);
+}
+ScrollTrigger.create({
+  trigger: '.grand-total-number',
+  start: 'top 90%',
+  once: true,
+  onEnter: () => countUp(document.querySelector('.grand-total-number'), 98101.87, '$')
+});
+
+// DATA
+const PEAK_DATA = [["SHP-10001", "Colorado Springs, CO", 75.5, 70, "rate_card", 227.5, 31.85, 45.0, "Residential Delivery", 304.35, false], ["SHP-10002", "Colorado Springs, CO", 2000.0, 70, "rate_card", 336.0, 47.04, 0.0, null, 383.04, false], ["SHP-10003", "Fort Collins, CO", 305.8, 50, "invoice_derived", 162.5, 22.75, 75.0, "Liftgate", 260.25, false], ["SHP-10004", "Fort Collins, CO", 345.2, 50, "invoice_derived", 162.5, 22.75, 0.0, null, 185.25, false], ["SHP-10005", "Cheyenne, WY", 350.7, 100, "rate_card", 325.0, 45.5, 0.0, null, 370.5, false], ["SHP-10006", "Reno, NV", 339.8, null, "", 0, 0, 0, null, 0.0, true], ["SHP-10007", "Pueblo, CO", 54.2, 75, "invoice_derived", 243.75, 34.12, 50.0, "Appointment Delivery", 327.87, false], ["SHP-10008", "Grand Junction, CO", 291.4, 222, "invoice_derived", 721.5, 101.01, 0.0, null, 822.51, false], ["SHP-10009", "Grand Junction, CO", 80.9, 222, "invoice_derived", 721.5, 101.01, 75.0, "Liftgate", 897.51, false], ["SHP-10010", "Grand Junction, CO", 293.9, 222, "invoice_derived", 721.5, 101.01, 0.0, null, 822.51, false], ["SHP-10011", "Pocatello, ID", 287.5, 440, "rate_card", 1430.0, 200.2, 0.0, null, 1630.2, false], ["SHP-10012", "Pocatello, ID", 96.5, 440, "rate_card", 1430.0, 200.2, 45.0, "Residential Delivery", 1675.2, false], ["SHP-10013", "Idaho Falls, ID", 383.3, 480, "rate_card", 1560.0, 218.4, 0.0, null, 1778.4, false], ["SHP-10014", "Idaho Falls, ID", 204.0, 480, "rate_card", 1560.0, 218.4, 0.0, null, 1778.4, false], ["SHP-10015", "Provo, UT", 162.8, 490, "rate_card", 1592.5, 222.95, 75.0, "Liftgate", 1890.45, false], ["SHP-10016", "Colorado Springs, CO", 1744.0, 70, "rate_card", 336.0, 47.04, 0.0, null, 383.04, false], ["SHP-10017", "Colorado Springs, CO", 1969.7, 70, "rate_card", 336.0, 47.04, 0.0, null, 383.04, false], ["SHP-10018", "Colorado Springs, CO", 1341.4, 70, "rate_card", 336.0, 47.04, 0.0, null, 383.04, false], ["SHP-10019", "Colorado Springs, CO", 723.6, 70, "rate_card", 336.0, 47.04, 0.0, null, 383.04, false], ["SHP-10020", "Fort Collins, CO", 2001.8, 50, "invoice_derived", 320.0, 44.8, 45.0, "Residential Delivery", 409.8, false], ["SHP-10021", "Fort Collins, CO", 500.0, 50, "invoice_derived", 240.0, 33.6, 0.0, null, 273.6, false], ["SHP-10022", "Fort Collins, CO", 1500.4, 50, "invoice_derived", 240.0, 33.6, 0.0, null, 273.6, false], ["SHP-10023", "Cheyenne, WY", 1960.8, 100, "rate_card", 480.0, 67.2, 75.0, "Liftgate", 622.2, false], ["SHP-10024", "Cheyenne, WY", 743.8, 100, "rate_card", 480.0, 67.2, 0.0, null, 547.2, false], ["SHP-10025", "Cheyenne, WY", 769.0, 100, "rate_card", 480.0, 67.2, 0.0, null, 547.2, false], ["SHP-10026", "Pueblo, CO", 1504.9, 75, "invoice_derived", 360.0, 50.4, 0.0, null, 410.4, false], ["SHP-10027", "Pueblo, CO", 1551.9, 75, "invoice_derived", 360.0, 50.4, 0.0, null, 410.4, false], ["SHP-10028", "Laramie, WY", 499.5, 100, "invoice_derived", 325.0, 45.5, 0.0, null, 370.5, false], ["SHP-10029", "Laramie, WY", 1807.0, 100, "invoice_derived", 480.0, 67.2, 0.0, null, 547.2, false], ["SHP-10030", "Grand Junction, CO", 917.9, 222, "invoice_derived", 1065.6, 149.18, 0.0, null, 1214.78, false], ["SHP-10031", "Grand Junction, CO", 1264.1, 222, "invoice_derived", 1065.6, 149.18, 75.0, "Liftgate", 1289.78, false], ["SHP-10032", "Grand Junction, CO", 541.4, 222, "invoice_derived", 1065.6, 149.18, 0.0, null, 1214.78, false], ["SHP-10033", "Casper, WY", 1975.3, 242, "invoice_derived", 1161.6, 162.62, 0.0, null, 1324.22, false], ["SHP-10034", "Casper, WY", 1679.6, 242, "invoice_derived", 1161.6, 162.62, 0.0, null, 1324.22, false], ["SHP-10035", "Provo, UT", 1849.3, 490, "rate_card", 2352.0, 329.28, 0.0, null, 2681.28, false], ["SHP-10036", "Colorado Springs, CO", 2780.4, 70, "rate_card", 448.0, 62.72, 0.0, null, 510.72, false], ["SHP-10037", "Pueblo, CO", 3105.8, 75, "invoice_derived", 480.0, 67.2, 0.0, null, 547.2, false], ["SHP-10038", "Cheyenne, WY", 3381.2, 100, "rate_card", 640.0, 89.6, 0.0, null, 729.6, false], ["SHP-10039", "Fort Collins, CO", 3350.2, 50, "invoice_derived", 320.0, 44.8, 0.0, null, 364.8, false], ["SHP-10040", "Grand Junction, CO", 3046.1, 222, "invoice_derived", 1420.8, 198.91, 0.0, null, 1619.71, false], ["SHP-10033", "Casper, WY", 1975.3, 242, "invoice_derived", 1161.6, 162.62, 0.0, null, 1324.22, false]];
+const HLAND_DATA = [["SHP-10079", "St. Louis, MO", 576.7, "Zone 2", "Tier 1", 1, 595.0, 0.0, null, 595.0], ["SHP-10094", "Milwaukee, WI", 755.1, "Zone 3", "Tier 1", 2, 748.0, 0.0, null, 748.0], ["SHP-10101", "Duluth, MN", 835.9, "Zone 4", "Tier 1", 3, 957.0, 0.0, null, 957.0], ["SHP-10064", "Des Moines, IA", 0.0, "Zone 2", "Tier 1", 4, 595.0, 0.0, null, 595.0], ["SHP-10091", "Rockford, IL", 973.7, "Zone 3", "Tier 1", 5, 748.0, 135.0, "Inside Delivery", 883.0], ["SHP-10084", "Wichita, KS", 1721.5, "Zone 2", "Tier 1", 6, 595.0, 0.0, null, 595.0], ["SHP-10071", "Cedar Rapids, IA", 798.4, "Zone 2", "Tier 1", 7, 595.0, 0.0, null, 595.0], ["SHP-10072", "Cedar Rapids, IA", 2223.2, "Zone 2", "Tier 1", 8, 595.0, 0.0, null, 595.0], ["SHP-10098", "Minneapolis, MN", 0.0, "Zone 3", "Tier 1", 9, 748.0, 0.0, null, 748.0], ["SHP-10046", "Kansas City, MO", 1624.3, "Zone 1", "Tier 1", 10, 393.0, 135.0, "Inside Delivery", 528.0], ["SHP-10059", "Kansas City, KS", 1841.2, "Zone 1", "Tier 1", 11, 393.0, 135.0, "Inside Delivery", 528.0], ["SHP-10103", "Duluth, MN", 895.2, "Zone 4", "Tier 1", 12, 957.0, 0.0, null, 957.0], ["SHP-10060", "Kansas City, KS", 385.3, "Zone 1", "Tier 1", 13, 393.0, 0.0, null, 393.0], ["SHP-10065", "Des Moines, IA", 2250.8, "Zone 2", "Tier 1", 14, 595.0, 0.0, null, 595.0], ["SHP-10073", "Cedar Rapids, IA", 2120.3, "Zone 2", "Tier 1", 15, 595.0, 0.0, null, 595.0], ["SHP-10085", "Lincoln, NE", 1166.1, "Zone 2", "Tier 1", 16, 595.0, 0.0, null, 595.0], ["SHP-10057", "Kansas City, KS", 1235.2, "Zone 1", "Tier 1", 17, 393.0, 0.0, null, 393.0], ["SHP-10105", "Norfolk, NE", 1931.4, "Zone 4", "Tier 1", 18, 957.0, 0.0, null, 957.0], ["SHP-10041", "Kansas City, MO", 1072.0, "Zone 1", "Tier 1", 19, 393.0, 0.0, null, 393.0], ["SHP-10050", "Kansas City, MO", 1119.2, "Zone 1", "Tier 1", 20, 393.0, 0.0, null, 393.0], ["SHP-10066", "Iowa City, IA", 2039.7, "Zone 2", "Tier 1", 21, 595.0, 0.0, null, 595.0], ["SHP-10069", "Iowa City, IA", 1428.5, "Zone 2", "Tier 1", 22, 595.0, 0.0, null, 595.0], ["SHP-10102", "Duluth, MN", 2455.2, "Zone 4", "Tier 1", 23, 957.0, 0.0, null, 957.0], ["SHP-10054", "Kansas City, KS", 1421.6, "Zone 1", "Tier 1", 24, 393.0, 0.0, null, 393.0], ["SHP-10078", "St. Louis, MO", 1593.6, "Zone 2", "Tier 1", 25, 595.0, 0.0, null, 595.0], ["SHP-10082", "Springfield, MO", 1803.5, "Zone 2", "Tier 1", 26, 595.0, 0.0, null, 595.0], ["SHP-10099", "Minneapolis, MN", 730.2, "Zone 3", "Tier 1", 27, 748.0, 0.0, null, 748.0], ["SHP-10076", "Omaha, NE", 1629.1, "Zone 2", "Tier 1", 28, 595.0, 0.0, null, 595.0], ["SHP-10083", "Wichita, KS", 2031.3, "Zone 2", "Tier 1", 29, 595.0, 85.0, "Liftgate", 680.0], ["SHP-10089", "Chicago, IL", 941.3, "Zone 3", "Tier 1", 30, 748.0, 0.0, null, 748.0], ["SHP-10043", "Kansas City, MO", 2007.2, "Zone 1", "Tier 1", 31, 393.0, 0.0, null, 393.0], ["SHP-10052", "Kansas City, MO", 2049.5, "Zone 1", "Tier 1", 32, 393.0, 0.0, null, 393.0], ["SHP-10053", "Kansas City, MO", 2310.2, "Zone 1", "Tier 1", 33, 393.0, 0.0, null, 393.0], ["SHP-10055", "Kansas City, KS", 1217.9, "Zone 1", "Tier 1", 34, 393.0, 0.0, null, 393.0], ["SHP-10070", "Cedar Rapids, IA", 393.1, "Zone 2", "Tier 1", 35, 595.0, 0.0, null, 595.0], ["SHP-10042", "Kansas City, MO", 1134.0, "Zone 1", "Tier 1", 36, 393.0, 0.0, null, 393.0], ["SHP-10044", "Kansas City, MO", 1753.9, "Zone 1", "Tier 1", 37, 393.0, 0.0, null, 393.0], ["SHP-10058", "Kansas City, KS", 1988.7, "Zone 1", "Tier 1", 38, 393.0, 0.0, null, 393.0], ["SHP-10096", "Madison, WI", 876.7, "Zone 3", "Tier 1", 39, 748.0, 0.0, null, 748.0], ["SHP-10047", "Kansas City, MO", 914.0, "Zone 1", "Tier 1", 40, 393.0, 0.0, null, 393.0], ["SHP-10051", "Kansas City, MO", 2179.0, "Zone 1", "Tier 1", 41, 393.0, 85.0, "Liftgate", 478.0], ["SHP-10063", "Des Moines, IA", 2375.9, "Zone 2", "Tier 1", 42, 595.0, 0.0, null, 595.0], ["SHP-10075", "Omaha, NE", 292.6, "Zone 2", "Tier 1", 43, 595.0, 0.0, null, 595.0], ["SHP-10086", "Chicago, IL", 2250.6, "Zone 3", "Tier 1", 44, 748.0, 0.0, null, 748.0], ["SHP-10090", "Chicago, IL", 1236.8, "Zone 3", "Tier 1", 45, 748.0, 0.0, null, 748.0], ["SHP-10093", "Milwaukee, WI", 2224.2, "Zone 3", "Tier 1", 46, 748.0, 0.0, null, 748.0], ["SHP-10097", "Madison, WI", 1048.7, "Zone 3", "Tier 1", 47, 748.0, 0.0, null, 748.0], ["SHP-10092", "Rockford, IL", 1016.1, "Zone 3", "Tier 1", 48, 748.0, 0.0, null, 748.0], ["SHP-10048", "Kansas City, MO", 2463.1, "Zone 1", "Tier 1", 49, 393.0, 0.0, null, 393.0], ["SHP-10062", "Des Moines, IA", 343.2, "Zone 2", "Tier 1", 50, 595.0, 0.0, null, 595.0], ["SHP-10080", "Springfield, MO", 1524.3, "Zone 2", "Tier 2", 51, 565.25, 0.0, null, 565.25], ["SHP-10049", "Kansas City, MO", 2238.1, "Zone 1", "Tier 2", 52, 373.35, 0.0, null, 373.35], ["SHP-10074", "Omaha, NE", 2389.4, "Zone 2", "Tier 2", 53, 565.25, 135.0, "Inside Delivery", 700.25], ["SHP-10056", "Kansas City, KS", 2285.8, "Zone 1", "Tier 2", 54, 373.35, 0.0, null, 373.35], ["SHP-10100", "St. Paul, MN", 2387.0, "Zone 3", "Tier 2", 55, 710.6, 0.0, null, 710.6], ["SHP-10067", "Iowa City, IA", 1317.0, "Zone 2", "Tier 2", 56, 565.25, 0.0, null, 565.25], ["SHP-10087", "Chicago, IL", 1400.0, "Zone 3", "Tier 2", 57, 710.6, 0.0, null, 710.6], ["SHP-10088", "Chicago, IL", 1981.7, "Zone 3", "Tier 2", 58, 710.6, 0.0, null, 710.6], ["SHP-10077", "St. Louis, MO", 2379.8, "Zone 2", "Tier 2", 59, 565.25, 0.0, null, 565.25], ["SHP-10104", "Norfolk, NE", 0.0, "Zone 4", "Tier 2", 60, 909.15, 0.0, null, 909.15], ["SHP-10045", "Kansas City, MO", 1892.7, "Zone 1", "Tier 2", 61, 373.35, 0.0, null, 373.35], ["SHP-10061", "Des Moines, IA", 692.1, "Zone 2", "Tier 2", 62, 565.25, 0.0, null, 565.25], ["SHP-10068", "Iowa City, IA", 1865.6, "Zone 2", "Tier 2", 63, 565.25, 40.0, "Appointment Delivery", 605.25], ["SHP-10081", "Springfield, MO", 656.2, "Zone 2", "Tier 2", 64, 565.25, 0.0, null, 565.25], ["SHP-10095", "Milwaukee, WI", 1295.0, "Zone 3", "Tier 2", 65, 710.6, 0.0, null, 710.6]];
+const COASTAL_DATA = [["SHP-10106", "Los Angeles, CA", 28.8, "SoCal", false, 32.76, 3.11, 0.0, 0.0, null, 35.87, false], ["SHP-10107", "Los Angeles, CA", 41.3, "SoCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10108", "Los Angeles, CA", 27.7, "SoCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10109", "Los Angeles, CA", 35.5, "SoCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10110", "Los Angeles, CA", 14.6, "SoCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10111", "Los Angeles, CA", 32.6, "SoCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10112", "Los Angeles, CA", 16.3, "SoCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10113", "Long Beach, CA", 15.6, "SoCal", false, 32.76, 3.11, 0.0, 0.0, null, 35.87, false], ["SHP-10114", "Long Beach, CA", 12.9, "SoCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10115", "Long Beach, CA", 15.6, "SoCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10116", "San Diego, CA", 28.8, "SoCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10117", "San Diego, CA", 23.7, "SoCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10118", "San Diego, CA", 26.6, "SoCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10119", "San Diego, CA", 34.4, "SoCal", false, 32.76, 3.11, 0.0, 0.0, null, 35.87, false], ["SHP-10120", "San Diego, CA", 32.0, "SoCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10121", "Santa Barbara, CA", 35.6, "NorCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10122", "San Francisco, CA", 12.0, "NorCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10123", "San Francisco, CA", 44.9, "NorCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10124", "San Francisco, CA", 23.8, "NorCal", false, 32.76, 3.11, 0.0, 0.0, null, 35.87, false], ["SHP-10125", "Oakland, CA", 11.4, "NorCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10126", "Oakland, CA", 21.0, "NorCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10127", "Oakland, CA", 15.1, "NorCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10128", "Sacramento, CA", 38.0, "NorCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10129", "Sacramento, CA", 7.2, "NorCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10130", "Fresno, CA", 22.7, "NorCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10131", "Fresno, CA", 16.5, "NorCal", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10132", "Portland, OR", 30.2, "PNW", false, 32.76, 3.11, 0.0, 0.0, null, 35.87, false], ["SHP-10133", "Portland, OR", 5.5, "PNW", false, 32.76, 3.11, 0.0, 0.0, null, 35.87, false], ["SHP-10134", "Portland, OR", 9.5, "PNW", true, 32.76, 3.11, 12.5, 0.0, null, 48.37, false], ["SHP-10135", "Seattle, WA", 42.3, "PNW", true, 35.63, 3.38, 12.5, 0.0, null, 51.51, false], ["SHP-10136", "Los Angeles, CA", 1413.2, "SoCal", false, 793.65, 75.4, 0.0, 0.0, null, 869.05, false], ["SHP-10137", "Los Angeles, CA", 800.3, "SoCal", false, 449.45, 42.7, 0.0, 90.0, "Liftgate", 582.15, false], ["SHP-10138", "Los Angeles, CA", 546.6, "SoCal", false, 306.97, 29.16, 0.0, 0.0, null, 336.13, false], ["SHP-10139", "Los Angeles, CA", 2054.2, "SoCal", true, 1153.64, 109.6, 65.0, 0.0, null, 1328.24, true], ["SHP-10140", "Los Angeles, CA", 2158.7, "SoCal", false, 1212.33, 115.17, 0.0, 0.0, null, 1327.5, false], ["SHP-10141", "San Diego, CA", 1337.7, "SoCal", false, 751.25, 71.37, 0.0, 90.0, "Liftgate", 912.62, false], ["SHP-10142", "San Diego, CA", 1192.1, "SoCal", false, 669.48, 63.6, 0.0, 0.0, null, 733.08, false], ["SHP-10143", "San Diego, CA", 901.5, "SoCal", true, 506.28, 48.1, 65.0, 0.0, null, 619.38, true], ["SHP-10144", "Long Beach, CA", 1068.2, "SoCal", false, 599.9, 56.99, 0.0, 0.0, null, 656.89, false], ["SHP-10145", "Long Beach, CA", 2475.7, "SoCal", false, 1390.35, 132.08, 0.0, 0.0, null, 1522.43, false], ["SHP-10146", "San Francisco, CA", 2426.1, "NorCal", false, 1561.2, 148.31, 0.0, 90.0, "Liftgate", 1799.51, false], ["SHP-10147", "San Francisco, CA", 610.8, "NorCal", false, 393.05, 37.34, 0.0, 0.0, null, 430.39, false], ["SHP-10148", "San Francisco, CA", 432.2, "NorCal", true, 278.12, 26.42, 35.0, 0.0, null, 339.54, true], ["SHP-10149", "Sacramento, CA", 557.1, "NorCal", false, 358.49, 34.06, 0.0, 0.0, null, 392.55, false], ["SHP-10150", "Sacramento, CA", 1234.7, "NorCal", false, 794.53, 75.48, 0.0, 0.0, null, 870.01, false], ["SHP-10151", "Sacramento, CA", 1520.6, "NorCal", false, 978.51, 92.96, 0.0, 90.0, "Liftgate", 1161.47, false], ["SHP-10152", "Bakersfield, CA", 1424.7, "NorCal", false, 916.79, 87.1, 0.0, 0.0, null, 1003.89, false], ["SHP-10153", "Bakersfield, CA", 1837.2, "NorCal", false, 1182.24, 112.31, 0.0, 0.0, null, 1294.55, false], ["SHP-10154", "Portland, OR", 2454.5, "PNW", false, 2067.67, 196.43, 0.0, 0.0, null, 2264.1, false], ["SHP-10155", "Portland, OR", 0.0, "PNW", false, 32.76, 3.11, 0.0, 0.0, null, 35.87, false], ["SHP-10156", "Portland, OR", 0.0, "PNW", false, 32.76, 3.11, 0.0, 90.0, "Liftgate", 125.87, false], ["SHP-10157", "Seattle, WA", 1265.3, "PNW", false, 1065.89, 101.26, 0.0, 0.0, null, 1167.15, false], ["SHP-10158", "Seattle, WA", 1679.9, "PNW", false, 1415.15, 134.44, 0.0, 0.0, null, 1549.59, false], ["SHP-10159", "Tacoma, WA", 1624.6, "PNW", false, 1368.56, 130.01, 0.0, 0.0, null, 1498.57, false], ["SHP-10160", "Tacoma, WA", 1800.4, "PNW", false, 1516.66, 144.08, 0.0, 0.0, null, 1660.74, false]];
+const FLAGS = [{"shipment_id": "SHP-10006", "message": "No mileage data for Reno, NV", "severity": "error", "carrier": "Peak Logistics"}, {"shipment_id": "SHP-10139", "message": "Heavy residential (2054 lbs) \u2014 $65 tier unverified in history", "severity": "warning", "carrier": "Coastal Express"}, {"shipment_id": "SHP-10143", "message": "Heavy residential (902 lbs) \u2014 $65 tier unverified in history", "severity": "warning", "carrier": "Coastal Express"}, {"shipment_id": "SHP-10148", "message": "Heavy residential (432 lbs) \u2014 $35 tier unverified in history", "severity": "warning", "carrier": "Coastal Express"}];
+
+function badge(cls, txt) {
+  return `<span class="badge ${cls}">${txt}</span>`;
+}
+function usd(v) {
+  if (!v) return '<span class="muted">—</span>';
+  return '$' + parseFloat(v).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function buildPeakTable() {
+  const tbl = document.getElementById('tbl-peak');
+  tbl.innerHTML = `<thead><tr>
+    <th>Shipment</th><th>Destination</th><th>Weight</th>
+    <th>Miles</th><th>Source</th>
+    <th>Base</th><th>FSC 14%</th><th>Accessorial</th><th>Total</th>
+  </tr></thead>`;
+  const tbody = document.createElement('tbody');
+  let tot = 0;
+  PEAK_DATA.forEach(r => {
+    const [id,dest,wt,miles,method,base,fsc,acc,accType,total,isErr] = r;
+    const tr = document.createElement('tr');
+    if (isErr) tr.className = 'error-row';
+    const srcBadge = method === 'rate_card' ? badge('badge-card','rate card') : badge('badge-derived','invoice derived');
+    const accStr = accType ? `${usd(acc)} <span class="muted" style="font-size:0.72rem">(${accType})</span>` : '<span class="muted">—</span>';
+    tr.innerHTML = `<td class="mono">${id}</td><td>${dest}</td>
+      <td class="mono">${wt ? parseFloat(wt).toFixed(0)+' lbs' : '—'}</td>
+      <td class="mono">${miles ? miles+' mi' : '<span class="muted">unknown</span>'}</td>
+      <td>${isErr ? badge('badge-derived','unestimated') : srcBadge}</td>
+      <td class="mono">${usd(base)}</td><td class="mono">${usd(fsc)}</td>
+      <td class="mono">${accStr}</td>
+      <td class="mono total-col">${isErr ? '<span style="color:var(--red)">EXCLUDED</span>' : usd(total)}</td>`;
+    tbody.appendChild(tr);
+    tot += parseFloat(total||0);
+  });
+  tbl.appendChild(tbody);
+}
+
+function buildHlandTable() {
+  const tbl = document.getElementById('tbl-heartland');
+  tbl.innerHTML = `<thead><tr>
+    <th>#</th><th>Shipment</th><th>Destination</th><th>Weight</th>
+    <th>Zone</th><th>Tier</th>
+    <th>Base Rate</th><th>Accessorial</th><th>Total</th>
+  </tr></thead>`;
+  const tbody = document.createElement('tbody');
+  const zoneCls = {'Zone 1':'badge-z1','Zone 2':'badge-z2','Zone 3':'badge-z3','Zone 4':'badge-z4'};
+  const tierCls = {'Tier 1':'badge-t1','Tier 2':'badge-t2'};
+  HLAND_DATA.forEach(r => {
+    const [id,dest,wt,zone,tier,seq,base,acc,accType,total] = r;
+    const tr = document.createElement('tr');
+    if (seq === 51) tr.style.boxShadow = 'inset 0 2px 0 var(--green)';
+    const accStr = accType ? `${usd(acc)} <span class="muted" style="font-size:0.72rem">(${accType})</span>` : '<span class="muted">—</span>';
+    tr.innerHTML = `<td class="mono muted">${seq}</td>
+      <td class="mono">${id}</td><td>${dest}</td>
+      <td class="mono">${wt ? parseFloat(wt).toFixed(0)+' lbs' : '—'}</td>
+      <td>${badge(zoneCls[zone]||'badge-t1', zone)}</td>
+      <td>${badge(tierCls[tier]||'badge-t1', tier)}</td>
+      <td class="mono">${usd(base)}</td>
+      <td class="mono">${accStr}</td>
+      <td class="mono total-col">${usd(total)}</td>`;
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+}
+
+function buildCoastalTable() {
+  const tbl = document.getElementById('tbl-coastal');
+  tbl.innerHTML = `<thead><tr>
+    <th>Shipment</th><th>Destination</th><th>Weight</th>
+    <th>Region</th><th>Res.</th>
+    <th>Base</th><th>FSC 9.5%</th><th>Res. Fee</th><th>Accessorial</th><th>Total</th>
+  </tr></thead>`;
+  const tbody = document.createElement('tbody');
+  const regCls = {'SoCal':'badge-socal','NorCal':'badge-norcal','PNW':'badge-pnw'};
+  COASTAL_DATA.forEach(r => {
+    const [id,dest,wt,region,res,base,fsc,resFee,acc,accType,total,hasFlag] = r;
+    const tr = document.createElement('tr');
+    if (hasFlag) tr.className = 'flag-row';
+    const accStr = accType ? `${usd(acc)} <span class="muted" style="font-size:0.72rem">(${accType})</span>` : '<span class="muted">—</span>';
+    const resFeeStr = resFee ? usd(resFee) : '<span class="muted">—</span>';
+    tr.innerHTML = `<td class="mono">${id}</td><td>${dest}</td>
+      <td class="mono">${wt ? parseFloat(wt).toFixed(0)+' lbs' : '—'}</td>
+      <td>${badge(regCls[region]||'', region||'?')}</td>
+      <td>${res ? '<span style="color:var(--accent);font-size:0.78rem">Y</span>' : '<span class="muted">—</span>'}</td>
+      <td class="mono">${usd(base)}</td><td class="mono">${usd(fsc)}</td>
+      <td class="mono">${resFeeStr}</td>
+      <td class="mono">${accStr}</td>
+      <td class="mono total-col">${usd(total)}</td>`;
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+}
+
+function buildFlags() {
+  const list = document.getElementById('flag-list');
+  FLAGS.forEach(f => {
+    const item = document.createElement('div');
+    item.className = `flag-item ${f.severity}`;
+    item.innerHTML = `
+      <div class="flag-icon">${f.severity === 'error' ? 'ERR' : 'WARN'}</div>
+      <div class="flag-content">
+        <div class="flag-id">${f.shipment_id}</div>
+        <div class="flag-msg">${f.message}</div>
+        <div class="flag-carrier">${f.carrier}</div>
+      </div>`;
+    list.appendChild(item);
+  });
+}
+
+function switchTab(name) {
+  ['peak','heartland','coastal'].forEach(n => {
+    document.getElementById('tab-'+n).classList.toggle('active', n === name);
+    document.getElementById('panel-'+n).classList.toggle('active', n === name);
+    const card = document.getElementById('card-'+n);
+    if (card) card.classList.toggle('active', n === name);
+  });
+}
+
+buildPeakTable();
+buildHlandTable();
+buildCoastalTable();
+buildFlags();
+</script>
+</body>
+</html>
