@@ -685,20 +685,47 @@ footer a:hover { color: #fff; }
   <article>
     <section>
       <h2>The problem with Denise&rsquo;s method</h2>
-      <p>Ridgeline&rsquo;s three freight carriers invoice between the 8th and 12th of the following month. Close is on business day 8. The accrual has to be booked before the invoices exist. Denise handled this by averaging the last three months of actual invoices per carrier and booking that as the estimate. It&rsquo;s intuitive, but it has three fatal flaws.</p>
-      <p>First, it doesn&rsquo;t know what happened this month. A spike in residential Coastal orders, a surge of heavy Heartland Zone 4 shipments &mdash; none of that shows up in a trailing average. Second, it can&rsquo;t see rate changes. When Heartland raised their contract rates in January 2026, Denise&rsquo;s model had no idea for three months until the new rates were fully averaged in. Third, it treats quarterly tier resets as noise. When April opens at Tier 1 pricing (0% discount), the trailing average from February and March &mdash; when Heartland was deep into Tier 3 &mdash; is systematically low.</p>
+      <p>Ridgeline&rsquo;s carriers invoice between the 8th and 12th of the following month. Close falls on business day 8. The accrual has to be booked before the invoices exist. Denise handled this by averaging the prior three months of actual invoices per carrier and booking that as the estimate. It&rsquo;s intuitive, but it has three fatal flaws.</p>
+      <p>It doesn&rsquo;t know what happened this month. A surge of heavy Zone 4 Heartland shipments or a spike in residential Coastal orders won&rsquo;t show up in a trailing average. It can&rsquo;t see rate changes: when Heartland raised contract rates in January 2026, Denise&rsquo;s model had no awareness for three months until the new rates were averaged in. And it treats quarterly tier resets as noise. When April opens at Tier 1 pricing (0% discount), the trailing average from February and March, when Heartland was deep into Tier 3, is systematically low.</p>
 
-      <div class="callout"><p><strong>The January miss:</strong> Heartland&rsquo;s Q1 2026 contract renewal raised zone rates by ~22.7%. Denise accrued $31,067 against $38,200 actual &mdash; a $7,133 gap. The April Q2 reset is the same problem: trailing average sees discounted rates, reality opens at full price.</p></div>
+      <div class="callout"><p><strong>The January miss:</strong> Heartland&rsquo;s Q1 2026 contract renewal raised zone rates by ~22.7%. Denise accrued $31,067 against $38,200 actual, a $7,133 gap. The April Q2 reset is the same problem: the trailing average carries discounted rates that no longer exist.</p></div>
     </section>
 
     <section>
       <h2>What the engine does differently</h2>
-      <p>Instead of averaging invoice totals, the engine estimates charges bottom-up: shipment by shipment, applying the effective rate for each carrier against the actual April activity. The key insight is that the published rate cards are structural templates, not billing schedules. Every carrier applies undocumented adjustments on top of them. We detected this pattern by back-calculating implied rates from six months of historical invoices and derived calibration multipliers for each carrier.</p>
-      <p>For Peak Logistics, we back-calculated implied mileage per lane from the formula <code>base_charge &divide; rate_per_mile</code> for the six destinations not in the rate card. For Coastal Express, we computed the monthly effective per-pound rate from large commercial invoices where weight is significant, revealing a 1.17&times; multiplier applied uniformly across all regions. For Heartland, we identified that the Q1 2026 base rates are ~22.7% above the published card and tracked the quarterly volume discount tier prospectively from April 1.</p>
+      <p>The engine estimates charges bottom-up, shipment by shipment, applying the effective rate for each carrier against actual April activity. The published rate cards are structural templates, not billing schedules. Every carrier applies undocumented adjustments on top of them, and the gap is large enough to matter. We detected the pattern by back-calculating implied rates from six months of historical invoices and derived calibration multipliers for each carrier.</p>
 
+      <h3>Step 1: normalize the data</h3>
+      <p>The 3PL shipment log uses eight different strings for three carriers. Before any calculation can run, every row gets resolved to a canonical name.</p>
+      <pre data-lang="python"><code>CARRIER_MAP = {
+    'PEAK LOGISTICS': 'Peak Logistics',
+    'PEAK LOG':       'Peak Logistics',
+    'PEAK':           'Peak Logistics',
+    'HEARTLAND FREIGHT':     'Heartland Freight',
+    'HEARTLAND':             'Heartland Freight',
+    'HEARTLAND FREIGHT CO.': 'Heartland Freight',
+    'COASTAL EXPRESS':     'Coastal Express',
+    'COASTAL':             'Coastal Express',
+    'COASTAL EXPRESS LLC': 'Coastal Express',
+}</code></pre>
+
+      <h3>Step 2: fill mileage gaps from invoice history</h3>
+      <p>Peak&rsquo;s rate card lists mileage for 11 destinations. April had shipments to 6 others. Rather than guessing, we back-calculated implied miles from six months of prior invoices: <code>base_charge &divide; rate_per_mile_for_weight_tier</code>. The implied mileage is internally consistent within each month across all weight tiers, which confirms the formula is clean. Fort Collins comes out at ~50 miles, Grand Junction at ~222, Casper at ~242. Reno, NV had no invoice history at all and is flagged as unestimated.</p>
+      <pre data-lang="python"><code>PEAK_MILES = {
+    # Rate card (carrier-verified)
+    'Colorado Springs': 70,  'Cheyenne': 100,
+    'Pocatello': 440,         'Idaho Falls': 480,
+    'Provo': 490,
+    # Back-calculated from Jan-Mar 2026 invoices
+    'Fort Collins':  50,   'Pueblo':        75,
+    'Grand Junction': 222, 'Laramie':      100,
+    'Casper':        242,
+}</code></pre>
+
+      <h3>Step 3: calibrate zone rates and track the tier reset</h3>
+      <p>Heartland&rsquo;s published rates ($320/$485/$610/$780 by zone) are ~22.7% below what they actually billed in Q1 2026. The rate card was never updated after the contract renewal. We use invoice-derived rates instead, then apply the prospective volume discount tier: April 1 resets the QTD counter, so shipments 1&ndash;50 pay full rate and shipments 51&ndash;65 get 5% off.</p>
       <pre data-lang="python"><code>def calc_heartland(shipment, qtd_sequence):
     zone = zip_to_zone(shipment['destination_zip'])
-    # Q2 reset: Tier 1 for first 50, Tier 2 after
     discount = 0.05 if qtd_sequence > 50 else 0.0
     # Calibrated Q1/Q2 2026 rates, not the published card
     base = CALIBRATED_RATES[zone] * (1 - discount)
@@ -708,8 +735,8 @@ footer a:hover { color: #fff; }
 
     <section>
       <h2>Repeatability</h2>
-      <p>Next month, swap in the May shipment CSV. The engine re-runs in under a second. The calibration multipliers and effective mileage table persist &mdash; update them quarterly by back-calculating from the most recent 3 months of invoices. If a carrier raises rates, the variance report on the next invoice cycle will show the drift; recalibrate and the model self-corrects within one month rather than three.</p>
-      <p>Every estimate row carries its source: <code>rate_card</code> for destinations in the Peak mileage table, <code>invoice_derived</code> for back-calculated lanes, <code>calibrated_q2_2026</code> for Heartland. An auditor can reproduce any number by following the chain.</p>
+      <p>Swap in next month&rsquo;s shipment CSV. The engine reruns in under a second. The calibration multipliers and mileage table persist, updated quarterly against recent invoices. If a carrier raises rates, the variance report on the next invoice cycle will show the drift. Recalibrate and the model self-corrects within one month rather than three.</p>
+      <p>Every estimate row carries its source (<code>rate_card</code>, <code>invoice_derived</code>, or <code>calibrated_q2_2026</code>) so any number can be reproduced by following the chain. <a href="/accrual_engine.py">View the full engine source.</a></p>
     </section>
   </article>
 
