@@ -752,52 +752,70 @@ footer a:hover { color: #fff; }
 <script>
 gsap.registerPlugin(ScrollTrigger);
 
-// Word-by-word scroll reveal
-const revealEl = document.getElementById('reveal-text');
-const text = revealEl.innerText;
-revealEl.innerHTML = text.split(' ').map(w => `<span class="word">${w}</span>`).join(' ');
-const words = revealEl.querySelectorAll('.word');
-gsap.to(words, {
-  opacity: 1,
-  stagger: 0.04,
-  ease: 'none',
-  scrollTrigger: {
-    trigger: revealEl,
-    start: 'top 80%',
-    end: 'bottom 30%',
-    scrub: 0.5,
+const mm = gsap.matchMedia();
+
+mm.add(
+  {
+    motion: '(prefers-reduced-motion: no-preference)',
+    reduced: '(prefers-reduced-motion: reduce)'
+  },
+  (ctx) => {
+    const { motion } = ctx.conditions;
+
+    // Word-by-word scroll reveal
+    const revealEl = document.getElementById('reveal-text');
+    const text = revealEl.innerText;
+    revealEl.innerHTML = text.split(' ').map(w => `<span class="word">${w}</span>`).join(' ');
+    const words = revealEl.querySelectorAll('.word');
+    gsap.to(words, {
+      opacity: 1,
+      stagger: motion ? 0.04 : 0,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: revealEl,
+        start: 'top 80%',
+        end: 'bottom 30%',
+        scrub: motion ? 0.5 : false,
+      }
+    });
+
+    // Carrier card scroll entrance
+    gsap.from('.carrier-card', {
+      autoAlpha: 0, y: motion ? 24 : 0, stagger: motion ? 0.12 : 0,
+      duration: motion ? 0.7 : 0, ease: 'power2.out',
+      scrollTrigger: { trigger: '.carrier-grid', start: 'top 85%' }
+    });
+
+    // Bento card entrance
+    gsap.from('.bento-card', {
+      autoAlpha: 0, y: motion ? 20 : 0, stagger: motion ? 0.08 : 0,
+      duration: motion ? 0.6 : 0, ease: 'power2.out',
+      scrollTrigger: { trigger: '.bento', start: 'top 85%' }
+    });
+
+    // Grand total count-up via GSAP
+    const totalEl = document.querySelector('.grand-total-number');
+    const counter = { val: 0 };
+    ScrollTrigger.create({
+      trigger: totalEl,
+      start: 'top 90%',
+      once: true,
+      onEnter: () => gsap.to(counter, {
+        val: 98101.87,
+        duration: motion ? 1.2 : 0,
+        ease: 'power2.out',
+        onUpdate: () => {
+          totalEl.textContent = '$' + counter.val.toLocaleString('en-US', {
+            minimumFractionDigits: 2, maximumFractionDigits: 2
+          });
+        },
+        onComplete: () => {
+          totalEl.textContent = '$98,101.87';
+        }
+      })
+    });
   }
-});
-
-// Carrier card scroll entrance
-gsap.from('.carrier-card', {
-  opacity: 0, y: 24, stagger: 0.12, duration: 0.7, ease: 'power2.out',
-  scrollTrigger: { trigger: '.carrier-grid', start: 'top 85%' }
-});
-
-// Bento card entrance
-gsap.from('.bento-card', {
-  opacity: 0, y: 20, stagger: 0.08, duration: 0.6, ease: 'power2.out',
-  scrollTrigger: { trigger: '.bento', start: 'top 85%' }
-});
-
-// Grand total count-up
-function countUp(el, target, prefix) {
-  const dur = 1200, steps = 60, step = dur / steps;
-  let cur = 0, i = 0;
-  const timer = setInterval(() => {
-    i++;
-    cur = target * (i / steps);
-    el.textContent = prefix + cur.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-    if (i >= steps) { clearInterval(timer); el.textContent = prefix + target.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
-  }, step);
-}
-ScrollTrigger.create({
-  trigger: '.grand-total-number',
-  start: 'top 90%',
-  once: true,
-  onEnter: () => countUp(document.querySelector('.grand-total-number'), 98101.87, '$')
-});
+);
 
 // DATA
 const PEAK_DATA = [["SHP-10001", "Colorado Springs, CO", 75.5, 70, "rate_card", 227.5, 31.85, 45.0, "Residential Delivery", 304.35, false], ["SHP-10002", "Colorado Springs, CO", 2000.0, 70, "rate_card", 336.0, 47.04, 0.0, null, 383.04, false], ["SHP-10003", "Fort Collins, CO", 305.8, 50, "invoice_derived", 162.5, 22.75, 75.0, "Liftgate", 260.25, false], ["SHP-10004", "Fort Collins, CO", 345.2, 50, "invoice_derived", 162.5, 22.75, 0.0, null, 185.25, false], ["SHP-10005", "Cheyenne, WY", 350.7, 100, "rate_card", 325.0, 45.5, 0.0, null, 370.5, false], ["SHP-10006", "Reno, NV", 339.8, null, "", 0, 0, 0, null, 0.0, true], ["SHP-10007", "Pueblo, CO", 54.2, 75, "invoice_derived", 243.75, 34.12, 50.0, "Appointment Delivery", 327.87, false], ["SHP-10008", "Grand Junction, CO", 291.4, 222, "invoice_derived", 721.5, 101.01, 0.0, null, 822.51, false], ["SHP-10009", "Grand Junction, CO", 80.9, 222, "invoice_derived", 721.5, 101.01, 75.0, "Liftgate", 897.51, false], ["SHP-10010", "Grand Junction, CO", 293.9, 222, "invoice_derived", 721.5, 101.01, 0.0, null, 822.51, false], ["SHP-10011", "Pocatello, ID", 287.5, 440, "rate_card", 1430.0, 200.2, 0.0, null, 1630.2, false], ["SHP-10012", "Pocatello, ID", 96.5, 440, "rate_card", 1430.0, 200.2, 45.0, "Residential Delivery", 1675.2, false], ["SHP-10013", "Idaho Falls, ID", 383.3, 480, "rate_card", 1560.0, 218.4, 0.0, null, 1778.4, false], ["SHP-10014", "Idaho Falls, ID", 204.0, 480, "rate_card", 1560.0, 218.4, 0.0, null, 1778.4, false], ["SHP-10015", "Provo, UT", 162.8, 490, "rate_card", 1592.5, 222.95, 75.0, "Liftgate", 1890.45, false], ["SHP-10016", "Colorado Springs, CO", 1744.0, 70, "rate_card", 336.0, 47.04, 0.0, null, 383.04, false], ["SHP-10017", "Colorado Springs, CO", 1969.7, 70, "rate_card", 336.0, 47.04, 0.0, null, 383.04, false], ["SHP-10018", "Colorado Springs, CO", 1341.4, 70, "rate_card", 336.0, 47.04, 0.0, null, 383.04, false], ["SHP-10019", "Colorado Springs, CO", 723.6, 70, "rate_card", 336.0, 47.04, 0.0, null, 383.04, false], ["SHP-10020", "Fort Collins, CO", 2001.8, 50, "invoice_derived", 320.0, 44.8, 45.0, "Residential Delivery", 409.8, false], ["SHP-10021", "Fort Collins, CO", 500.0, 50, "invoice_derived", 240.0, 33.6, 0.0, null, 273.6, false], ["SHP-10022", "Fort Collins, CO", 1500.4, 50, "invoice_derived", 240.0, 33.6, 0.0, null, 273.6, false], ["SHP-10023", "Cheyenne, WY", 1960.8, 100, "rate_card", 480.0, 67.2, 75.0, "Liftgate", 622.2, false], ["SHP-10024", "Cheyenne, WY", 743.8, 100, "rate_card", 480.0, 67.2, 0.0, null, 547.2, false], ["SHP-10025", "Cheyenne, WY", 769.0, 100, "rate_card", 480.0, 67.2, 0.0, null, 547.2, false], ["SHP-10026", "Pueblo, CO", 1504.9, 75, "invoice_derived", 360.0, 50.4, 0.0, null, 410.4, false], ["SHP-10027", "Pueblo, CO", 1551.9, 75, "invoice_derived", 360.0, 50.4, 0.0, null, 410.4, false], ["SHP-10028", "Laramie, WY", 499.5, 100, "invoice_derived", 325.0, 45.5, 0.0, null, 370.5, false], ["SHP-10029", "Laramie, WY", 1807.0, 100, "invoice_derived", 480.0, 67.2, 0.0, null, 547.2, false], ["SHP-10030", "Grand Junction, CO", 917.9, 222, "invoice_derived", 1065.6, 149.18, 0.0, null, 1214.78, false], ["SHP-10031", "Grand Junction, CO", 1264.1, 222, "invoice_derived", 1065.6, 149.18, 75.0, "Liftgate", 1289.78, false], ["SHP-10032", "Grand Junction, CO", 541.4, 222, "invoice_derived", 1065.6, 149.18, 0.0, null, 1214.78, false], ["SHP-10033", "Casper, WY", 1975.3, 242, "invoice_derived", 1161.6, 162.62, 0.0, null, 1324.22, false], ["SHP-10034", "Casper, WY", 1679.6, 242, "invoice_derived", 1161.6, 162.62, 0.0, null, 1324.22, false], ["SHP-10035", "Provo, UT", 1849.3, 490, "rate_card", 2352.0, 329.28, 0.0, null, 2681.28, false], ["SHP-10036", "Colorado Springs, CO", 2780.4, 70, "rate_card", 448.0, 62.72, 0.0, null, 510.72, false], ["SHP-10037", "Pueblo, CO", 3105.8, 75, "invoice_derived", 480.0, 67.2, 0.0, null, 547.2, false], ["SHP-10038", "Cheyenne, WY", 3381.2, 100, "rate_card", 640.0, 89.6, 0.0, null, 729.6, false], ["SHP-10039", "Fort Collins, CO", 3350.2, 50, "invoice_derived", 320.0, 44.8, 0.0, null, 364.8, false], ["SHP-10040", "Grand Junction, CO", 3046.1, 222, "invoice_derived", 1420.8, 198.91, 0.0, null, 1619.71, false], ["SHP-10033", "Casper, WY", 1975.3, 242, "invoice_derived", 1161.6, 162.62, 0.0, null, 1324.22, false]];
