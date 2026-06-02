@@ -510,11 +510,14 @@ footer a:hover { color: #fff; }
     <div class="grand-total-bar">
       <div>
         <div class="grand-total-label">Total Accrual &mdash; April 2026</div>
-        <div class="grand-total-number">$98,101.87</div>
+        <div class="grand-total-number" id="grand-total-display">$98,101.87</div>
+        <div style="font-family:var(--sans);font-size:0.72rem;color:rgba(255,255,255,0.35);margin-top:0.35rem;">
+          Peak range: $92,246.26&ndash;$109,377.70 depending on May OTRI
+        </div>
       </div>
       <div class="grand-total-right">
         <div class="grand-total-vs">Denise&rsquo;s trailing average: $95,273.01</div>
-        <div class="grand-total-delta-pill">+$2,828.86</div>
+        <div class="grand-total-delta-pill" id="grand-delta-display">+$2,828.86</div>
       </div>
     </div>
   </div>
@@ -825,6 +828,48 @@ footer a:hover { color: #fff; }
       <p>The April 9 billing date (March service, multiplier 0.679) is the out-of-sample test. Liberation Day tariffs landed April 2. By April 9, freight bookings had frozen, OTRI was collapsing, and the model correctly predicts a low multiplier &mdash; even though March itself was the tightest freight month in the dataset. The billing date is what matters, not the service month.</p>
 
       <div class="callout"><p>This is actionable. Ridgeline knows their own acc_rate a week before Peak invoices &mdash; the shipment data is already in-house. OTRI is published weekly by FreightWaves at no cost. Check both the week before the expected invoice date, plug into the formula, and the April accrual estimate tightens from a &plusmn;40% confidence band to &plusmn;5%.</p></div>
+
+      <h3>OTRI sensitivity &mdash; April 2026 Peak estimate</h3>
+      <p>April&rsquo;s acc_rate is <strong>0.0195</strong> (back-calculated from shipment data). The only unknown is OTRI on Peak&rsquo;s billing date in mid-May. Drag the slider to see how the estimate moves.</p>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin:1.5rem 0;">
+        <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+          <div style="flex:1;min-width:200px;">
+            <label for="otri-slider" style="font-family:var(--sans);font-size:0.72rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:0.5rem;">
+              OTRI on billing date
+            </label>
+            <input type="range" id="otri-slider" min="4" max="14" step="1" value="8"
+              style="width:100%;accent-color:var(--accent);">
+            <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.68rem;color:var(--text-muted);margin-top:0.25rem;">
+              <span>4% (frozen)</span><span>9% (normal)</span><span>14% (peak)</span>
+            </div>
+          </div>
+          <div style="text-align:center;min-width:160px;">
+            <div style="font-family:var(--sans);font-size:0.68rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.3rem;">OTRI</div>
+            <div id="otri-val" style="font-family:var(--sans);font-size:2rem;font-weight:700;letter-spacing:-0.04em;color:var(--accent);">8%</div>
+          </div>
+          <div style="text-align:center;min-width:160px;">
+            <div style="font-family:var(--sans);font-size:0.68rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.3rem;">Multiplier</div>
+            <div id="otri-mult" style="font-family:var(--mono);font-size:1.4rem;font-weight:600;color:var(--text);">0.699</div>
+          </div>
+          <div style="text-align:center;min-width:200px;">
+            <div style="font-family:var(--sans);font-size:0.68rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.3rem;">Peak April estimate</div>
+            <div id="otri-peak" style="font-family:var(--sans);font-size:1.8rem;font-weight:700;letter-spacing:-0.03em;color:var(--text);">$34,213.96</div>
+          </div>
+        </div>
+
+        <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:0.78rem;">
+          <thead>
+            <tr style="background:var(--bg-warm);border-bottom:1px solid var(--border);">
+              <th style="padding:0.45rem 0.75rem;text-align:left;font-size:0.63rem;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-muted);">OTRI scenario</th>
+              <th style="padding:0.45rem 0.75rem;text-align:right;font-size:0.63rem;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-muted);">Multiplier</th>
+              <th style="padding:0.45rem 0.75rem;text-align:right;font-size:0.63rem;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-muted);">Peak total</th>
+              <th style="padding:0.45rem 0.75rem;text-align:right;font-size:0.63rem;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-muted);">Grand total</th>
+            </tr>
+          </thead>
+          <tbody id="sensitivity-tbody"></tbody>
+        </table>
+      </div>
     </section>
 
 </div><!-- /container -->
@@ -1031,6 +1076,71 @@ buildPeakTable();
 buildHlandTable();
 buildCoastalTable();
 buildFlags();
+
+// OTRI SENSITIVITY SLIDER
+const SENSITIVITY = [{"otri_pct": 4, "multiplier": 0.5593, "peak_total": 27360.4}, {"otri_pct": 6, "multiplier": 0.6293, "peak_total": 30784.74}, {"otri_pct": 8, "multiplier": 0.6994, "peak_total": 34213.96}, {"otri_pct": 10, "multiplier": 0.7694, "peak_total": 37638.29}, {"otri_pct": 12, "multiplier": 0.8394, "peak_total": 41062.62}, {"otri_pct": 14, "multiplier": 0.9095, "peak_total": 44491.84}];
+const HLAND_COASTAL_SUM = 64885.86;
+const DENISE_TOTAL = 95273.01;
+
+function fmtUsd(v) {
+  return '$' + v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtDelta(d) {
+  const sign = d >= 0 ? '+' : '';
+  return sign + fmtUsd(Math.abs(d)).replace('$', d >= 0 ? '+$' : '-$').replace('++','+'). replace('+-','-');
+}
+function deltaSign(d) {
+  return d >= 0 ? '+$' : '-$';
+}
+function fmtDeltaStr(d) {
+  return (d >= 0 ? '+' : '-') + '$' + Math.abs(d).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function buildSensitivityTable(activeOtri) {
+  const tbody = document.getElementById('sensitivity-tbody');
+  tbody.innerHTML = '';
+  SENSITIVITY.forEach(row => {
+    const grand = row.peak_total + HLAND_COASTAL_SUM;
+    const delta = grand - DENISE_TOTAL;
+    const isActive = row.otri_pct === activeOtri;
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--border-light)';
+    if (isActive) {
+      tr.style.background = 'rgba(196,99,42,0.06)';
+      tr.style.fontWeight = '600';
+    }
+    let label = row.otri_pct + '%';
+    if (row.otri_pct === 4) label += ' — Liberation Day';
+    if (row.otri_pct === 8) label += ' — normal market';
+    if (row.otri_pct === 14) label += ' — Feb 2026 peak';
+    tr.innerHTML = `
+      <td style="padding:0.4rem 0.75rem;">${label}${isActive ? ' <span style=\"color:var(--accent);font-size:0.68rem\">◀ selected</span>' : ''}</td>
+      <td style="padding:0.4rem 0.75rem;text-align:right;">${row.multiplier.toFixed(3)}</td>
+      <td style="padding:0.4rem 0.75rem;text-align:right;">${fmtUsd(row.peak_total)}</td>
+      <td style="padding:0.4rem 0.75rem;text-align:right;">${fmtUsd(grand)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateSlider(otriPct) {
+  const row = SENSITIVITY.find(r => r.otri_pct === otriPct) || SENSITIVITY[2];
+  document.getElementById('otri-val').textContent = otriPct + '%';
+  document.getElementById('otri-mult').textContent = row.multiplier.toFixed(3);
+  document.getElementById('otri-peak').textContent = fmtUsd(row.peak_total);
+  const grand = row.peak_total + HLAND_COASTAL_SUM;
+  const grandEl = document.getElementById('grand-total-display');
+  const deltaEl = document.getElementById('grand-delta-display');
+  if (grandEl) grandEl.textContent = fmtUsd(grand);
+  if (deltaEl) deltaEl.textContent = fmtDeltaStr(grand - DENISE_TOTAL);
+  buildSensitivityTable(otriPct);
+}
+
+const slider = document.getElementById('otri-slider');
+if (slider) {
+  slider.addEventListener('input', () => updateSlider(parseInt(slider.value)));
+  updateSlider(8);
+}
 </script>
 </body>
 </html>

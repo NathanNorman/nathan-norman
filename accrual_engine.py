@@ -12,6 +12,10 @@ from collections import defaultdict
 
 BASE = '/Users/nathan.norman/finance-cup'
 
+MARCH_MULTIPLIER = 0.679   # Mar service billed Apr 9; OTRI collapsed post-Liberation Day
+OTRI_A = 0.4192
+OTRI_B = 1.7914
+
 # ─── CARRIER NORMALIZATION ────────────────────────────────────────────────────
 
 CARRIER_MAP = {
@@ -247,7 +251,7 @@ def load_denise_baseline(filepath):
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
-def run():
+def run(otri=None):
     shipments = []
     with open(f'{BASE}/shipments_apr2026.csv') as f:
         for row in csv.DictReader(f):
@@ -301,6 +305,39 @@ def run():
 
         carriers[c]['shipments'].append(row)
 
+    # Compute April acc_rate for Peak (accessorial / base across all estimated shipments)
+    peak_base_sum = sum(
+        s.get('base', 0) for s in carriers['Peak Logistics']['shipments']
+        if not s.get('error')
+    )
+    peak_acc_sum = sum(
+        s.get('accessorial', 0) for s in carriers['Peak Logistics']['shipments']
+        if not s.get('error')
+    )
+    april_acc_rate = round(peak_acc_sum / peak_base_sum, 6) if peak_base_sum else 0.0
+
+    # If otri provided, recompute Peak total using formula multiplier.
+    # otri is in percentage points (e.g. 8.0 means 8%) — the formula uses raw percent, not decimal.
+    # Base estimate uses March billing multiplier (conservative; OTRI collapsed Apr 9).
+    peak_base_total = carriers['Peak Logistics']['total']
+    if otri is not None:
+        multiplier = round(OTRI_A + OTRI_B * (april_acc_rate * otri), 4)
+        adjusted_peak = round(peak_base_total * (multiplier / MARCH_MULTIPLIER), 2)
+    else:
+        multiplier = MARCH_MULTIPLIER
+        adjusted_peak = peak_base_total
+
+    # Build sensitivity table for OTRI 4%–14% (otri_pct passed as percent points)
+    sensitivity = []
+    for otri_pct in [4, 6, 8, 10, 12, 14]:
+        m = round(OTRI_A + OTRI_B * (april_acc_rate * otri_pct), 4)
+        peak_est = round(peak_base_total * (m / MARCH_MULTIPLIER), 2)
+        sensitivity.append({
+            'otri_pct': otri_pct,
+            'multiplier': m,
+            'peak_total': peak_est,
+        })
+
     denise = load_denise_baseline(f'{BASE}/denise_accruals_v2.csv')
     # Map Denise's carrier names to our normalized names
     denise_norm = {}
@@ -308,7 +345,9 @@ def run():
         norm = normalize_carrier(raw)
         denise_norm[norm] = val
 
-    grand_total  = round(sum(v['total'] for v in carriers.values()), 2)
+    grand_total  = round(
+        adjusted_peak + carriers['Heartland Freight']['total'] + carriers['Coastal Express']['total'], 2
+    )
     denise_total = round(sum(denise_norm.values()), 2)
 
     output = {
@@ -320,6 +359,10 @@ def run():
         'denise_total': denise_total,
         'delta_vs_denise': round(grand_total - denise_total, 2),
         'shipment_count': len(shipments),
+        'peak_acc_rate': april_acc_rate,
+        'peak_multiplier': multiplier,
+        'peak_adjusted_total': adjusted_peak,
+        'peak_sensitivity': sensitivity,
     }
 
     return output
