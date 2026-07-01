@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DatPaq Platform Evaluation | July 2026</title>
+  <meta property="og:title" content="DatPaq Platform Evaluation">
+  <meta property="og:description" content="Independent hands-on review of all 17 APIs across REST, CLI, MCP, and dashboard.">
+  <meta name="description" content="Independent evaluation of DatPaq: 17 utility APIs, REST, CLI, MCP, and what works vs what breaks for agent-first developers.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://nathannorman.com/blog/datpaq-platform-evaluation">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231e40af'/%3E%3Ccircle cx='16' cy='14' r='4' fill='white'/%3E%3Cpath stroke='white' stroke-width='1.5' fill='none' d='M16 18v6M10 22h12'/%3E%3Ccircle cx='8' cy='10' r='2' fill='%2393c5fd'/%3E%3Ccircle cx='24' cy='10' r='2' fill='%2393c5fd'/%3E%3Ccircle cx='16' cy='6' r='2' fill='%2393c5fd'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-subtle: #f8fafc;
+      --text: #0f172a;
+      --text-secondary: #475569;
+      --border: #e2e8f0;
+      --blue: #1e40af;
+      --blue-light: #dbeafe;
+      --green: #15803d;
+      --green-light: #dcfce7;
+      --amber: #b45309;
+      --amber-light: #fef3c7;
+      --red: #b91c1c;
+      --red-light: #fee2e2;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', system-ui, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--sans); color: var(--text); background: var(--bg); line-height: 1.65; -webkit-font-smoothing: antialiased; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+    section { padding: 64px 0; border-top: 1px solid var(--border); }
+    section:first-of-type { border-top: none; }
+    .hero { padding: 80px 0 64px; background: linear-gradient(180deg, #fff 0%, var(--bg-subtle) 100%); }
+    .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue); margin-bottom: 16px; }
+    h1 { font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 20px; }
+    .hero-lead { font-size: 1.15rem; color: var(--text-secondary); max-width: 640px; margin-bottom: 32px; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 24px; font-family: var(--mono); font-size: 12px; color: var(--text-secondary); }
+    h2 { font-size: 1.65rem; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 16px; }
+    h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+    p { color: var(--text-secondary); margin-bottom: 16px; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin: 32px 0; }
+    .stat { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; }
+    .stat .num { font-size: 2rem; font-weight: 700; color: var(--blue); line-height: 1; }
+    .stat .lbl { font-size: 13px; color: var(--text-secondary); margin-top: 8px; }
+    .pullquote { border-left: 4px solid var(--blue); padding: 20px 24px; margin: 32px 0; background: var(--blue-light); border-radius: 0 12px 12px 0; font-size: 1.1rem; color: var(--text); font-weight: 500; }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 24px; }
+    .card { border: 1px solid var(--border); border-radius: 12px; padding: 24px; background: var(--bg); }
+    .card.good { border-top: 3px solid var(--green); }
+    .card.warn { border-top: 3px solid var(--amber); }
+    .card.bad { border-top: 3px solid var(--red); }
+    .badge { display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px; margin-bottom: 12px; }
+    .badge-p0 { background: var(--red-light); color: var(--red); }
+    .badge-p1 { background: var(--amber-light); color: var(--amber); }
+    .badge-p2 { background: var(--blue-light); color: var(--blue); }
+    .badge-ok { background: var(--green-light); color: var(--green); }
+    table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14px; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { font-weight: 600; color: var(--text); background: var(--bg-subtle); }
+    td { color: var(--text-secondary); }
+    .ok { color: var(--green); font-weight: 600; }
+    .partial { color: var(--amber); font-weight: 600; }
+    .fail { color: var(--red); font-weight: 600; }
+    .diagram-wrap { margin: 32px 0; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 12px; padding: 24px; overflow-x: auto; }
+    .pipeline { display: flex; align-items: stretch; gap: 8px; min-width: 600px; }
+    .pipe-stage { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 16px; background: var(--bg); text-align: center; }
+    .pipe-stage h4 { font-size: 13px; margin-bottom: 8px; color: var(--text); }
+    .pipe-stage p { font-size: 12px; margin: 0; }
+    .pipe-arrow { display: flex; align-items: center; color: var(--text-secondary); font-size: 20px; }
+    .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px; }
+    @media (max-width: 640px) { .compare { grid-template-columns: 1fr; } }
+    .compare-col { border-radius: 12px; padding: 24px; }
+    .compare-col.before { background: var(--red-light); border: 1px solid #fecaca; }
+    .compare-col.after { background: var(--green-light); border: 1px solid #bbf7d0; }
+    .compare-col h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+    ul { margin: 0 0 16px 20px; color: var(--text-secondary); }
+    li { margin-bottom: 8px; }
+    .code-block-wrapper { position: relative; margin: 20px 0; }
+    .code-block {
+      background: #1e293b; color: #e2e8f0; padding: 16px 20px; border-radius: 8px;
+      font-family: var(--mono); font-size: 13px; white-space: pre; overflow-x: auto; line-height: 1.5;
+    }
+    .footer { padding: 48px 0; text-align: center; font-size: 13px; color: var(--text-secondary); border-top: 1px solid var(--border); }
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.5s ease, transform 0.5s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+  </style>
+</head>
+<body>
+
+<a href="/" style="position:fixed;top:16px;left:20px;z-index:9999;font-family:var(--mono);font-size:12px;color:var(--text-secondary);text-decoration:none;opacity:0.8;">← Home</a>
+
+<section class="hero">
+  <div class="container reveal">
+    <p class="eyebrow">Independent evaluation · July 2026</p>
+    <h1>DatPaq works over REST.<br>The agent story needs alignment.</h1>
+    <p class="hero-lead">A hands-on review of all 17 catalog APIs across REST, CLI, MCP, and the developer dashboard. The positioning is right for the agent era. Production routing and CLI drift will block first-run success until fixed.</p>
+    <div class="meta-row">
+      <span>Scope: Free tier</span>
+      <span>CLI v1.0.0</span>
+      <span>41 MCP tools listed</span>
+      <span>Reproducible test suite included</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container reveal">
+    <p class="eyebrow">The business</p>
+    <h2>What DatPaq sells</h2>
+    <p>DatPaq bundles 17 utility APIs (DNS, WHOIS, IP lookup, sample data, screenshots, time conversion, and more) behind a single API key and a single monthly bill. Three surfaces reach the same catalog: REST for apps, a Go CLI for terminals and CI, and a hosted MCP server for AI agents in Cursor, Claude, and similar tools.</p>
+    <div class="stat-row">
+      <div class="stat"><div class="num">17</div><div class="lbl">Catalog APIs</div></div>
+      <div class="stat"><div class="num">3</div><div class="lbl">Integration surfaces</div></div>
+      <div class="stat"><div class="num">3K</div><div class="lbl">Free requests / month</div></div>
+      <div class="stat"><div class="num">$0–100</div><div class="lbl">Monthly plans</div></div>
+    </div>
+    <p>The customer is not buying algorithms they cannot write. They are buying consolidated billing, maintained data sources, and agent-ready discovery (<code>llms.txt</code>, OpenAPI, MCP tools) so they do not stitch together a dozen vendors or teach an agent seventeen auth schemes.</p>
+  </div>
+</section>
+
+<section style="background: var(--bg-subtle);">
+  <div class="container reveal">
+    <p class="eyebrow">Methodology</p>
+    <h2>What we tested</h2>
+    <p>We created a standard free-tier account, exercised every API in the catalog, installed the official CLI, connected to the hosted MCP server, and explored the authenticated dashboard. Automated scripts plus manual retests against the CLI reference docs produced 50+ recorded calls. We corrected one false negative: binary CLI commands fail with <code>--agent</code>, which the docs explicitly say to avoid.</p>
+    <div class="card-grid">
+      <div class="card"><h3>REST</h3><p>curl against every catalog endpoint, plus batch and POST variants where documented.</p></div>
+      <div class="card"><h3>CLI</h3><p>All 17 interfaces, <code>datpaq doctor</code>, <code>exec</code>, and binary commands without <code>--agent</code>.</p></div>
+      <div class="card"><h3>MCP</h3><p>Initialize handshake, 41 tools listed, 13 representative tool invocations.</p></div>
+      <div class="card"><h3>Dashboard</h3><p>Overview, per-API playground, pricing, settings, live usage analytics.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container reveal">
+    <p class="eyebrow">Headline scores</p>
+    <h2>Surface-by-surface results</h2>
+    <table>
+      <thead>
+        <tr><th>Surface</th><th>Working</th><th>Partial</th><th>Broken</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>REST (17 APIs)</td><td class="ok">~15</td><td class="partial">2</td><td class="fail">Several doc'd routes 404</td></tr>
+        <tr><td>CLI (JSON)</td><td class="ok">~14</td><td class="partial">—</td><td class="fail">DNS, MX Lookup</td></tr>
+        <tr><td>CLI (binary)</td><td class="ok">3/3</td><td class="partial">JSON envelope output</td><td class="fail">Only if --agent used</td></tr>
+        <tr><td>Hosted MCP</td><td class="ok">12/13 sampled</td><td class="partial">—</td><td class="fail">dns_lookup</td></tr>
+        <tr><td>Dashboard UX</td><td class="ok">Strong</td><td class="partial">Snippet bug</td><td class="fail">Billing UI mismatch</td></tr>
+      </tbody>
+    </table>
+    <div class="pullquote">A developer following official DNS or MX documentation via the CLI fails on day one. That is not a power-user edge case. It is the documented happy path.</div>
+  </div>
+</section>
+
+<section style="background: var(--bg-subtle);">
+  <div class="container reveal">
+    <p class="eyebrow">Strengths</p>
+    <h2>What is working well</h2>
+    <div class="card-grid">
+      <div class="card good"><span class="badge badge-ok">Differentiation</span><h3>Agent-native packaging</h3><p>Hosted MCP, <code>llms.txt</code>, OpenAPI, and CLI <code>--agent</code> JSON mode are ahead of typical API marketplaces.</p></div>
+      <div class="card good"><span class="badge badge-ok">DX</span><h3>Dashboard playground</h3><p>Per-API credential injection, multi-language snippets, parameter forms, and near-real-time usage analytics exceed market standard.</p></div>
+      <div class="card good"><span class="badge badge-ok">Performance</span><h3>Fast JSON APIs</h3><p>Most utilities return in under 350ms. Web screenshot ~8s. WHOIS, sample data, unit conversion, profanity, domain lookup all reliable over REST.</p></div>
+      <div class="card good"><span class="badge badge-ok">CLI depth</span><h3>Beyond marketing</h3><p>sync, search, tail, export, local SQLite cache, profiles, and <code>datpaq doctor</code> show serious CLI investment.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container reveal">
+    <p class="eyebrow">Root cause</p>
+    <h2>Where the surfaces diverge</h2>
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 720 200" width="100%" style="max-width:720px;display:block;margin:0 auto;">
+        <rect x="20" y="70" width="120" height="60" rx="8" fill="#dbeafe" stroke="#1e40af"/>
+        <text x="80" y="95" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#0f172a">OpenAPI</text>
+        <text x="80" y="112" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#475569">+ Docs</text>
+        <rect x="180" y="70" width="120" height="60" rx="8" fill="#dbeafe" stroke="#1e40af"/>
+        <text x="240" y="95" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#0f172a">CLI v1.0</text>
+        <text x="240" y="112" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#475569">+ MCP</text>
+        <path d="M300 100 L340 100" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+        <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#94a3b8"/></marker></defs>
+        <rect x="350" y="50" width="160" height="120" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+        <text x="430" y="78" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#0f172a">API Gateway</text>
+        <text x="430" y="100" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#15803d">/dns-lookup ✓</text>
+        <text x="430" y="118" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#b91c1c">/dns ✗</text>
+        <text x="430" y="136" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#b91c1c">/schemas ✗</text>
+        <text x="430" y="154" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#15803d">/mx-lookup ✓</text>
+        <path d="M510 100 L550 100" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+        <rect x="560" y="70" width="140" height="60" rx="8" fill="#dcfce7" stroke="#15803d"/>
+        <text x="630" y="95" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#0f172a">Developer</text>
+        <text x="630" y="112" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#475569">REST mostly OK</text>
+      </svg>
+    </div>
+    <p>Clients and docs point at canonical paths. Production serves some of them and silently omits others. Undocumented aliases (like <code>/dns-lookup</code>) work over REST only. The CLI adds a second layer of drift on MX Lookup parameter names and POST paths.</p>
+  </div>
+</section>
+
+<section style="background: var(--bg-subtle);">
+  <div class="container reveal">
+    <p class="eyebrow">Issues by category</p>
+    <h2>What is broken and why</h2>
+    <div class="card-grid">
+      <div class="card bad"><span class="badge badge-p0">P0 · Platform</span><h3>Missing production routes</h3><ul><li><code>GET /dns</code> returns 404; docs and CLI target this path</li><li><code>/schemas</code>, <code>/generate-batch</code>, blog JSON API all 404</li><li>Undocumented <code>/dns-lookup</code> works REST-only</li></ul></div>
+      <div class="card bad"><span class="badge badge-p0">P0 · CLI drift</span><h3>MX Lookup CLI broken</h3><ul><li>GET: CLI sends <code>domain</code>, API wants <code>domains</code></li><li>POST/batch hit paths that 404</li><li>REST and MCP GET both work</li></ul></div>
+      <div class="card warn"><span class="badge badge-p1">P1 · Dashboard</span><h3>Docs and UI defects</h3><ul><li>Convert Time snippet URL is malformed</li><li>Overview shows Free; Settings shows paid invoice</li><li>OpenAPI lists routes production does not serve</li></ul></div>
+      <div class="card warn"><span class="badge badge-p2">P2 · Quality</span><h3>Data and ergonomics</h3><ul><li>8.8.8.8 returns AS0 / Unknown org</li><li>Image API rejects .ico URLs</li><li>CLI success warnings on every call</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container reveal">
+    <p class="eyebrow">Evidence</p>
+    <h2>DNS: the canonical path fails</h2>
+    <p>The CLI dry-run confirms it calls the documented URL. Production rejects it. An undocumented alias succeeds.</p>
+    <div class="code-block-wrapper">
+      <div class="code-block">GET /api/v1/dns?domain=datpaq.com&type=A
+→ 404 {"error":"Service not found","service":"dns"}
+
+GET /api/v1/dns-lookup?domain=datpaq.com&type=A
+→ 200 [{"domain":"datpaq.com","records":{"A":["159.203.149.223"]}}]</div>
+    </div>
+    <h3 style="margin-top:32px;">MX: REST works, CLI does not</h3>
+    <div class="code-block-wrapper">
+      <div class="code-block">GET /api/v1/mx-lookup?domains=gmail.com        → 200 OK
+
+datpaq mx-lookup get --domain gmail.com
+→ 400 'domains' must be a string or array of strings</div>
+    </div>
+  </div>
+</section>
+
+<section style="background: var(--bg-subtle);">
+  <div class="container reveal">
+    <p class="eyebrow">Business impact</p>
+    <h2>Why this matters now</h2>
+    <div class="compare">
+      <div class="compare-col before">
+        <h3>If unaddressed</h3>
+        <ul>
+          <li>Agent/CLI marketing claims fail smoke tests</li>
+          <li>Support tickets for "API broken" when docs are technically correct</li>
+          <li>OpenAPI and llms.txt train distrust in the catalog</li>
+          <li>Enterprise evals that run CLI checks fail immediately</li>
+          <li>Dashboard Execute Fetch may break on Convert Time</li>
+        </ul>
+      </div>
+      <div class="compare-col after">
+        <h3>If fixed</h3>
+        <ul>
+          <li>MCP + CLI become real differentiators vs RapidAPI-style catalogs</li>
+          <li>First-run success matches the "agent-ready" pitch</li>
+          <li>Contract tests prevent future route drift</li>
+          <li>Dashboard remains the strongest DX surface</li>
+          <li>Positioning holds: one key, every API, every surface</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container reveal">
+    <p class="eyebrow">Recommendations</p>
+    <h2>Prioritized fixes</h2>
+    <div class="pipeline">
+      <div class="pipe-stage"><h4>P0 · Days</h4><p>Restore or proxy <code>/dns</code>. Fix MX CLI params and paths. Audit OpenAPI vs production daily. Fix Convert Time dashboard snippet.</p></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-stage"><h4>P1 · Weeks</h4><p>Resolve or remove 404 endpoints. Reconcile billing UI. Document binary CLI pattern on marketing pages. Add <code>dns-lookup</code> CLI alias if needed.</p></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-stage"><h4>P2 · Months</h4><p>IP data quality review. Image format docs. Align MCP tool count with marketing. Public changelog for route changes.</p></div>
+    </div>
+  </div>
+</section>
+
+<section style="background: var(--bg-subtle);">
+  <div class="container reveal">
+    <p class="eyebrow">Verdict</p>
+    <h2>Recommended posture</h2>
+    <p><strong>Ship-ready today</strong> for developers calling JSON utilities over REST or MCP: WHOIS, IP intel, sample data, unit conversion, profanity, domain lookup, time APIs, and most of the catalog.</p>
+    <p><strong>Not ship-ready</strong> for the claim that all three surfaces work uniformly. DNS is down on CLI and MCP despite being prominently marketed. MX CLI is broken end to end. Several OpenAPI paths 404 in production.</p>
+    <p>Treat DatPaq as a <strong>strong beta with excellent positioning</strong>. The broken items are concentrated (route registration, CLI parameter mapping, contract testing). They are fixable without re-architecting the product. Fix P0 before scaling acquisition among agent-first and CLI-first audiences.</p>
+    <p style="margin-top:24px;font-size:14px;">Full technical matrix, reproduction scripts, and raw responses: <code>~/datpaq/COVERAGE.md</code>, <code>REPORT-FOR-DATPAQ.md</code>, <code>scripts/run-full-pass.py</code></p>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <p>Independent evaluation · July 1, 2026 · No commercial relationship with DatPaq, Inc.</p>
+    <p style="margin-top:8px;"><a href="/">Nathan Norman</a> · Prepared from hands-on testing of datpaq.com free tier</p>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.reveal').forEach((el, i) => {
+  setTimeout(() => el.classList.add('visible'), 80 * i);
+});
+document.querySelectorAll('.code-block').forEach(block => {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'code-block-wrapper';
+  block.parentNode.insertBefore(wrapper, block);
+  wrapper.appendChild(block);
+  const btn = document.createElement('button');
+  btn.textContent = 'Copy';
+  btn.style.cssText = 'position:absolute;top:8px;right:8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:6px 12px;font-family:JetBrains Mono,monospace;font-size:12px;color:rgba(255,255,255,0.7);cursor:pointer;';
+  wrapper.style.position = 'relative';
+  btn.onclick = () => { navigator.clipboard.writeText(block.textContent); btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 2000); };
+  wrapper.appendChild(btn);
+});
+</script>
+</body>
+</html>
