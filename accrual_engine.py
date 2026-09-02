@@ -1,4 +1,4 @@
-#!/Users/nathan.norman/.pyenv/versions/3.12.11/bin/python3
+#!/usr/bin/env python3
 """
 Ridgeline Foods Freight Accrual Engine — April 2026
 Estimates April freight charges from shipment data + calibrated rate cards.
@@ -6,11 +6,13 @@ Estimates April freight charges from shipment data + calibrated rate cards.
 
 import csv
 import json
+import os
 import sys
 from datetime import datetime
 from collections import defaultdict
+from pathlib import Path
 
-BASE = '/Users/nathan.norman/finance-cup'
+DATA_DIR = Path(os.environ.get('RIDGELINE_FREIGHT_DATA_DIR', Path(__file__).resolve().parent))
 
 MARCH_MULTIPLIER = 0.679   # Mar service billed Apr 9; OTRI collapsed post-Liberation Day
 OTRI_A = 0.4192
@@ -253,7 +255,7 @@ def load_denise_baseline(filepath):
 
 def run(otri=None):
     shipments = []
-    with open(f'{BASE}/shipments_apr2026.csv') as f:
+    with open(DATA_DIR / 'shipments_apr2026.csv') as f:
         for row in csv.DictReader(f):
             row['carrier_norm'] = normalize_carrier(row['carrier'])
             shipments.append(row)
@@ -338,7 +340,7 @@ def run(otri=None):
             'peak_total': peak_est,
         })
 
-    denise = load_denise_baseline(f'{BASE}/denise_accruals_v2.csv')
+    denise = load_denise_baseline(DATA_DIR / 'denise_accruals_v2.csv')
     # Map Denise's carrier names to our normalized names
     denise_norm = {}
     for raw, val in denise.items():

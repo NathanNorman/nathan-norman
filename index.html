@@ -3,11 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nathan Norman — Software Engineer</title>
-    <meta name="description" content="Software engineer specializing in data platform engineering, AI tooling, and developer infrastructure at Toast.">
+    <title>Nathan Norman | Senior Software Engineer</title>
+    <meta name="description" content="Senior software engineer focused on backend and platform work for AI agents and data systems. Most recently at Toast. Open to remote Senior and Staff IC roles.">
+    <link rel="canonical" href="https://nathan-norman.vercel.app/">
+    <meta property="og:title" content="Nathan Norman | Senior Software Engineer">
+    <meta property="og:description" content="Backend and platform engineer for AI agents and data systems. Most recently at Toast. Open to remote Senior and Staff IC roles.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://nathan-norman.vercel.app/">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23c4632a'/%3E%3Cpath d='M9 24V8h2.3l9.4 12.2V8H23v16h-2.2L11.3 11.8V24z' fill='white'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <script>document.documentElement.classList.add('js');</script>
     <style>
         :root {
             --bg: #faf8f5;
@@ -208,6 +215,12 @@
             line-height: 1.8;
         }
 
+        .header-intro p + p {
+            margin-top: 0.9rem;
+            font-size: 0.96rem;
+            color: var(--text-secondary);
+        }
+
         .header-links {
             display: flex;
             gap: 1.25rem;
@@ -229,6 +242,15 @@
         }
         .header-links a:hover {
             color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .header-links .resume-link {
+            color: var(--accent);
+            border-bottom-color: var(--accent-line);
+        }
+
+        .header-links .resume-link:hover {
             border-bottom-color: var(--accent);
         }
 
@@ -333,6 +355,12 @@
             font-family: var(--serif);
             font-size: 0.92rem;
             color: var(--text);
+        }
+
+        .detail-value a {
+            font-family: var(--sans);
+            font-size: 0.84rem;
+            font-weight: 600;
         }
 
         /* ═══════════════════════════════════════
@@ -680,6 +708,18 @@
         .connect-links {
             display: flex;
             gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .connect-copy {
+            max-width: 520px;
+        }
+
+        .connect-copy p {
+            margin-top: 0.75rem;
+            color: var(--text-secondary);
+            font-size: 0.96rem;
+            line-height: 1.75;
         }
 
         .connect-link {
@@ -694,6 +734,11 @@
         .connect-link:hover {
             color: var(--accent);
             border-bottom-color: var(--accent);
+        }
+
+        .connect-link-primary {
+            color: var(--accent);
+            border-bottom-color: var(--accent-line);
         }
 
         /* ═══════════════════════════════════════
@@ -721,11 +766,15 @@
            ANIMATIONS
            ═══════════════════════════════════════ */
         .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .js .reveal {
             opacity: 0;
             transform: translateY(18px);
             transition: opacity 0.65s cubic-bezier(0.23, 1, 0.32, 1), transform 0.65s cubic-bezier(0.23, 1, 0.32, 1);
         }
-        .reveal.visible {
+        .js .reveal.visible {
             opacity: 1;
             transform: translateY(0);
         }
@@ -767,6 +816,7 @@
             }
             .header-links {
                 justify-content: flex-start;
+                flex-wrap: wrap;
             }
             .about-content {
                 grid-template-columns: 1fr;
@@ -790,6 +840,13 @@
         @media (max-width: 600px) {
             html { font-size: 16px; }
             .nav-links { display: none; }
+            .header-links {
+                gap: 0.85rem;
+                row-gap: 0.45rem;
+            }
+            .header-links .sep {
+                display: none;
+            }
             .deep-dives {
                 grid-template-columns: 1fr;
             }
@@ -824,18 +881,21 @@
             <div class="header-inner">
                 <div class="header-title">
                     <h1>Nathan Norman</h1>
-                    <div class="subtitle">Software Engineer, Data Platform at Toast</div>
+                    <div class="subtitle">Backend and platform engineer for AI agents and data systems</div>
                 </div>
                 <div class="header-links">
                     <a href="https://github.com/NathanNorman" target="_blank" rel="noopener">GitHub</a>
                     <div class="sep"></div>
                     <a href="https://www.linkedin.com/in/nathansnorman/" target="_blank" rel="noopener">LinkedIn</a>
                     <div class="sep"></div>
+                    <a href="/Nathan_Norman_Resume.pdf" class="resume-link" target="_blank" rel="noopener">Resume</a>
+                    <div class="sep"></div>
                     <a href="mailto:nathannorman@gmail.com">Email</a>
                 </div>
             </div>
             <div class="header-intro">
-                <p>Senior engineer on Toast&rsquo;s Data Platform team. Eleven years building data systems &mdash; from MapReduce at Oracle to geo-redundant infrastructure at Bandwidth to the analytics pipelines behind every Toast restaurant today.</p>
+                <p>Senior software engineer with 11 years of experience building backend and platform systems. Most recently at Toast, I built production AI agents, internal Claude Marketplace skills, and data platform tooling used by analytics and operations teams.</p>
+                <p>Open to remote Senior and Staff IC roles. I can start immediately.</p>
             </div>
         </div>
     </header>
@@ -847,29 +907,33 @@
             <div class="section-heading reveal">About</div>
             <div class="about-content">
                 <div class="about-prose reveal">
-                    <p>I started at Oracle&rsquo;s Bronto division writing MapReduce jobs against billions of records and cleaning up data systems that had outgrown their original design. At Bandwidth I led a team across reporting, deployment pipelines, and a geo-redundancy project that had me writing Ansible playbooks, coordinating datacenter failovers, and doing postmortems before company-wide outage review boards.</p>
-                    <p>At Toast I work on the Data Platform team &mdash; the analytics infrastructure that processes billions of restaurant transactions. Most of the company depends on it; nobody thinks about it until it breaks. My job is to make sure it doesn't, and to build the tooling that makes diagnosing it fast when it does.</p>
+                    <p>Most recently at Toast, I worked on the data platform behind restaurant reporting and the AI tooling around it. I contributed more than a dozen skills to the internal Claude Marketplace, built a Slack agent with team-specific knowledge for platform Q&amp;A and incident investigation, and participated in pilot programs for Devin, Claude Code, and Codex.</p>
+                    <p>I also built a Kotlin and Koog agent service with MCP integrations, persistent state, tracing, and controlled specialist callbacks. My focus is the backend work that makes AI useful in production: connecting models to internal systems, keeping state predictable, and handling failures cleanly.</p>
                 </div>
                 <div class="about-details reveal">
                     <div class="detail-item">
                         <div class="detail-label">Role</div>
-                        <div class="detail-value">Software Engineer, Data Platform</div>
+                        <div class="detail-value">Senior Software Engineer</div>
                     </div>
                     <div class="detail-item">
-                        <div class="detail-label">Company</div>
-                        <div class="detail-value">Toast, Inc.</div>
+                        <div class="detail-label">Most Recent</div>
+                        <div class="detail-value">Toast, Data Platform</div>
                     </div>
                     <div class="detail-item">
-                        <div class="detail-label">Location</div>
-                        <div class="detail-value">Raleigh, NC</div>
+                        <div class="detail-label">Search</div>
+                        <div class="detail-value">Remote only, Senior or Staff IC roles</div>
                     </div>
                     <div class="detail-item">
                         <div class="detail-label">Focus</div>
-                        <div class="detail-value">Analytics infrastructure, AI tooling, developer experience</div>
+                        <div class="detail-value">AI agents, backend platforms, data systems, developer tooling</div>
                     </div>
                     <div class="detail-item">
                         <div class="detail-label">Stack</div>
-                        <div class="detail-value">Java, Kotlin, Python, Terraform, Ansible, AWS, Claude Code</div>
+                        <div class="detail-value">Python, Kotlin, Java, AWS, MCP, PostgreSQL, Kafka, Terraform</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Resume</div>
+                        <div class="detail-value"><a href="/Nathan_Norman_Resume.pdf" target="_blank" rel="noopener">Download current resume</a></div>
                     </div>
                 </div>
             </div>
@@ -883,37 +947,37 @@
             <div class="section-heading reveal">Expertise</div>
             <div class="expertise-grid stagger">
                 <div class="expertise-card reveal" style="--i:0">
-                    <h3>Data Platform Engineering</h3>
-                    <p>Analytics pipelines that process restaurant transaction data at scale. Iceberg table management, query materialization, and infrastructure across multi-account AWS environments.</p>
+                    <h3>Backend and Data Platforms</h3>
+                    <p>Production systems for analytics, operations, and internal tooling. Distributed services, event-driven pipelines, and infrastructure work across AWS, Kafka, Spark, and Postgres.</p>
                     <div class="expertise-tech">
                         <span>Java</span>
                         <span>Kotlin</span>
                         <span>AWS</span>
                         <span>Terraform</span>
-                        <span>Ansible</span>
+                        <span>Postgres</span>
                         <span>Spark</span>
                     </div>
                 </div>
                 <div class="expertise-card reveal" style="--i:1">
-                    <h3>AI Agent Tooling</h3>
-                    <p>MCP servers for persistent memory, investigation agents for automated debugging, orchestration frameworks, and skill-based architectures for Claude Code.</p>
+                    <h3>AI Agents in Production</h3>
+                    <p>Agent services, MCP integrations, skill marketplaces, and team-facing AI tools that answer questions, investigate failures, and connect models to source systems safely.</p>
                     <div class="expertise-tech">
                         <span>Claude Code</span>
                         <span>MCP</span>
                         <span>Python</span>
-                        <span>Agent SDK</span>
+                        <span>Koog</span>
                         <span>Kotlin</span>
                     </div>
                 </div>
                 <div class="expertise-card reveal" style="--i:2">
-                    <h3>Developer Experience</h3>
-                    <p>CLI utilities, automated investigation systems, deployment automation, and observability tooling that bridges the gap between systems and the people who operate them.</p>
+                    <h3>Developer Tooling and Operations</h3>
+                    <p>Shared tools for alert triage, parallel pre-push review automation, reusable Claude Marketplace skills, and weekly office hours that helped other engineers adopt the tooling.</p>
                     <div class="expertise-tech">
                         <span>Terraform</span>
-                        <span>Ansible</span>
                         <span>Automation</span>
                         <span>Observability</span>
                         <span>Datadog</span>
+                        <span>Splunk</span>
                     </div>
                 </div>
             </div>
@@ -1131,8 +1195,12 @@
         <div class="container">
             <div class="accent-rule reveal"></div>
             <div class="connect-inner reveal">
-                <h2>Get in touch</h2>
+                <div class="connect-copy">
+                    <h2>Get in touch</h2>
+                    <p>I&rsquo;m looking for remote Senior or Staff IC backend and platform roles, especially work involving AI agents, internal platforms, or data systems. Resume, GitHub, and LinkedIn are below.</p>
+                </div>
                 <div class="connect-links">
+                    <a href="/Nathan_Norman_Resume.pdf" target="_blank" rel="noopener" class="connect-link connect-link-primary">Resume</a>
                     <a href="https://github.com/NathanNorman" target="_blank" rel="noopener" class="connect-link">GitHub</a>
                     <a href="https://www.linkedin.com/in/nathansnorman/" target="_blank" rel="noopener" class="connect-link">LinkedIn</a>
                     <a href="mailto:nathannorman@gmail.com" class="connect-link">Email</a>
@@ -1181,4 +1249,4 @@
     </script>
 
 </body>
-</html><script async data-explicit-opt-in="true" data-deployment-id="dpl_FM8BtmJviYRY8ESvAb4pUN1BzyPj" src="https://vercel.live/_next-live/feedback/feedback.js"></script>
+</html>
