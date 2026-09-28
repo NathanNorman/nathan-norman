@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="kq-retheme">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,7 +11,7 @@
   <meta property="og:url" content="https://nathan-norman.vercel.app/blog/datpaq-platform-evaluation">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231e40af'/%3E%3Ccircle cx='16' cy='14' r='4' fill='white'/%3E%3Cpath stroke='white' stroke-width='1.5' fill='none' d='M16 18v6M10 22h12'/%3E%3Ccircle cx='8' cy='10' r='2' fill='%2393c5fd'/%3E%3Ccircle cx='24' cy='10' r='2' fill='%2393c5fd'/%3E%3Ccircle cx='16' cy='6' r='2' fill='%2393c5fd'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;0,800;1,400&family=Pixelify+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #ffffff;
@@ -37,7 +37,7 @@
     .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
     section { padding: 64px 0; border-top: 1px solid var(--border); }
     section:first-of-type { border-top: none; }
-    .hero { padding: 80px 0 64px; background: linear-gradient(180deg, #fff 0%, var(--bg-subtle) 100%); }
+    .hero { padding: 80px 0 64px; background: linear-gradient(180deg, var(--bg) 0%, var(--bg-subtle) 100%); }
     .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue); margin-bottom: 16px; }
     h1 { font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 20px; }
     .hero-lead { font-size: 1.15rem; color: var(--text-secondary); max-width: 640px; margin-bottom: 32px; }
@@ -90,10 +90,25 @@
     .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.5s ease, transform 0.5s ease; }
     .reveal.visible { opacity: 1; transform: none; }
   </style>
+<link rel="stylesheet" href="/assets/site.css">
+<script src="/assets/site.js" defer></script>
 </head>
-<body>
+<body data-kq-points="post-datpaq:5">
+<header class="kq-bar">
+  <div class="kq-bar__in">
+    <a class="kq-brand" href="/"><img src="/assets/img/icon-crown.svg" alt="" width="32" height="22"><span>Nathan Norman</span></a>
+    <div class="kq-nav" role="navigation" aria-label="Primary">
+      <a href="/about"><span class="kq-tile"><img src="/assets/img/icon-look.svg" alt="" width="32" height="24"></span><span class="kq-label">About</span></a>
+      <a href="/#writing" aria-current="true"><span class="kq-tile"><img src="/assets/img/icon-quill.svg" alt="" width="32" height="28"></span><span class="kq-label">Writing</span></a>
+      <a href="/#projects"><span class="kq-tile"><img src="/assets/img/icon-satchel.svg" alt="" width="32" height="28"></span><span class="kq-label">Projects</span></a>
+      <a href="/Nathan_Norman_Resume.pdf" target="_blank" rel="noopener" data-kq-pts="resume:10"><span class="kq-tile"><img src="/assets/img/icon-scroll.svg" alt="" width="32" height="28"></span><span class="kq-label">Resume</span></a>
+      <a href="/#contact"><span class="kq-tile"><img src="/assets/img/icon-talk.svg" alt="" width="32" height="26"></span><span class="kq-label">Contact</span></a>
+    </div>
+    <div class="kq-score" aria-hidden="true" title="Points for exploring the site">Score: <b data-kq-score>0</b> of 231</div>
+  </div>
+</header>
 
-<a href="/" style="position:fixed;top:16px;left:20px;z-index:9999;font-family:var(--mono);font-size:12px;color:var(--text-secondary);text-decoration:none;opacity:0.8;">← Home</a>
+
 
 <section class="hero">
   <div class="container reveal">
@@ -314,5 +329,12 @@ document.querySelectorAll('.code-block').forEach(block => {
   wrapper.appendChild(btn);
 });
 </script>
+<div class="kq-foot">
+  <div class="kq-foot__in">
+    <p>&copy; 2026 Nathan Norman &middot; Raleigh, NC</p>
+    <p class="kq-foot__links"><a href="/Nathan_Norman_Resume.pdf" target="_blank" rel="noopener" data-kq-pts="resume:10">Resume</a><a href="mailto:nathannorman@gmail.com" data-kq-pts="email:5">Email</a><a href="https://www.linkedin.com/in/nathansnorman/" target="_blank" rel="noopener" data-kq-pts="linkedin:3">LinkedIn</a><a href="https://github.com/NathanNorman" target="_blank" rel="noopener" data-kq-pts="github:3">GitHub</a></p>
+    <p class="kq-foot__quip">Thank you for playing.</p>
+  </div>
+</div>
 </body>
 </html>

@@ -10,1243 +10,199 @@
     <meta property="og:description" content="Backend and platform engineer for AI agents and data systems. Most recently at Toast. Open to remote Senior and Staff IC roles.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://nathan-norman.vercel.app/">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23c4632a'/%3E%3Cpath d='M9 24V8h2.3l9.4 12.2V8H23v16h-2.2L11.3 11.8V24z' fill='white'/%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-    <script>document.documentElement.classList.add('js');</script>
-    <style>
-        :root {
-            --bg: #faf8f5;
-            --bg-warm: #f5f0eb;
-            --surface: #ffffff;
-            --border: #e8e0d8;
-            --border-light: #efe9e2;
-            --text: #2c2521;
-            --text-secondary: #6b5e55;
-            --text-muted: #9a8d84;
-            --accent: #c4632a;
-            --accent-hover: #a8521f;
-            --accent-faint: rgba(196, 99, 42, 0.06);
-            --accent-line: rgba(196, 99, 42, 0.25);
-            --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
-            --sans: 'DM Sans', system-ui, -apple-system, sans-serif;
-            --mono: 'JetBrains Mono', 'SF Mono', monospace;
-            --shadow-sm: 0 1px 3px rgba(60, 40, 20, 0.04), 0 1px 2px rgba(60, 40, 20, 0.06);
-            --shadow-md: 0 4px 16px rgba(60, 40, 20, 0.07), 0 2px 6px rgba(60, 40, 20, 0.04);
-            --shadow-lg: 0 8px 30px rgba(60, 40, 20, 0.08), 0 4px 10px rgba(60, 40, 20, 0.04);
-        }
-
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-        html {
-            scroll-behavior: smooth;
-            font-size: 17px;
-        }
-
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: var(--serif);
-            font-weight: 400;
-            line-height: 1.75;
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        /* Paper grain overlay */
-        body::after {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
-            pointer-events: none;
-            z-index: 9999;
-        }
-
-        /* Warm gradient atmosphere */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 500px;
-            background: linear-gradient(180deg, rgba(196, 99, 42, 0.03) 0%, rgba(250, 248, 245, 0) 100%);
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        ::selection {
-            background: var(--accent);
-            color: #fff;
-        }
-
-        a {
-            color: var(--accent);
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }
-        a:hover { color: var(--accent-hover); }
-
-        .container {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 0 clamp(1.25rem, 4vw, 3rem);
-            position: relative;
-            z-index: 1;
-        }
-
-        /* ═══════════════════════════════════════
-           NAV
-           ═══════════════════════════════════════ */
-        nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
-            padding: 0.85rem 0;
-            background: rgba(250, 248, 245, 0.88);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-bottom: 1px solid transparent;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-        nav.scrolled {
-            border-bottom-color: var(--border-light);
-            box-shadow: 0 1px 8px rgba(60, 40, 20, 0.04);
-        }
-
-        nav .container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .nav-mark {
-            font-family: var(--sans);
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: var(--text);
-            letter-spacing: -0.01em;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 1.75rem;
-            list-style: none;
-        }
-        .nav-links a {
-            font-family: var(--sans);
-            font-size: 0.76rem;
-            font-weight: 500;
-            color: var(--text-muted);
-            letter-spacing: 0.03em;
-            transition: color 0.2s ease;
-            position: relative;
-        }
-        .nav-links a:hover { color: var(--text); }
-        .nav-links a::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            width: 0;
-            height: 1px;
-            background: var(--accent);
-            transition: width 0.3s ease;
-        }
-        .nav-links a:hover::after { width: 100%; }
-
-        /* ═══════════════════════════════════════
-           HEADER (compact, above the fold)
-           ═══════════════════════════════════════ */
-        .site-header {
-            padding-top: 5.5rem;
-            padding-bottom: 2.75rem;
-            border-bottom: 1px solid var(--border);
-            position: relative;
-        }
-
-        .header-inner {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 2rem;
-            align-items: end;
-        }
-
-        .header-title h1 {
-            font-family: var(--sans);
-            font-size: clamp(1.8rem, 4vw, 2.6rem);
-            font-weight: 700;
-            line-height: 1.1;
-            letter-spacing: -0.035em;
-            color: var(--text);
-            margin-bottom: 0.35rem;
-            opacity: 0;
-            transform: translateY(12px);
-            animation: headerReveal 0.7s ease forwards 0.1s;
-        }
-
-        .header-title .subtitle {
-            font-family: var(--serif);
-            font-size: 1.05rem;
-            font-weight: 400;
-            color: var(--text-secondary);
-            font-style: italic;
-            opacity: 0;
-            transform: translateY(10px);
-            animation: headerReveal 0.7s ease forwards 0.25s;
-        }
-
-        .header-intro {
-            padding-top: 1.5rem;
-            max-width: 640px;
-            opacity: 0;
-            transform: translateY(10px);
-            animation: headerReveal 0.7s ease forwards 0.4s;
-        }
-
-        .header-intro p {
-            font-size: 1.08rem;
-            color: var(--text);
-            line-height: 1.8;
-        }
-
-        .header-intro p + p {
-            margin-top: 0.9rem;
-            font-size: 0.96rem;
-            color: var(--text-secondary);
-        }
-
-        .header-links {
-            display: flex;
-            gap: 1.25rem;
-            align-items: center;
-            flex-shrink: 0;
-            opacity: 0;
-            transform: translateY(8px);
-            animation: headerReveal 0.7s ease forwards 0.35s;
-        }
-
-        .header-links a {
-            font-family: var(--sans);
-            font-size: 0.78rem;
-            font-weight: 500;
-            color: var(--text-muted);
-            padding-bottom: 2px;
-            border-bottom: 1px solid transparent;
-            transition: all 0.2s ease;
-        }
-        .header-links a:hover {
-            color: var(--accent);
-            border-bottom-color: var(--accent);
-        }
-
-        .header-links .resume-link {
-            color: var(--accent);
-            border-bottom-color: var(--accent-line);
-        }
-
-        .header-links .resume-link:hover {
-            border-bottom-color: var(--accent);
-        }
-
-        .header-links .sep {
-            width: 3px;
-            height: 3px;
-            border-radius: 50%;
-            background: var(--border);
-        }
-
-        @keyframes headerReveal {
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* ═══════════════════════════════════════
-           SECTIONS
-           ═══════════════════════════════════════ */
-        section {
-            padding: clamp(2.5rem, 5vw, 4rem) 0;
-        }
-
-        .section-heading {
-            font-family: var(--sans);
-            font-size: 0.72rem;
-            font-weight: 600;
-            color: var(--accent);
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            margin-bottom: 1.75rem;
-        }
-
-        .accent-rule {
-            width: 28px;
-            height: 2px;
-            background: var(--accent);
-            margin-bottom: 1.75rem;
-        }
-
-        /* ═══════════════════════════════════════
-           ABOUT
-           ═══════════════════════════════════════ */
-        .about {
-            border-bottom: 1px solid var(--border);
-        }
-
-        .about-content {
-            display: grid;
-            grid-template-columns: 3fr 2fr;
-            gap: clamp(2.5rem, 5vw, 5rem);
-            align-items: start;
-        }
-
-        .about-prose p {
-            font-size: 1.02rem;
-            color: var(--text);
-            margin-bottom: 1rem;
-            line-height: 1.85;
-        }
-
-        .about-prose p:last-child {
-            margin-bottom: 0;
-        }
-
-        /* Editorial drop cap on first paragraph */
-        .about-prose p:first-child::first-letter {
-            font-family: var(--sans);
-            font-weight: 700;
-            font-size: 3.4em;
-            float: left;
-            line-height: 0.8;
-            margin-right: 0.1em;
-            margin-top: 0.08em;
-            color: var(--accent);
-        }
-
-        .about-details {
-            padding-top: 0.25rem;
-        }
-
-        .detail-item {
-            padding: 0.85rem 0;
-            border-bottom: 1px solid var(--border-light);
-            display: grid;
-            grid-template-columns: 90px 1fr;
-            gap: 1rem;
-            align-items: baseline;
-        }
-        .detail-item:first-child {
-            border-top: 1px solid var(--border-light);
-        }
-
-        .detail-label {
-            font-family: var(--sans);
-            font-size: 0.68rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-
-        .detail-value {
-            font-family: var(--serif);
-            font-size: 0.92rem;
-            color: var(--text);
-        }
-
-        .detail-value a {
-            font-family: var(--sans);
-            font-size: 0.84rem;
-            font-weight: 600;
-        }
-
-        /* ═══════════════════════════════════════
-           EXPERTISE
-           ═══════════════════════════════════════ */
-        .expertise {
-            border-bottom: 1px solid var(--border);
-        }
-
-        .expertise-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0;
-        }
-
-        .expertise-card {
-            padding: 1.5rem 1.75rem;
-            border: 1px solid var(--border-light);
-            margin-right: -1px;
-            margin-bottom: -1px;
-            transition: background 0.25s ease, box-shadow 0.25s ease;
-            position: relative;
-        }
-        .expertise-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: var(--accent);
-            transition: width 0.4s ease;
-        }
-        .expertise-card:hover {
-            background: var(--surface);
-            box-shadow: var(--shadow-sm);
-        }
-        .expertise-card:hover::before {
-            width: 100%;
-        }
-
-        .expertise-card h3 {
-            font-family: var(--sans);
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 0.65rem;
-            line-height: 1.3;
-        }
-
-        .expertise-card p {
-            font-size: 0.88rem;
-            color: var(--text-secondary);
-            line-height: 1.7;
-            margin-bottom: 0.9rem;
-        }
-
-        .expertise-tech {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.35rem;
-        }
-
-        .expertise-tech span {
-            font-family: var(--mono);
-            font-size: 0.62rem;
-            color: var(--text-muted);
-            padding: 0.2rem 0.5rem;
-            background: var(--bg-warm);
-            border-radius: 2px;
-            letter-spacing: 0.02em;
-        }
-
-        /* ═══════════════════════════════════════
-           FEATURED - Editorial card
-           ═══════════════════════════════════════ */
-        .featured {
-            border-bottom: 1px solid var(--border);
-        }
-
-        .featured-article {
-            display: block;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-left: 3px solid var(--accent);
-            border-radius: 0 3px 3px 0;
-            padding: clamp(1.75rem, 3vw, 2.75rem);
-            padding-left: clamp(1.75rem, 3vw, 2.75rem);
-            box-shadow: var(--shadow-sm);
-            transition: box-shadow 0.35s ease, border-color 0.35s ease, transform 0.35s ease;
-            text-decoration: none;
-            color: inherit;
-            position: relative;
-            overflow: hidden;
-        }
-        .featured-article::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            width: 120px;
-            background: linear-gradient(90deg, transparent, var(--accent-faint));
-            opacity: 0;
-            transition: opacity 0.4s ease;
-        }
-        .featured-article:hover {
-            box-shadow: var(--shadow-lg);
-            transform: translateY(-2px);
-            color: inherit;
-        }
-        .featured-article:hover::after {
-            opacity: 1;
-        }
-
-        .featured-meta {
-            font-family: var(--sans);
-            font-size: 0.68rem;
-            font-weight: 600;
-            color: var(--accent);
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            margin-bottom: 0.5rem;
-            display: inline-block;
-            padding: 0.15rem 0.5rem;
-            background: var(--accent-faint);
-            border-radius: 2px;
-        }
-
-        .featured-article h3 {
-            font-family: var(--sans);
-            font-size: clamp(1.3rem, 2.8vw, 1.75rem);
-            font-weight: 700;
-            color: var(--text);
-            line-height: 1.2;
-            letter-spacing: -0.025em;
-            margin-bottom: 0.75rem;
-        }
-
-        .featured-article > p {
-            font-size: 0.98rem;
-            color: var(--text-secondary);
-            line-height: 1.8;
-            max-width: 620px;
-            margin-bottom: 1.5rem;
-            position: relative;
-            z-index: 1;
-        }
-
-        .featured-cta {
-            font-family: var(--sans);
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: var(--accent);
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: gap 0.25s ease;
-            position: relative;
-            z-index: 1;
-        }
-        .featured-article:hover .featured-cta { gap: 1rem; }
-        .featured-cta::after {
-            content: '\2192';
-            font-size: 1rem;
-            transition: transform 0.25s ease;
-        }
-        .featured-article:hover .featured-cta::after {
-            transform: translateX(2px);
-        }
-
-        /* Deep dive grid */
-        .deep-dives {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 0;
-            margin-top: 1.25rem;
-        }
-
-        .dd-card {
-            padding: 1.15rem 1.25rem;
-            border: 1px solid var(--border-light);
-            margin-right: -1px;
-            margin-bottom: -1px;
-            display: flex;
-            flex-direction: column;
-            transition: background 0.2s ease, box-shadow 0.2s ease;
-            text-decoration: none;
-            color: inherit;
-            position: relative;
-        }
-        .dd-card:hover {
-            background: var(--surface);
-            box-shadow: var(--shadow-sm);
-            color: inherit;
-        }
-
-        .dd-card h4 {
-            font-family: var(--sans);
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 0.15rem;
-            transition: color 0.2s ease;
-        }
-        .dd-card:hover h4 { color: var(--accent); }
-
-        .dd-author {
-            font-family: var(--mono);
-            font-size: 0.6rem;
-            color: var(--text-muted);
-            margin-bottom: 0.45rem;
-        }
-
-        .dd-card p {
-            font-size: 0.76rem;
-            color: var(--text-secondary);
-            line-height: 1.55;
-            flex: 1;
-            font-family: var(--serif);
-        }
-
-        .dd-arrow {
-            font-size: 0.72rem;
-            color: var(--text-muted);
-            margin-top: 0.6rem;
-            display: inline-block;
-            transition: color 0.2s ease, transform 0.2s ease;
-        }
-        .dd-card:hover .dd-arrow {
-            color: var(--accent);
-            transform: translateX(3px);
-        }
-
-        /* ═══════════════════════════════════════
-           PROJECTS
-           ═══════════════════════════════════════ */
-        .projects {
-            border-bottom: 1px solid var(--border);
-        }
-
-        .projects-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0;
-        }
-
-        .project-card {
-            padding: 1.35rem 1.5rem;
-            border: 1px solid var(--border-light);
-            margin-right: -1px;
-            margin-bottom: -1px;
-            display: flex;
-            flex-direction: column;
-            transition: background 0.25s ease, box-shadow 0.25s ease;
-            text-decoration: none;
-            color: inherit;
-            position: relative;
-        }
-        .project-card:hover {
-            background: var(--surface);
-            box-shadow: var(--shadow-sm);
-            color: inherit;
-        }
-
-        .project-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 0.4rem;
-        }
-
-        .project-card h3 {
-            font-family: var(--mono);
-            font-size: 0.88rem;
-            font-weight: 400;
-            color: var(--text);
-            transition: color 0.2s ease;
-        }
-        .project-card:hover h3 { color: var(--accent); }
-
-        .project-lang {
-            font-family: var(--sans);
-            font-size: 0.62rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-            padding: 0.1rem 0.4rem;
-            background: var(--bg-warm);
-            border-radius: 2px;
-        }
-
-        .project-desc-primary {
-            font-family: var(--sans);
-            font-size: 0.82rem;
-            font-weight: 500;
-            color: var(--text);
-            margin-bottom: 0.25rem;
-            line-height: 1.4;
-        }
-
-        .project-desc-detail {
-            font-size: 0.82rem;
-            color: var(--text-secondary);
-            line-height: 1.6;
-            flex: 1;
-        }
-
-        .project-arrow {
-            font-size: 0.78rem;
-            color: var(--text-muted);
-            margin-top: 0.9rem;
-            display: inline-block;
-            transition: color 0.2s ease, transform 0.2s ease;
-        }
-        .project-card:hover .project-arrow {
-            color: var(--accent);
-            transform: translateX(4px);
-        }
-
-        /* ═══════════════════════════════════════
-           CONNECT
-           ═══════════════════════════════════════ */
-        .connect {
-            padding-bottom: 3.5rem;
-        }
-
-        .connect-inner {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 2rem;
-        }
-
-        .connect h2 {
-            font-family: var(--sans);
-            font-size: clamp(1.4rem, 3vw, 1.8rem);
-            font-weight: 700;
-            line-height: 1.2;
-            letter-spacing: -0.02em;
-            color: var(--text);
-        }
-
-        .connect-links {
-            display: flex;
-            gap: 1.5rem;
-            flex-wrap: wrap;
-        }
-
-        .connect-copy {
-            max-width: 520px;
-        }
-
-        .connect-copy p {
-            margin-top: 0.75rem;
-            color: var(--text-secondary);
-            font-size: 0.96rem;
-            line-height: 1.75;
-        }
-
-        .connect-link {
-            font-family: var(--sans);
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: var(--text-muted);
-            padding-bottom: 3px;
-            border-bottom: 1px solid transparent;
-            transition: all 0.2s ease;
-        }
-        .connect-link:hover {
-            color: var(--accent);
-            border-bottom-color: var(--accent);
-        }
-
-        .connect-link-primary {
-            color: var(--accent);
-            border-bottom-color: var(--accent-line);
-        }
-
-        /* ═══════════════════════════════════════
-           FOOTER
-           ═══════════════════════════════════════ */
-        footer {
-            padding: 1.75rem 0;
-            border-top: 1px solid var(--border);
-        }
-
-        .footer-inner {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        footer p {
-            font-family: var(--sans);
-            font-size: 0.68rem;
-            color: var(--text-muted);
-            letter-spacing: 0.02em;
-        }
-
-        /* ═══════════════════════════════════════
-           ANIMATIONS
-           ═══════════════════════════════════════ */
-        .reveal {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        .js .reveal {
-            opacity: 0;
-            transform: translateY(18px);
-            transition: opacity 0.65s cubic-bezier(0.23, 1, 0.32, 1), transform 0.65s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-        .js .reveal.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .stagger > .reveal {
-            transition-delay: calc(var(--i, 0) * 0.08s);
-        }
-
-        /* Decorative separator between major sections */
-        .section-divider {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 0.5rem 0;
-            color: var(--border);
-        }
-        .section-divider::before,
-        .section-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border-light);
-        }
-        .section-divider span {
-            font-family: var(--serif);
-            font-size: 1rem;
-            font-style: italic;
-            color: var(--text-muted);
-            opacity: 0.5;
-        }
-
-        /* ═══════════════════════════════════════
-           RESPONSIVE
-           ═══════════════════════════════════════ */
-        @media (max-width: 900px) {
-            .header-inner {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-            .header-links {
-                justify-content: flex-start;
-                flex-wrap: wrap;
-            }
-            .about-content {
-                grid-template-columns: 1fr;
-                gap: 2rem;
-            }
-            .expertise-grid {
-                grid-template-columns: 1fr;
-            }
-            .deep-dives {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .projects-grid {
-                grid-template-columns: 1fr;
-            }
-            .connect-inner {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        }
-
-        @media (max-width: 600px) {
-            html { font-size: 16px; }
-            .nav-links { display: none; }
-            .header-links {
-                gap: 0.85rem;
-                row-gap: 0.45rem;
-            }
-            .header-links .sep {
-                display: none;
-            }
-            .deep-dives {
-                grid-template-columns: 1fr;
-            }
-            .header-title h1 {
-                font-size: 1.6rem;
-            }
-            .about-prose p:first-child::first-letter {
-                font-size: 2.8em;
-            }
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=Cinzel:wght@700&family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/site.css">
+    <script src="/assets/scene.js" defer></script>
+    <script src="/assets/site.js" defer></script>
 </head>
-<body>
+<body class="kq-page">
+<a class="kq-skip" href="#main">Skip to content</a>
 
-    <!-- NAV -->
-    <nav id="nav">
-        <div class="container">
-            <div class="nav-mark">Nathan Norman</div>
-            <ul class="nav-links">
-                <li><a href="#about">About</a></li>
-                <li><a href="#expertise">Expertise</a></li>
-                <li><a href="#writing">Writing</a></li>
-                <li><a href="#projects">Projects</a></li>
-                <li><a href="#connect">Connect</a></li>
-            </ul>
+<header class="kq-bar">
+    <div class="kq-bar__in">
+        <a class="kq-brand" href="/"><img src="/assets/img/icon-crown.svg" alt="" width="32" height="22"><span>Nathan Norman</span></a>
+        <div class="kq-nav" role="navigation" aria-label="Primary">
+            <a href="/about"><span class="kq-tile"><img src="/assets/img/icon-look.svg" alt="" width="32" height="24"></span><span class="kq-label">About</span></a>
+            <a href="#writing"><span class="kq-tile"><img src="/assets/img/icon-quill.svg" alt="" width="32" height="28"></span><span class="kq-label">Writing</span></a>
+            <a href="#projects"><span class="kq-tile"><img src="/assets/img/icon-satchel.svg" alt="" width="32" height="28"></span><span class="kq-label">Projects</span></a>
+            <a href="/Nathan_Norman_Resume.pdf" target="_blank" rel="noopener" data-kq-pts="resume:10"><span class="kq-tile"><img src="/assets/img/icon-scroll.svg" alt="" width="32" height="28"></span><span class="kq-label">Resume</span></a>
+            <a href="#contact"><span class="kq-tile"><img src="/assets/img/icon-talk.svg" alt="" width="32" height="26"></span><span class="kq-label">Contact</span></a>
         </div>
-    </nav>
+        <div class="kq-score" aria-hidden="true" title="Points for exploring the site">Score: <b data-kq-score>0</b> of 231</div>
+    </div>
+</header>
 
-    <!-- HEADER -->
-    <header class="site-header">
-        <div class="container">
-            <div class="header-inner">
-                <div class="header-title">
-                    <h1>Nathan Norman</h1>
-                    <div class="subtitle">Backend and platform engineer for AI agents and data systems</div>
-                </div>
-                <div class="header-links">
-                    <a href="https://github.com/NathanNorman" target="_blank" rel="noopener">GitHub</a>
-                    <div class="sep"></div>
-                    <a href="https://www.linkedin.com/in/nathansnorman/" target="_blank" rel="noopener">LinkedIn</a>
-                    <div class="sep"></div>
-                    <a href="/Nathan_Norman_Resume.pdf" class="resume-link" target="_blank" rel="noopener">Resume</a>
-                    <div class="sep"></div>
-                    <a href="mailto:nathannorman@gmail.com">Email</a>
+<main id="main">
+    <section class="kq-hero" aria-label="Introduction">
+        <canvas data-scene="isles" data-scene-opts='{"stackBelow":1150,"horizonDesk":96,"horizonStack":62,"sunX":0.07,"sunLift":10,"seed":11,"clearOf":".kq-hero-win"}' aria-hidden="true"></canvas>
+        <div class="kq-hero__in">
+            <div class="kq-win kq-hero-win">
+                <div class="kq-portrait"><img src="/assets/img/headshot.webp" alt="Nathan Norman" width="168" height="168"></div>
+                <div>
+                    <h1 class="kq-title" data-pixel-title="NATHAN NORMAN"><span class="kq-title__text">Nathan Norman</span></h1>
+                    <p class="kq-role">Backend and platform engineer for AI agents and data systems</p>
+                    <p class="kq-lede">Senior software engineer with 11 years of experience building backend and platform systems. Most recently at Toast, I built production AI agents, internal Claude Marketplace skills, and data platform tooling used by analytics and operations teams.</p>
+                    <div class="kq-btns">
+                        <a class="kq-btn kq-btn--gold" href="/Nathan_Norman_Resume.pdf" target="_blank" rel="noopener" data-kq-pts="resume:10">Resume</a>
+                        <a class="kq-btn" href="mailto:nathannorman@gmail.com" data-kq-pts="email:5">Email</a>
+                        <a class="kq-btn" href="https://www.linkedin.com/in/nathansnorman/" target="_blank" rel="noopener" data-kq-pts="linkedin:3">LinkedIn</a>
+                        <a class="kq-btn" href="https://github.com/NathanNorman" target="_blank" rel="noopener" data-kq-pts="github:3">GitHub</a>
+                    </div>
+                    <p class="kq-status">Open to remote Senior and Staff IC roles. I can start immediately.</p>
                 </div>
             </div>
-            <div class="header-intro">
-                <p>Senior software engineer with 11 years of experience building backend and platform systems. Most recently at Toast, I built production AI agents, internal Claude Marketplace skills, and data platform tooling used by analytics and operations teams.</p>
-                <p>Open to remote Senior and Staff IC roles. I can start immediately.</p>
-            </div>
         </div>
-    </header>
+    </section>
+    <div class="kq-ornament" aria-hidden="true"></div>
 
-    <!-- ABOUT -->
-    <section id="about" class="about">
-        <div class="container">
-            <div class="accent-rule reveal"></div>
-            <div class="section-heading reveal">About</div>
-            <div class="about-content">
-                <div class="about-prose reveal">
+    <section id="about" class="kq-section">
+        <div class="kq-wrap">
+            <h2 class="kq-h">About</h2>
+            <div class="kq-split">
+                <div class="kq-prose">
                     <p>Most recently at Toast, I worked on the data platform behind restaurant reporting and the AI tooling around it. I contributed more than a dozen skills to the internal Claude Marketplace, built a Slack agent with team-specific knowledge for platform Q&amp;A and incident investigation, and participated in pilot programs for Devin, Claude Code, and Codex.</p>
                     <p>I also built a Kotlin and Koog agent service with MCP integrations, persistent state, tracing, and controlled specialist callbacks. My focus is the backend work that makes AI useful in production: connecting models to internal systems, keeping state predictable, and handling failures cleanly.</p>
+                    <p><a href="/about">Career history, skills, and awards &rarr;</a></p>
                 </div>
-                <div class="about-details reveal">
-                    <div class="detail-item">
-                        <div class="detail-label">Role</div>
-                        <div class="detail-value">Senior Software Engineer</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Most Recent</div>
-                        <div class="detail-value">Toast, Data Platform</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Search</div>
-                        <div class="detail-value">Remote only, Senior or Staff IC roles</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Focus</div>
-                        <div class="detail-value">AI agents, backend platforms, data systems, developer tooling</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Stack</div>
-                        <div class="detail-value">Python, Kotlin, Java, AWS, MCP, PostgreSQL, Kafka, Terraform</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Resume</div>
-                        <div class="detail-value"><a href="/Nathan_Norman_Resume.pdf" target="_blank" rel="noopener">Download current resume</a></div>
-                    </div>
-                </div>
+                <dl class="kq-sheet">
+                    <div><dt>Role</dt><dd>Senior Software Engineer</dd></div>
+                    <div><dt>Most recent</dt><dd>Toast, Data Platform</dd></div>
+                    <div><dt>Search</dt><dd>Remote only, Senior or Staff IC roles</dd></div>
+                    <div><dt>Focus</dt><dd>AI agents, backend platforms, data systems, developer tooling</dd></div>
+                    <div><dt>Stack</dt><dd>Python, Kotlin, Java, AWS, MCP, PostgreSQL, Kafka, Terraform</dd></div>
+                    <div><dt>Resume</dt><dd><a href="/Nathan_Norman_Resume.pdf" target="_blank" rel="noopener" data-kq-pts="resume:10">Download current resume</a></dd></div>
+                </dl>
             </div>
         </div>
     </section>
 
-    <!-- EXPERTISE -->
-    <section id="expertise" class="expertise">
-        <div class="container">
-            <div class="accent-rule reveal"></div>
-            <div class="section-heading reveal">Expertise</div>
-            <div class="expertise-grid stagger">
-                <div class="expertise-card reveal" style="--i:0">
+    <section id="expertise" class="kq-section">
+        <div class="kq-wrap">
+            <h2 class="kq-h">Expertise</h2>
+            <div class="kq-grid kq-grid--3">
+                <div class="kq-card">
                     <h3>Backend and Data Platforms</h3>
                     <p>Production systems for analytics, operations, and internal tooling. Distributed services, event-driven pipelines, and infrastructure work across AWS, Kafka, Spark, and Postgres.</p>
-                    <div class="expertise-tech">
-                        <span>Java</span>
-                        <span>Kotlin</span>
-                        <span>AWS</span>
-                        <span>Terraform</span>
-                        <span>Postgres</span>
-                        <span>Spark</span>
-                    </div>
+                    <div class="kq-chips"><span class="kq-chip">Java</span><span class="kq-chip">Kotlin</span><span class="kq-chip">AWS</span><span class="kq-chip">Terraform</span><span class="kq-chip">Postgres</span><span class="kq-chip">Spark</span></div>
                 </div>
-                <div class="expertise-card reveal" style="--i:1">
+                <div class="kq-card">
                     <h3>AI Agents in Production</h3>
                     <p>Agent services, MCP integrations, skill marketplaces, and team-facing AI tools that answer questions, investigate failures, and connect models to source systems safely.</p>
-                    <div class="expertise-tech">
-                        <span>Claude Code</span>
-                        <span>MCP</span>
-                        <span>Python</span>
-                        <span>Koog</span>
-                        <span>Kotlin</span>
-                    </div>
+                    <div class="kq-chips"><span class="kq-chip">Claude Code</span><span class="kq-chip">MCP</span><span class="kq-chip">Python</span><span class="kq-chip">Koog</span><span class="kq-chip">Kotlin</span></div>
                 </div>
-                <div class="expertise-card reveal" style="--i:2">
+                <div class="kq-card">
                     <h3>Developer Tooling and Operations</h3>
                     <p>Shared tools for alert triage, parallel pre-push review automation, reusable Claude Marketplace skills, and weekly office hours that helped other engineers adopt the tooling.</p>
-                    <div class="expertise-tech">
-                        <span>Terraform</span>
-                        <span>Automation</span>
-                        <span>Observability</span>
-                        <span>Datadog</span>
-                        <span>Splunk</span>
-                    </div>
+                    <div class="kq-chips"><span class="kq-chip">Terraform</span><span class="kq-chip">Automation</span><span class="kq-chip">Observability</span><span class="kq-chip">Datadog</span><span class="kq-chip">Splunk</span></div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- WRITING -->
-    <section id="writing" class="featured">
-        <div class="container">
-            <div class="accent-rule reveal"></div>
-            <div class="section-heading reveal">Writing</div>
-            <a href="/blog/datpaq-platform-evaluation" class="featured-article reveal">
-                <div class="featured-meta">Jul 2026 &middot; Platform Evaluation</div>
-                <h3>DatPaq: REST Works, the Agent Story Needs Alignment</h3>
-                <p>Independent hands-on review of all 17 catalog APIs across REST, CLI, MCP, and the developer dashboard. Strong positioning for the agent era, but DNS is down on CLI/MCP, MX CLI is broken, and several OpenAPI paths 404 in production.</p>
-                <div class="featured-cta">Read the evaluation</div>
-            </a>
-            <a href="/blog/ridgeline-freight-accrual" class="featured-article reveal" style="margin-top: 1.25rem;">
-                <div class="featured-meta">Jun 2026 &middot; Finance Engineering</div>
-                <h3>Closing the Books on Freight, Without Waiting for the Invoice</h3>
-                <p>A rate-card accrual engine for a mid-market CPG company that detects stale carrier rates from invoice history, tracks quarterly tier resets, and produces a shipment-level journal entry &mdash; replacing a trailing-average method that missed by $5K&ndash;$13K every month.</p>
-                <div class="featured-cta">Read the post</div>
-            </a>
-            <a href="/blog/wingspan-mcts" class="featured-article reveal" style="margin-top: 1.25rem;">
-                <div class="featured-meta">May 2026 &middot; Project Narrative</div>
-                <h3>Teaching a Network to Play Wingspan</h3>
-                <p>Nine training runs, three months, and one broken ruler. An AlphaZero implementation for a complex card game: what broke, what worked, and why the numbers we watched for most of it were wrong.</p>
-                <div class="featured-cta">Read the post</div>
-            </a>
-            <a href="/blog/loading-dock-booth-bot" class="featured-article reveal" style="margin-top: 1.25rem;">
-                <div class="featured-meta">Apr 2026 &middot; Project</div>
-                <h3>The Loading Dock Booth Bot</h3>
-                <p>A Telegram bot that books phone booths at The Loading Dock coworking space in Raleigh. Send a message in plain English, and the bot checks availability, picks an open booth, and handles the reservation through OfficeRnD. Built on a reusable framework powered by Claude AI.</p>
-                <div class="featured-cta">Read the post</div>
-            </a>
-            <a href="/blog/turboquant-kv-cache-compression" class="featured-article reveal" style="margin-top: 1.25rem;">
-                <div class="featured-meta">Mar 30, 2026 &middot; Deep Dive</div>
-                <h3>TurboQuant: How Google Made AI Memory 6&times; Smaller</h3>
-                <p>Google Research&rsquo;s three-paper family &mdash; QJL, PolarQuant, and TurboQuant &mdash; compresses LLM KV caches 6&times; with zero quality loss using one elegant trick: random rotation eliminates quantization overhead entirely. vLLM and SGLang had working PRs within four days.</p>
-                <div class="featured-cta">Read the deep dive</div>
-            </a>
-            <a href="/blog/ai-insights-weekly-2026-03-08" class="featured-article reveal" style="margin-top: 1.25rem;">
-                <div class="featured-meta">Mar 8, 2026 &middot; Weekly Roundup</div>
-                <h3>AI Insights Weekly: Autonomous Agents, Agentic Engineering &amp; Case Studies</h3>
-                <p>Karpathy&rsquo;s autoresearch loop, harness engineering as cybernetics, Codex 5.4 reverse-engineering a DOS game in 6 hours, and an agent called Larry running a $7k/month business autonomously. Curated for builders who ship.</p>
-                <div class="featured-cta">Read the roundup</div>
-            </a>
-            <a href="/blog/claude-code-hooks-patterns" class="featured-article reveal" style="margin-top: 1.25rem;">
-                <div class="featured-meta">Mar 2026 &middot; Claude Code</div>
-                <h3>Four Hooks Patterns for Steering Claude Code</h3>
-                <p>Move agent behavioral control out of CLAUDE.md and into deterministic code. Four composable patterns &mdash; PreToolUse interception, orchestrators, session state, and PostToolUse context injection &mdash; that fire reliably regardless of context window pressure.</p>
-                <div class="featured-cta">Read the post</div>
-            </a>
-            <a href="/blog/wingspan-alphaevolve" class="featured-article reveal" style="margin-top: 1.25rem;">
-                <div class="featured-meta">Mar 2026 &middot; Project Narrative</div>
-                <h3>What If AI Designed My Board Game AI?</h3>
-                <p>I built a Wingspan board game simulator with 446 birds and a hand-tuned AI full of hardcoded thresholds. Then I read a paper where Google let an AI rewrite game-theory algorithms &mdash; and it found better ones. Here&rsquo;s what that would look like applied to my project.</p>
-                <div class="featured-cta">Read the story</div>
-            </a>
-            <a href="/blog/alphaevolve-game-theory" class="featured-article reveal" style="margin-top: 1.25rem;">
-                <div class="featured-meta">Mar 2026 &middot; Paper Explainer</div>
-                <h3>AlphaEvolve: When AI Invents Better Algorithms Than Humans</h3>
-                <p>Google DeepMind pointed an AI code-evolution agent at game theory &mdash; the math behind poker bots, autonomous negotiation, and multi-agent AI. It discovered two algorithms that outperform 20 years of hand-designed ones. A visual explainer of what it found and why it matters.</p>
-                <div class="featured-cta">Read the explainer</div>
-            </a>
-            <a href="/blog/native-sparse-attention" class="featured-article reveal" style="margin-top: 1.25rem;">
-                <div class="featured-meta">Mar 2026 &middot; Paper Explainer</div>
-                <h3>NSA: Making AI Models Think Faster</h3>
-                <p>Every AI chatbot re-reads your entire conversation to generate each word. DeepSeek found a way to skip the parts that don&rsquo;t matter &mdash; three reading strategies (summarize, select, remember) that cut processing time by up to 11&times; without losing quality. A visual explainer of the paper.</p>
-                <div class="featured-cta">Read the explainer</div>
-            </a>
-            <a href="/blog/glm5" class="featured-article reveal" style="margin-top: 1.25rem;">
-                <div class="featured-meta">Feb 2026 &middot; Paper Explainer</div>
-                <h3>GLM-5: The Open-Source Model That Fooled Everyone</h3>
-                <p>Zhipu AI&rsquo;s 744B parameter model competed anonymously as &ldquo;Pony Alpha&rdquo; on OpenRouter &mdash; users thought it was Claude Sonnet 5 or DeepSeek. A visual explainer covering the architecture (Dynamic Sparse Attention), training pipeline, benchmarks, and why it matters for open-source AI.</p>
-                <div class="featured-cta">Read the explainer</div>
-            </a>
-            <a href="/blog/claude-code-windows-setup" class="featured-article reveal" style="margin-top: 1.25rem;">
-                <div class="featured-meta">Mar 2026 &middot; Setup Guide</div>
-                <h3>Claude Code on Windows: How to Set It Up So It Actually Works</h3>
-                <p>Claude Code is built for Unix-like systems. On Windows, you need WSL2 &mdash; without it, Claude Code can&rsquo;t run scripts and resorts to generating <code>.bat</code> files. A step-by-step guide from install to full autonomous execution.</p>
-                <div class="featured-cta">Read the guide</div>
-            </a>
-            <a href="/blog/gitnexus-tools" class="featured-article reveal" style="margin-top: 1.25rem;">
-                <div class="featured-meta">Mar 2026 &middot; Developer Tools</div>
-                <h3>GitNexus: What You Can Actually Do With a Code Knowledge Graph</h3>
-                <p>GitNexus indexes a codebase into a knowledge graph &mdash; 13k+ nodes and 38k+ edges. Query execution flows, check blast radius before refactoring, and let AI agents see graph context automatically on every search.</p>
-                <div class="featured-cta">Read the explainer</div>
-            </a>
-            <a href="/ai-stacks" class="featured-article reveal" style="margin-top: 1.25rem;">
-                <div class="featured-meta">2026 Research</div>
-                <h3>AI Coding Stacks 2026</h3>
-                <p>A survey of the AI-assisted development landscape. Seven in-depth profiles covering orchestration tools from Claude Squad and Gas Town to Conductor and TSK &mdash; how each approaches multi-agent coordination, context management, and developer workflow integration.</p>
-                <div class="featured-cta">Read the full presentation</div>
-            </a>
-            <div class="deep-dives stagger">
-                <a href="/ai-stacks/gas-town" class="dd-card reveal" style="--i:0">
-                    <h4>Gas Town</h4>
-                    <div class="dd-author">Steve Yegge</div>
-                    <p>Kubernetes for AI agents. Mayor + 20 workers in tmux with beads for persistence.</p>
-                    <span class="dd-arrow">&rarr;</span>
+    <section id="writing" class="kq-section">
+        <div class="kq-wrap">
+            <h2 class="kq-h">Writing</h2>
+            <div class="kq-grid kq-grid--2">
+                <a class="kq-card" href="/blog/datpaq-platform-evaluation">
+                    <div class="kq-meta">Jul 2026 &middot; Platform Evaluation</div>
+                    <h3>DatPaq: REST Works, the Agent Story Needs Alignment</h3>
+                    <p>Independent hands-on review of all 17 catalog APIs across REST, CLI, MCP, and the developer dashboard. Strong positioning for the agent era, but DNS is down on CLI/MCP, MX CLI is broken, and several OpenAPI paths 404 in production.</p>
+                    <div class="kq-go">Read the evaluation &rarr;</div>
                 </a>
-                <a href="/ai-stacks/multiclaude" class="dd-card reveal" style="--i:1">
-                    <h4>Multiclaude</h4>
-                    <div class="dd-author">Dan Lorenc</div>
-                    <p>Brownian ratchet &mdash; always pushing forward. Supervisor + subagents with auto-merge.</p>
-                    <span class="dd-arrow">&rarr;</span>
+                <a class="kq-card" href="/blog/wingspan-mcts">
+                    <div class="kq-meta">May 2026 &middot; Project Narrative</div>
+                    <h3>Teaching a Network to Play Wingspan</h3>
+                    <p>Nine training runs, three months, and one broken ruler. An AlphaZero implementation for a complex card game: what broke, what worked, and why the numbers we watched for most of it were wrong.</p>
+                    <div class="kq-go">Read the post &rarr;</div>
                 </a>
-                <a href="/ai-stacks/compound-engineering" class="dd-card reveal" style="--i:2">
-                    <h4>Compound Engineering</h4>
-                    <div class="dd-author">Kieran Klaassen</div>
-                    <p>Plan, Work, Assess, Compound. Open-source plugin and most-referenced methodology.</p>
-                    <span class="dd-arrow">&rarr;</span>
+                <a class="kq-card" href="/blog/loading-dock-booth-bot">
+                    <div class="kq-meta">Apr 2026 &middot; Project</div>
+                    <h3>The Loading Dock Booth Bot</h3>
+                    <p>A Telegram bot that books phone booths at The Loading Dock coworking space in Raleigh. Send a message in plain English, and the bot checks availability, picks an open booth, and handles the reservation through OfficeRnD. Built on a reusable framework powered by Claude AI.</p>
+                    <div class="kq-go">Read the post &rarr;</div>
                 </a>
-                <a href="/ai-stacks/claude-squad" class="dd-card reveal" style="--i:3">
-                    <h4>Claude Squad</h4>
-                    <div class="dd-author">smtg-ai</div>
-                    <p>Terminal app managing multiple Claude Code instances in separate workspaces.</p>
-                    <span class="dd-arrow">&rarr;</span>
-                </a>
-                <a href="/ai-stacks/conductor" class="dd-card reveal" style="--i:4">
-                    <h4>Conductor</h4>
-                    <div class="dd-author">Melty Labs</div>
-                    <p>Native Mac app. Visual dashboard with git worktree isolation and rollback.</p>
-                    <span class="dd-arrow">&rarr;</span>
-                </a>
-                <a href="/ai-stacks/tsk" class="dd-card reveal" style="--i:5">
-                    <h4>TSK</h4>
-                    <div class="dd-author">dtormoen</div>
-                    <p>Rust CLI delegating tasks to agents in sandboxed Docker containers.</p>
-                    <span class="dd-arrow">&rarr;</span>
-                </a>
-                <a href="/ai-stacks/container-use" class="dd-card reveal" style="--i:6">
-                    <h4>Container Use</h4>
-                    <div class="dd-author">Dagger</div>
-                    <p>Docker-based dev environments for coding agents. Isolated parallel execution.</p>
-                    <span class="dd-arrow">&rarr;</span>
-                </a>
-                <a href="/ai-stacks" class="dd-card reveal" style="--i:7">
-                    <h4>Full Overview</h4>
-                    <div class="dd-author">All 7 Tools</div>
-                    <p>The complete landscape &mdash; who's using what and how each stack compares.</p>
-                    <span class="dd-arrow">&rarr;</span>
+                <a class="kq-card" href="/blog/claude-code-hooks-patterns">
+                    <div class="kq-meta">Mar 2026 &middot; Claude Code</div>
+                    <h3>Four Hooks Patterns for Steering Claude Code</h3>
+                    <p>Move agent behavioral control out of CLAUDE.md and into deterministic code. Four composable patterns (PreToolUse interception, orchestrators, session state, and PostToolUse context injection) that fire reliably regardless of context window pressure.</p>
+                    <div class="kq-go">Read the post &rarr;</div>
                 </a>
             </div>
         </div>
     </section>
 
-    <!-- PROJECTS -->
-    <section id="projects" class="projects">
-        <div class="container">
-            <div class="accent-rule reveal"></div>
-            <div class="section-heading reveal">Projects</div>
-            <div class="projects-grid stagger">
-                <a href="https://github.com/NathanNorman/claude-memory" target="_blank" rel="noopener" class="project-card reveal" style="--i:0">
-                    <div class="project-top">
-                        <h3>claude-memory</h3>
-                        <div class="project-lang">TypeScript</div>
-                    </div>
-                    <div class="project-desc-primary">Local MCP server for persistent memory.</div>
-                    <div class="project-desc-detail">Hybrid search combining SQLite FTS5 full-text indexing with knowledge graph retrieval. Gives Claude Code sessions durable context across conversations.</div>
-                    <span class="project-arrow">&rarr;</span>
+    <section id="projects" class="kq-section">
+        <div class="kq-wrap">
+            <h2 class="kq-h">Projects</h2>
+            <div class="kq-grid kq-grid--3">
+                <a class="kq-card kq-project" href="https://github.com/NathanNorman/claude-memory" target="_blank" rel="noopener" data-kq-pts="repo-claude-memory:2">
+                    <div class="kq-meta">TypeScript</div>
+                    <h3>claude-memory</h3>
+                    <p>Local MCP server for persistent memory. Hybrid search combining SQLite FTS5 full-text indexing with knowledge graph retrieval. Gives Claude Code sessions durable context across conversations.</p>
+                    <div class="kq-go">View on GitHub &rarr;</div>
                 </a>
-                <a href="https://github.com/NathanNorman/claude-session-visualizer" target="_blank" rel="noopener" class="project-card reveal" style="--i:1">
-                    <div class="project-top">
-                        <h3>claude-session-visualizer</h3>
-                        <div class="project-lang">Python</div>
-                    </div>
-                    <div class="project-desc-primary">Real-time session visualization.</div>
-                    <div class="project-desc-detail">WebSocket-based live dashboard tracking tool usage, token consumption, and agent activity across concurrent Claude Code sessions.</div>
-                    <span class="project-arrow">&rarr;</span>
+                <a class="kq-card kq-project" href="https://github.com/NathanNorman/claude-session-visualizer" target="_blank" rel="noopener" data-kq-pts="repo-session-visualizer:2">
+                    <div class="kq-meta">Python</div>
+                    <h3>claude-session-visualizer</h3>
+                    <p>Real-time session visualization. WebSocket-based live dashboard tracking tool usage, token consumption, and agent activity across concurrent Claude Code sessions.</p>
+                    <div class="kq-go">View on GitHub &rarr;</div>
                 </a>
-                <a href="https://github.com/NathanNorman/telegram-bot-framework" target="_blank" rel="noopener" class="project-card reveal" style="--i:2">
-                    <div class="project-top">
-                        <h3>telegram-bot-framework</h3>
-                        <div class="project-lang">Python</div>
-                    </div>
-                    <div class="project-desc-primary">Telegram bots powered by Claude AI.</div>
-                    <div class="project-desc-detail">Framework handling conversation state, message routing, and API integration. Template for building conversational AI interfaces on Telegram.</div>
-                    <span class="project-arrow">&rarr;</span>
+                <a class="kq-card kq-project" href="https://github.com/NathanNorman/telegram-bot-framework" target="_blank" rel="noopener" data-kq-pts="repo-telegram:2">
+                    <div class="kq-meta">Python</div>
+                    <h3>telegram-bot-framework</h3>
+                    <p>Telegram bots powered by Claude AI. Framework handling conversation state, message routing, and API integration. Template for building conversational AI interfaces on Telegram.</p>
+                    <div class="kq-go">View on GitHub &rarr;</div>
                 </a>
-                <a href="https://github.com/NathanNorman/raleigh-crash-viz" target="_blank" rel="noopener" class="project-card reveal" style="--i:3">
-                    <div class="project-top">
-                        <h3>raleigh-crash-viz</h3>
-                        <div class="project-lang">JavaScript</div>
-                    </div>
-                    <div class="project-desc-primary">Traffic crash data visualization.</div>
-                    <div class="project-desc-detail">Interactive maps and charts for analyzing collision patterns across Raleigh, NC. Geospatial data exploration with filtering and drill-down.</div>
-                    <span class="project-arrow">&rarr;</span>
+                <a class="kq-card kq-project" href="https://github.com/NathanNorman/raleigh-crash-viz" target="_blank" rel="noopener" data-kq-pts="repo-crash-viz:2">
+                    <div class="kq-meta">JavaScript</div>
+                    <h3>raleigh-crash-viz</h3>
+                    <p>Traffic crash data visualization. Interactive maps and charts for analyzing collision patterns across Raleigh, NC. Geospatial data exploration with filtering and drill-down.</p>
+                    <div class="kq-go">View on GitHub &rarr;</div>
                 </a>
-                <a href="https://github.com/NathanNorman/nfl-study" target="_blank" rel="noopener" class="project-card reveal" style="--i:4">
-                    <div class="project-top">
-                        <h3>nfl-study</h3>
-                        <div class="project-lang">TypeScript</div>
-                    </div>
-                    <div class="project-desc-primary">NFL game data analysis.</div>
-                    <div class="project-desc-detail">Statistical modeling and interactive charts for exploring game-level trends, matchup patterns, and season-over-season performance data.</div>
-                    <span class="project-arrow">&rarr;</span>
+                <a class="kq-card kq-project" href="https://github.com/NathanNorman/nfl-study" target="_blank" rel="noopener" data-kq-pts="repo-nfl:2">
+                    <div class="kq-meta">TypeScript</div>
+                    <h3>nfl-study</h3>
+                    <p>NFL game data analysis. Statistical modeling and interactive charts for exploring game-level trends, matchup patterns, and season-over-season performance data.</p>
+                    <div class="kq-go">View on GitHub &rarr;</div>
                 </a>
-                <a href="https://github.com/NathanNorman/domes" target="_blank" rel="noopener" class="project-card reveal" style="--i:5">
-                    <div class="project-top">
-                        <h3>domes</h3>
-                        <div class="project-lang">HTML</div>
-                    </div>
-                    <div class="project-desc-primary">Hippie Hideout.</div>
-                    <div class="project-desc-detail">Interactive 3D roof pitch geometry explorer. Parametric dome visualization with real-time manipulation of structural parameters.</div>
-                    <span class="project-arrow">&rarr;</span>
+                <a class="kq-card kq-project" href="https://github.com/NathanNorman/domes" target="_blank" rel="noopener" data-kq-pts="repo-domes:2">
+                    <div class="kq-meta">HTML</div>
+                    <h3>domes</h3>
+                    <p>Hippie Hideout. Interactive 3D roof pitch geometry explorer. Parametric dome visualization with real-time manipulation of structural parameters.</p>
+                    <div class="kq-go">View on GitHub &rarr;</div>
                 </a>
             </div>
         </div>
     </section>
 
-    <!-- CONNECT -->
-    <section id="connect" class="connect">
-        <div class="container">
-            <div class="accent-rule reveal"></div>
-            <div class="connect-inner reveal">
-                <div class="connect-copy">
-                    <h2>Get in touch</h2>
+    <section id="contact" class="kq-section">
+        <div class="kq-wrap">
+            <div class="kq-win kq-contact">
+                <img class="kq-contact__icon" src="/assets/img/icon-talk.svg" alt="" width="64" height="52">
+                <div>
+                    <h2 class="kq-contact__h">Get in touch</h2>
                     <p>I&rsquo;m looking for remote Senior or Staff IC backend and platform roles, especially work involving AI agents, internal platforms, or data systems. Resume, GitHub, and LinkedIn are below.</p>
-                </div>
-                <div class="connect-links">
-                    <a href="/Nathan_Norman_Resume.pdf" target="_blank" rel="noopener" class="connect-link connect-link-primary">Resume</a>
-                    <a href="https://github.com/NathanNorman" target="_blank" rel="noopener" class="connect-link">GitHub</a>
-                    <a href="https://www.linkedin.com/in/nathansnorman/" target="_blank" rel="noopener" class="connect-link">LinkedIn</a>
-                    <a href="mailto:nathannorman@gmail.com" class="connect-link">Email</a>
+                    <div class="kq-btns">
+                        <a class="kq-btn kq-btn--gold" href="/Nathan_Norman_Resume.pdf" target="_blank" rel="noopener" data-kq-pts="resume:10">Resume</a>
+                        <a class="kq-btn" href="mailto:nathannorman@gmail.com" data-kq-pts="email:5">Email</a>
+                        <a class="kq-btn" href="https://www.linkedin.com/in/nathansnorman/" target="_blank" rel="noopener" data-kq-pts="linkedin:3">LinkedIn</a>
+                        <a class="kq-btn" href="https://github.com/NathanNorman" target="_blank" rel="noopener" data-kq-pts="github:3">GitHub</a>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
+</main>
 
-    <!-- FOOTER -->
-    <footer>
-        <div class="container footer-inner">
-            <p>&copy; 2026 Nathan Norman</p>
-            <p>Raleigh, NC</p>
-        </div>
-    </footer>
-
-    <script>
-        // Nav scroll effect
-        const nav = document.getElementById('nav');
-        window.addEventListener('scroll', () => {
-            nav.classList.toggle('scrolled', window.scrollY > 50);
-        });
-
-        // Scroll reveal with stagger
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
-
-        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-        // Smooth anchor scrolling
-        document.querySelectorAll('a[href^="#"]').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const target = document.querySelector(link.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            });
-        });
-    </script>
-
+<div class="kq-foot">
+    <div class="kq-foot__in">
+        <p>&copy; 2026 Nathan Norman &middot; Raleigh, NC</p>
+        <p class="kq-foot__links"><a href="/Nathan_Norman_Resume.pdf" target="_blank" rel="noopener" data-kq-pts="resume:10">Resume</a><a href="mailto:nathannorman@gmail.com" data-kq-pts="email:5">Email</a><a href="https://www.linkedin.com/in/nathansnorman/" target="_blank" rel="noopener" data-kq-pts="linkedin:3">LinkedIn</a><a href="https://github.com/NathanNorman" target="_blank" rel="noopener" data-kq-pts="github:3">GitHub</a></p>
+        <p class="kq-foot__quip">Thank you for playing.</p>
+    </div>
+</div>
 </body>
 </html>
