@@ -69,12 +69,14 @@
     .fail { color: var(--red); font-weight: 600; }
     .diagram-wrap { margin: 32px 0; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 12px; padding: 24px; overflow-x: auto; }
     .pipeline { display: flex; align-items: stretch; gap: 8px; min-width: 600px; }
+    @media (max-width: 680px) { .pipeline { flex-direction: column; min-width: 0; } .pipe-arrow { align-self: center; transform: rotate(90deg); } }
     .pipe-stage { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 16px; background: var(--bg); text-align: center; }
     .pipe-stage h4 { font-size: 13px; margin-bottom: 8px; color: var(--text); }
     .pipe-stage p { font-size: 12px; margin: 0; }
     .pipe-arrow { display: flex; align-items: center; color: var(--text-secondary); font-size: 20px; }
     .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px; }
     @media (max-width: 640px) { .compare { grid-template-columns: 1fr; } }
+    @media (max-width: 400px) { table { display: block; overflow-x: auto; } }
     .compare-col { border-radius: 12px; padding: 24px; }
     .compare-col.before { background: var(--red-light); border: 1px solid #fecaca; }
     .compare-col.after { background: var(--green-light); border: 1px solid #bbf7d0; }
@@ -103,6 +105,7 @@
       <a href="/#projects"><span class="kq-tile"><img src="/assets/img/icon-satchel.svg" alt="" width="32" height="28"></span><span class="kq-label">Projects</span></a>
       <a href="/Nathan_Norman_Resume.pdf" target="_blank" rel="noopener" data-kq-pts="resume:10"><span class="kq-tile"><img src="/assets/img/icon-scroll.svg" alt="" width="32" height="28"></span><span class="kq-label">Resume</span></a>
       <a href="/#contact"><span class="kq-tile"><img src="/assets/img/icon-talk.svg" alt="" width="32" height="26"></span><span class="kq-label">Contact</span></a>
+      <button type="button" class="kq-maptile" data-kq-map aria-haspopup="dialog" aria-controls="kq-map"><span class="kq-tile"><img src="/assets/img/icon-map.svg" alt="" width="32" height="26"></span><span class="kq-label">Map</span></button>
     </div>
     <div class="kq-score" aria-hidden="true" title="Points for exploring the site">Score: <b data-kq-score>0</b> of 231</div>
   </div>
