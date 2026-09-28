@@ -1,6 +1,7 @@
 /* map.js: the Magic Map, a travel map of the site in the spirit of the one in King's Quest VI.
-   Everything is original: the art is drawn procedurally at 320x200 and scaled up with crisp
-   pixels, and the sound is synthesized. Loaded on demand by site.js. */
+   Everything is original: the art is drawn procedurally at 320x200 and the sound is synthesized.
+   site.js loads it on every page. It draws the islands in the header's map strip (the site's menu),
+   plays the travel animation when you pick one, and runs the full-screen map dialog. */
 (function (global) {
   'use strict';
 
@@ -50,7 +51,7 @@
     { id: 'mountain', name: 'About', href: '/about', blob: { cx: 154, cy: 60, rx: 42, ry: 22, seed: 3, amp: 0.34 }, label: { x: 40, y: 42 } },
     { id: 'wonder', name: 'Writing', href: '/#writing', arc: { cx: 100, cy: 126, r: 40, a0: 3.30, a1: 4.95, th: 17, seed: 5 }, label: { x: 82, y: 104 } },
     { id: 'beast', name: 'Projects', href: '/#projects', blob: { cx: 222, cy: 106, rx: 25, ry: 11, seed: 7, amp: 0.34 }, label: { x: 210, y: 71 } },
-    { id: 'crown', name: 'Home', href: '/', blob: { cx: 142, cy: 154, rx: 42, ry: 21, seed: 11, amp: 0.36 }, label: { x: 46, y: 162 } }
+    { id: 'crown', name: 'Contact', href: '/#contact', blob: { cx: 142, cy: 154, rx: 42, ry: 21, seed: 11, amp: 0.36 }, label: { x: 194, y: 150 } }
   ];
 
   // Terrain per island. Peaks are [u, v, spreadU, spreadV, height] in island-relative units
@@ -106,8 +107,11 @@
     ISLES.forEach(isle => {
       const mask = new Uint8Array(W * H);
       let x0 = W, y0 = H, x1 = 0, y1 = 0;
-      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-        const inside = isle.blob ? blobInside(isle.blob, x, y) : arcInside(isle.arc, x, y);
+      const g = isle.blob, a = isle.arc;
+      const bx0 = Math.max(0, Math.floor(g ? g.cx - 1.9 * g.rx : a.cx - a.r - a.th - 4)), bx1 = Math.min(W - 1, Math.ceil(g ? g.cx + 1.9 * g.rx : a.cx + a.r + a.th + 4));
+      const by0 = Math.max(0, Math.floor(g ? g.cy - 1.9 * g.ry : a.cy - a.r - a.th - 4)), by1 = Math.min(H - 1, Math.ceil(g ? g.cy + 1.9 * g.ry : a.cy + a.r + a.th + 4));
+      for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) {
+        const inside = g ? blobInside(g, x, y) : arcInside(a, x, y);
         if (inside) { mask[y * W + x] = 1; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
       }
       const din = distance(mask, 1), dout = distance(mask, 0);
@@ -242,24 +246,30 @@
   }
 
   // ── renderer ────────────────────────────────────────────────────────
-  let canvas, ctx, img, basePx, prepared = false;
-  const state = { hover: null, travel: null, ring: 0, rise: 0 };
+  let basePx = null;
+  function ensurePrepared() { if (basePx) return; prepareIsles(); basePx = new Uint32Array(W * H); drawBase(basePx); }
 
-  function render() {
-    const px = new Uint32Array(img.data.buffer);
+  // Paint the map: flat ink islands, an optional hover outline, and raised islands (Map isle -> { ring, rise }).
+  function paintMap(px, hover, raised) {
     px.set(basePx);
     ISLES.forEach(isle => {
-      if (state.travel === isle) return;
+      if (raised && raised.has(isle)) return;
       const { x0, y0, x1, y1 } = isle.box;
       for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const i = y * W + x; if (isle.mask[i]) px[i] = isle.ink[i]; }
-      if (state.hover === isle) {
+      if (hover === isle) {
         for (let y = y0 - 3; y <= y1 + 3; y++) for (let x = x0 - 3; x <= x1 + 3; x++) {
           const i = y * W + x, d = isle.dout[i];
           if (d > 0.9 && d < 2.1 && ((x + y) & 1)) px[i] = HOVER;
         }
       }
     });
-    if (state.travel) drawRising(px, state.travel, state.ring, state.rise);
+    if (raised) raised.forEach((lv, isle) => drawRising(px, isle, lv.ring, lv.rise));
+  }
+
+  let canvas, ctx, img;
+  const state = { hover: null, travel: null, ring: 0, rise: 0 };
+  function render() {
+    paintMap(new Uint32Array(img.data.buffer), state.hover, state.travel ? new Map([[state.travel, { ring: state.ring, rise: state.rise }]]) : null);
     ctx.putImageData(img, 0, 0);
   }
 
@@ -341,13 +351,16 @@
   const reduce = () => global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const pct = (v, total) => (v / total * 100).toFixed(3) + '%';
 
+  function fontLink() {
+    if (document.querySelector('link[data-kq-map-font]')) return;
+    const l = document.createElement('link');
+    l.rel = 'stylesheet'; l.dataset.kqMapFont = '1';
+    l.href = 'https://fonts.googleapis.com/css2?family=Jacquarda+Bastarda+9&display=swap';
+    document.head.appendChild(l);
+  }
+
   function build() {
-    if (!document.querySelector('link[data-kq-map-font]')) {
-      const l = document.createElement('link');
-      l.rel = 'stylesheet'; l.dataset.kqMapFont = '1';
-      l.href = 'https://fonts.googleapis.com/css2?family=Jacquarda+Bastarda+9&display=swap';
-      document.head.appendChild(l);
-    }
+    fontLink();
     root = document.createElement('div');
     root.className = 'kq-map';
     root.id = 'kq-map';
@@ -374,8 +387,6 @@
     canvas = root.querySelector('canvas');
     ctx = canvas.getContext('2d');
     img = ctx.createImageData(W, H);
-    basePx = new Uint32Array(W * H);
-    drawBase(basePx);
 
     root.addEventListener('click', e => {
       if (state.travel) { e.preventDefault(); skip(); return; }
@@ -413,8 +424,8 @@
     global.addEventListener('resize', fit);
   }
 
-  function isleAt(e) {
-    const r = canvas.getBoundingClientRect();
+  function isleAt(e, cv = canvas) {
+    const r = cv.getBoundingClientRect();
     const x = Math.floor((e.clientX - r.left) / r.width * W), y = Math.floor((e.clientY - r.top) / r.height * H);
     if (x < 0 || y < 0 || x >= W || y >= H) return null;
     return ISLES.find(isle => isle.dout[y * W + x] <= 2) || null;
@@ -438,8 +449,8 @@
     else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
   }
 
-  function open(fromEl) {
-    if (!prepared) { prepareIsles(); prepared = true; }
+  function open(fromEl, travelTo) {
+    ensurePrepared();
     if (!root) build();
     opener = fromEl || document.activeElement;
     state.hover = null; state.travel = null;
@@ -450,9 +461,11 @@
     render();
     prevOverflow = document.documentElement.style.overflow;
     document.documentElement.style.overflow = 'hidden';
-    const here = ISLES.find(i => i.href === location.pathname) || ISLES.find(i => i.id === 'crown');
+    const here = ISLES.find(i => i.href === location.pathname) || ISLES[0];
     const first = root.querySelector(`.kq-map__isle[data-isle="${here.id}"]`);
     if (first) first.focus({ preventScroll: true });
+    const dest = travelTo && ISLES.find(i => i.id === travelTo);
+    if (dest) setTimeout(() => travel(dest, dest.href), reduce() ? 0 : 420);  // let the scroll unroll first
   }
 
   function close() {
@@ -488,11 +501,16 @@
   function arrive() {
     if (!pending) return;
     const { href } = pending; pending = null;
+    goTo(href, true);
+  }
+
+  // Go somewhere through the pixel dissolve. Same-page targets scroll instead of reloading.
+  function goTo(href, fromDialog) {
     const url = new URL(href, location.href);
     const samePage = url.pathname === location.pathname;
     const go = () => {
       if (samePage) {
-        close();
+        if (fromDialog) close();
         const target = url.hash && document.querySelector(url.hash);
         if (target) target.scrollIntoView({ block: 'start' }); else global.scrollTo(0, 0);
         if (url.hash) history.replaceState(null, '', url.hash);
@@ -505,5 +523,121 @@
     if (global.KQDissolve && !reduce()) global.KQDissolve.out(go); else go();
   }
 
-  global.KQMap = { open, close };
+  // ── header map strip: the site's menu ──────────────────────────────
+  // Each nav item shows its island; the island for the page (or homepage section) you're on is raised.
+  const strip = { items: [], hover: null, levels: new Map(), target: null, raf: 0, busy: false, narr: null };
+  const SECTION_ISLE = { about: 'mountain', expertise: 'mountain', writing: 'wonder', projects: 'beast', contact: 'crown' };
+  const scratch = new Uint32Array(W * H);
+
+  function thumbRender(item) {
+    const isle = item.isle, lv = strip.levels.get(isle) || 0, { x0, y0, x1, y1 } = isle.box;
+    scratch.fill(0);
+    if (lv > 0.001) drawRising(scratch, isle, lv, lv);
+    else for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const i = y * W + x; if (isle.mask[i]) scratch[i] = isle.ink[i]; }
+    if (strip.hover === isle && lv < 0.5) {
+      for (let y = y0 - 3; y <= y1 + 3; y++) for (let x = x0 - 3; x <= x1 + 3; x++) {
+        const i = y * W + x, d = isle.dout[i];
+        if (d > 0.9 && d < 2.1 && ((x + y) & 1)) scratch[i] = HOVER;
+      }
+    }
+    const { cx, cy, cw, ch } = item.crop;
+    for (let y = 0; y < ch; y++) item.px.set(scratch.subarray((cy + y) * W + cx, (cy + y) * W + cx + cw), y * cw);
+    item.ctx.putImageData(item.img, 0, 0);
+  }
+
+  function stripSet(id, ms = 650) {
+    const isle = ISLES.find(i => i.id === id) || null;
+    strip.items.forEach(it => { if (it.isle === isle) it.a.setAttribute('aria-current', it.a.pathname === location.pathname && !it.a.hash ? 'page' : 'location'); else it.a.removeAttribute('aria-current'); });
+    if (isle === strip.target) return;
+    strip.target = isle;
+    if (reduce()) { strip.levels.clear(); if (isle) strip.levels.set(isle, 1); strip.items.forEach(thumbRender); return; }
+    cancelAnimationFrame(strip.raf);
+    let prev = performance.now();
+    const step = now => {
+      const dt = Math.min(64, now - prev) / ms; prev = now;
+      let moving = false;
+      strip.items.forEach(it => {
+        const cur = strip.levels.get(it.isle) || 0, goal = it.isle === strip.target ? 1 : 0;
+        const next = cur < goal ? Math.min(goal, cur + dt) : Math.max(goal, cur - dt);
+        if (next === cur) return;
+        moving = true;
+        if (next > 0) strip.levels.set(it.isle, next); else strip.levels.delete(it.isle);
+        thumbRender(it);
+      });
+      if (moving) strip.raf = requestAnimationFrame(step);
+    };
+    strip.raf = requestAnimationFrame(step);
+  }
+
+  // A shorter trip than the full map: narrator line, sound, the island rises in place, then the dissolve.
+  function stripTravel(item) {
+    if (strip.busy) return;
+    if (global.KQScore) global.KQScore.award('map:5');
+    if (reduce()) { goTo(item.a.href); return; }
+    strip.busy = true;
+    if (!strip.narr) {
+      strip.narr = document.createElement('div');
+      strip.narr.className = 'kq-narr kq-narr--toast';
+      strip.narr.setAttribute('role', 'status');
+      strip.narr.innerHTML = '<span class="kq-narr__cap" aria-hidden="true">Y</span><span class="kq-sr">Y</span>ou feel a strange pulling sensation....';
+      document.body.appendChild(strip.narr);
+    }
+    strip.narr.hidden = false;
+    document.documentElement.classList.add('kq-traveling');
+    playPull();
+    stripSet(item.isle.id, 700);
+    setTimeout(() => {
+      strip.narr.hidden = true;
+      document.documentElement.classList.remove('kq-traveling');
+      strip.busy = false;
+      goTo(item.a.href);
+    }, 1150);
+  }
+
+  function mountStrip() {
+    const el = document.querySelector('.kq-strip');
+    if (!el || strip.items.length) return;
+    if (global.innerWidth <= 560) {  // phones use the Menu button; skip the work until there is room
+      const retry = () => { if (global.innerWidth > 560) { global.removeEventListener('resize', retry); mountStrip(); } };
+      global.addEventListener('resize', retry);
+      return;
+    }
+    ensurePrepared();
+    fontLink();
+    strip.items = [...el.querySelectorAll('.kq-strip__item')].map(a => {
+      const isle = ISLES.find(i => i.id === a.dataset.isle), b = isle.box;
+      const cx = Math.max(0, b.x0 - 7), cy = Math.max(0, b.y0 - TOPO[isle.id].rise - 3);
+      const cw = Math.min(W, b.x1 + 8) - cx, ch = Math.min(H, b.y1 + 7) - cy;
+      const cv = a.querySelector('canvas');
+      cv.width = cw; cv.height = ch;
+      const cctx = cv.getContext('2d'), cimg = cctx.createImageData(cw, ch);
+      const item = { a, isle, ctx: cctx, img: cimg, px: new Uint32Array(cimg.data.buffer), crop: { cx, cy, cw, ch } };
+      const on = () => { strip.hover = isle; thumbRender(item); };
+      const off = () => { if (strip.hover === isle) { strip.hover = null; thumbRender(item); } };
+      a.addEventListener('mouseenter', on); a.addEventListener('mouseleave', off);
+      a.addEventListener('focus', on); a.addEventListener('blur', off);
+      a.addEventListener('click', e => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        e.preventDefault();
+        stripTravel(item);
+      });
+      return item;
+    });
+    strip.items.forEach(thumbRender);
+    const path = location.pathname.replace(/\.html$/, '');
+    if (path === '/' || path === '/index') {
+      const sections = Object.keys(SECTION_ISLE).map(id => document.getElementById(id)).filter(Boolean);
+      const seen = new Set();
+      const io = new IntersectionObserver(entries => {
+        entries.forEach(en => { if (en.isIntersecting) seen.add(en.target.id); else seen.delete(en.target.id); });
+        const inView = sections.filter(sec => seen.has(sec.id));
+        if (!strip.busy) stripSet(inView.length ? SECTION_ISLE[inView[inView.length - 1].id] : null);
+      }, { rootMargin: '-45% 0px -45% 0px' });
+      sections.forEach(sec => io.observe(sec));
+    } else {
+      stripSet(path === '/about' ? 'mountain' : path.startsWith('/blog/') ? 'wonder' : null);
+    }
+  }
+
+  global.KQMap = { open, close, mountStrip };
 })(window);

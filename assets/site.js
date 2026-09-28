@@ -10,7 +10,8 @@
 
   function toast(text, near) {
     var score = document.querySelector('.kq-score');
-    var anchor = score && score.offsetParent ? score : near;
+    var shown = score && score.offsetParent && getComputedStyle(score).visibility !== 'hidden';
+    var anchor = shown ? score : (document.querySelector('.kq-mini') || near);
     if (!anchor) return;
     var r = anchor.getBoundingClientRect();
     var t = document.createElement('div');
@@ -76,15 +77,25 @@
     }
   } catch (e) { document.documentElement.classList.remove('kq-arriving'); }
 
-  // Magic map: loaded on first use.
+  // Magic map: loaded once the browser is idle. It docks the mini-map in the icon bar;
+  // on phones (no room for the mini-map) the Map tile opens the full map instead.
+  var mapWaiters = null;
+  function withMap(cb) {
+    if (window.KQMap) { cb(window.KQMap); return; }
+    if (!mapWaiters) {
+      mapWaiters = [];
+      var s = document.createElement('script');
+      s.src = '/assets/map.js';
+      s.onload = function () { var w = mapWaiters; mapWaiters = null; w.forEach(function (f) { f(window.KQMap); }); };
+      document.head.appendChild(s);
+    }
+    mapWaiters.push(cb);
+  }
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-kq-map]');
     if (!b) return;
     e.preventDefault();
-    if (window.KQMap) { window.KQMap.open(b); return; }
-    var s = document.createElement('script');
-    s.src = '/assets/map.js';
-    s.onload = function () { window.KQMap.open(b); };
-    document.head.appendChild(s);
+    withMap(function (m) { m.open(b); });
   });
+  (window.requestIdleCallback || function (f) { setTimeout(f, 200); })(function () { withMap(function (m) { m.mountStrip(); }); });
 })();
