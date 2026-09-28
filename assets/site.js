@@ -1,6 +1,9 @@
-/* site.js: score counter, magic map loader, and the pixel dissolve used between map destinations. */
+/* site.js: score counter, magic map loader, and the pixel dissolve used between map destinations.
+   Clean mode (html[data-mode="clean"], set by the inline script in each page's <head>) skips all of it. */
 (function () {
   'use strict';
+  var root = document.documentElement;
+  function clean() { return root.getAttribute('data-mode') === 'clean'; }
   var KEY = 'kq-score-v1', MAX = 231;
   function load() { try { return JSON.parse(localStorage.getItem(KEY)) || { s: 0, k: [] }; } catch (e) { return { s: 0, k: [] }; } }
   function save(st) { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* private mode */ } }
@@ -26,7 +29,7 @@
 
   function award(spec, near) {
     var parts = String(spec).split(':'), key = parts[0], pts = parseInt(parts[1], 10) || 0;
-    if (!key || st.k.indexOf(key) !== -1) return;
+    if (clean() || !key || st.k.indexOf(key) !== -1) return;
     st.k.push(key);
     st.s = Math.min(MAX, st.s + pts);
     save(st);
@@ -72,7 +75,7 @@
   try {
     if (sessionStorage.getItem('kq-arrive')) {
       sessionStorage.removeItem('kq-arrive');
-      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.remove('kq-arriving');
+      if (clean() || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) document.documentElement.classList.remove('kq-arriving');
       else dissolve('in');
     }
   } catch (e) { document.documentElement.classList.remove('kq-arriving'); }
@@ -93,9 +96,18 @@
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-kq-map]');
-    if (!b) return;
+    if (!b || clean()) return;
     e.preventDefault();
     withMap(function (m) { m.open(b); });
   });
-  (window.requestIdleCallback || function (f) { setTimeout(f, 200); })(function () { withMap(function (m) { m.mountStrip(); }); });
+  (window.requestIdleCallback || function (f) { setTimeout(f, 200); })(function () { if (!clean()) withMap(function (m) { m.mountStrip(); }); });
+
+  // Clean mode has plain nav links instead of the map strip; mark the current page's link.
+  if (clean()) {
+    var path = location.pathname.replace(/\.html$/, '');
+    document.querySelectorAll('.kq-strip__item').forEach(function (a) {
+      if (!a.hash && a.pathname === path) a.setAttribute('aria-current', 'page');
+      else if (a.hash === '#writing' && path.indexOf('/blog/') === 0) a.setAttribute('aria-current', 'location');
+    });
+  }
 })();

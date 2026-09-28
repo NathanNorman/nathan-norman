@@ -1,8 +1,36 @@
 <!DOCTYPE html>
-<html lang="en" class="kq-retheme">
+<html lang="en" class="kq-retheme" data-mode="clean">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+  /* Display mode: adventure unless the visitor chose clean (?mode=clean, remembered in localStorage).
+     Without JS the page stays clean. If a site script, stylesheet, or font fails, it falls back to clean. */
+  (function (h) {
+    var q = /[?&]mode=(clean|adventure)(&|$)/.exec(location.search), m = q ? q[1] : 'adventure';
+    try {
+      if (q) { localStorage.setItem('kq-mode', m); sessionStorage.removeItem('kq-fallback'); }
+      else if (localStorage.getItem('kq-mode') === 'clean' || sessionStorage.getItem('kq-fallback')) m = 'clean';
+      if (m === 'adventure' && sessionStorage.getItem('kq-arrive')) h.classList.add('kq-arriving');
+    } catch (e) { /* storage blocked */ }
+    h.setAttribute('data-mode', m);
+    h.classList.add('kq-js');
+    function fallback() {
+      if (h.getAttribute('data-mode') === 'clean') return;
+      h.setAttribute('data-mode', 'clean');
+      h.classList.remove('kq-arriving', 'kq-traveling');
+      h.style.overflow = '';
+      try { sessionStorage.setItem('kq-fallback', '1'); } catch (e) { /* storage blocked */ }
+    }
+    addEventListener('error', function (e) {
+      var t = e.target, u = t.tagName === 'SCRIPT' ? t.src : t.tagName === 'LINK' && t.rel === 'stylesheet' ? t.href : e.filename;
+      if (/\/assets\/|fonts\.googleapis\.com/.test(u || '')) fallback();
+    }, true);
+    addEventListener('unhandledrejection', function (e) {
+      if (/\/assets\//.test(String(e.reason && e.reason.stack))) fallback();
+    });
+  })(document.documentElement);
+  </script>
   <title>Teaching a Network to Play Wingspan</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦅</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -331,6 +359,7 @@
 <script src="/assets/site.js" defer></script>
 </head>
 <body data-kq-points="post-wingspan:5">
+<div class="kq-mode-bar"><p>Don&rsquo;t like old adventure games? <a href="?mode=clean">Switch to the clean version</a></p></div>
 <header class="kq-bar">
   <div class="kq-bar__in">
     <a class="kq-brand" href="/"><img src="/assets/img/icon-crown.svg" alt="" width="32" height="22"><span>Nathan Norman</span></a>
@@ -341,6 +370,7 @@
         <a class="kq-strip__item" href="/#contact" data-isle="crown"><canvas class="kq-strip__isle" width="88" height="70" aria-hidden="true"></canvas><span class="kq-strip__label">Contact</span></a>
         <button type="button" class="kq-strip__full" data-kq-map aria-haspopup="dialog" aria-controls="kq-map" title="Open the full map"><img src="/assets/img/icon-map.svg" alt="Open the full map" width="32" height="26"></button>
     </div>
+    <a class="kq-mode-link" href="?mode=adventure">Adventure mode</a>
     <a class="kq-btn kq-btn--gold kq-resume" href="/Nathan_Norman_Resume.pdf" target="_blank" rel="noopener" data-kq-pts="resume:10">Resume</a>
     <button type="button" class="kq-menu" data-kq-map aria-haspopup="dialog" aria-controls="kq-map"><img src="/assets/img/icon-map.svg" alt="" width="32" height="26"><span>Menu</span></button>
     <div class="kq-score" aria-hidden="true" title="Points for exploring the site">Score: <b data-kq-score>0</b> of 231</div>
@@ -1026,6 +1056,7 @@
     <p>&copy; 2026 Nathan Norman &middot; Raleigh, NC</p>
     <p class="kq-foot__links"><a href="/Nathan_Norman_Resume.pdf" target="_blank" rel="noopener" data-kq-pts="resume:10">Resume</a><a href="mailto:nathannorman@gmail.com" data-kq-pts="email:5">Email</a><a href="https://www.linkedin.com/in/nathansnorman/" target="_blank" rel="noopener" data-kq-pts="linkedin:3">LinkedIn</a><a href="https://github.com/NathanNorman" target="_blank" rel="noopener" data-kq-pts="github:3">GitHub</a></p>
     <p class="kq-foot__quip">Thank you for playing.</p>
+    <p class="kq-foot__mode"><a href="?mode=adventure">Switch to adventure mode</a></p>
   </div>
 </div>
 </body>

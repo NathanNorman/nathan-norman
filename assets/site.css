@@ -208,7 +208,6 @@ a.kq-card:hover .kq-go { color: var(--kq-ruby); }
 .kq-inv .kq-chips { margin-top: 6px; }
 
 /* ── Character sheet (about details) ── */
-.kq-sheet { border-top: 3px solid var(--kq-wood); }
 .kq-sheet > div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 16px; padding: 12px 2px; border-bottom: 2px dashed var(--kq-parch-3); align-items: baseline; }
 .kq-sheet dt { font: 600 14px/1.3 var(--kq-px); letter-spacing: 0.04em; text-transform: uppercase; color: var(--kq-copper-2); }
 .kq-sheet dd { font-size: 17.5px; }
@@ -303,4 +302,160 @@ html.kq-arriving body { opacity: 0; animation: kq-unhide 0s 1.5s forwards; }
 @media (prefers-reduced-motion: reduce) {
   a.kq-card, .kq-btn { transition: none; }
   .kq-toast { animation-duration: 0.01s; }
+}
+
+/* ── Display mode switch ──
+   Adventure mode shows the bar above the header; clean mode shows the "Adventure mode" links (JS only, since the switch needs it). */
+.kq-mode-bar, .kq-mode-link, .kq-foot__mode { display: none; }
+html[data-mode="adventure"] .kq-mode-bar { display: block; background: #0d0919; border-bottom: 1px solid #2a2046; }
+.kq-mode-bar p { max-width: var(--kq-max); margin: 0 auto; padding: 7px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px; font: 500 14px/1.3 var(--kq-px); color: #cfc2a8; text-align: center; -webkit-font-smoothing: antialiased; }
+.kq-mode-bar a { display: inline-block; padding: 5px 11px; border: 0; border-radius: 6px; background: #fff; color: #18181b !important; font: 500 13px/1.2 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; text-decoration: none; }
+.kq-mode-bar a:hover { background: #e4e4e7; }
+.kq-mode-bar a:focus-visible { outline: 2px solid var(--kq-gold); outline-offset: 2px; }
+html[data-mode="clean"] .kq-adv-only, html[data-mode="adventure"] .kq-clean-only { display: none !important; }
+
+/* ── Clean mode ──
+   A plain white version for visitors who'd rather skip the adventure game. It is also what pages
+   show without JS and the fallback when a site script, stylesheet, or font fails (see the <head> script). */
+html[data-mode="clean"] {
+  --kq-clean: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --kq-ink: #18181b;
+  --kq-ink-2: #3f3f46;
+  --kq-ink-3: #71717a;
+  --kq-parch: #ffffff;
+  --kq-parch-2: #f4f4f5;
+  --kq-parch-3: #e4e4e7;
+  --kq-paper: #ffffff;
+  --kq-serif: var(--kq-clean);
+  --kq-sans: var(--kq-clean);
+  --kq-px: var(--kq-clean);
+}
+html[data-mode="clean"] body.kq-page { background: #fff; font-size: 17px; line-height: 1.65; }
+html[data-mode="clean"] .kq-page a { color: var(--kq-ink); text-decoration-color: #c4c4cc; text-underline-offset: 3px; }
+html[data-mode="clean"] .kq-page a:hover { color: var(--kq-ink); text-decoration-color: currentColor; }
+html[data-mode="clean"] .kq-page ::selection { background: #dbe4ff; color: var(--kq-ink); }
+html[data-mode="clean"] .kq-page :focus-visible, html[data-mode="clean"] .kq-bar a:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+html[data-mode="clean"] .kq-skip { background: #18181b; color: #fff !important; font: 500 14px/1 var(--kq-clean); border: 0; border-radius: 6px; }
+
+/* Header: plain nav links, dark Resume button */
+html[data-mode="clean"] .kq-bar { background: rgba(255, 255, 255, 0.92); -webkit-backdrop-filter: saturate(180%) blur(10px); backdrop-filter: saturate(180%) blur(10px); border-bottom: 1px solid #e4e4e7; box-shadow: none; font-family: var(--kq-clean); }
+html[data-mode="clean"] .kq-bar__in { height: 64px; gap: 8px; }
+html[data-mode="clean"] .kq-brand { color: var(--kq-ink) !important; font: 600 16px/1 var(--kq-clean); letter-spacing: -0.01em; }
+html[data-mode="clean"] .kq-brand:hover { color: #52525b !important; }
+html[data-mode="clean"] .kq-brand img { display: none; }
+html[data-mode="clean"] .kq-brand span { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
+html[data-mode="clean"] .kq-strip { display: flex; align-items: center; gap: 2px; margin: 0 0 0 auto; padding: 0; background: none; border: 0; box-shadow: none; }
+html[data-mode="clean"] .kq-strip::before, html[data-mode="clean"] .kq-strip::after, html[data-mode="clean"] .kq-strip__isle, html[data-mode="clean"] .kq-strip__full { display: none; }
+html[data-mode="clean"] .kq-strip__item { flex-direction: row; min-width: 0; padding: 8px 12px; border-radius: 6px; color: #52525b !important; font: 500 15px/1 var(--kq-clean); letter-spacing: 0; }
+html[data-mode="clean"] .kq-strip__item:hover, html[data-mode="clean"] .kq-strip__item[aria-current] { color: var(--kq-ink) !important; background: #f4f4f5; }
+html[data-mode="clean"] .kq-strip__item:hover .kq-strip__label, html[data-mode="clean"] .kq-strip__item:focus-visible .kq-strip__label, html[data-mode="clean"] .kq-strip__item[aria-current] .kq-strip__label { color: inherit; text-decoration: none; }
+html[data-mode="clean"] .kq-bar .kq-strip__item:focus-visible { outline: 2px solid #2563eb; outline-offset: 0; }
+html.kq-js[data-mode="clean"] .kq-mode-link { display: inline-flex; align-items: center; flex: none; margin-left: 4px; padding: 8px 10px; border-radius: 6px; color: #71717a !important; font: 500 13px/1 var(--kq-clean); white-space: nowrap; }
+html.kq-js[data-mode="clean"] .kq-mode-link::before { content: ''; width: 1px; height: 18px; margin: 0 14px 0 -8px; background: #e4e4e7; }
+html.kq-js[data-mode="clean"] .kq-mode-link:hover { color: var(--kq-ink) !important; }
+html[data-mode="clean"] .kq-bar .kq-resume { margin-left: 6px; padding: 9px 14px; font-size: 14px; }
+html[data-mode="clean"] .kq-menu, html[data-mode="clean"] .kq-score { display: none; }
+
+/* Footer */
+html[data-mode="clean"] .kq-foot { background: #fff; color: #71717a; border-top: 1px solid #e4e4e7; box-shadow: none; font: 400 14px/1.5 var(--kq-clean); }
+html[data-mode="clean"] .kq-foot a { color: #52525b !important; border-bottom: 0; }
+html[data-mode="clean"] .kq-foot a:hover { color: var(--kq-ink) !important; }
+html[data-mode="clean"] .kq-foot__quip { display: none; }
+html.kq-js[data-mode="clean"] .kq-foot__mode { display: block; }
+
+/* Buttons */
+html[data-mode="clean"] .kq-btn { gap: 6px; padding: 10px 16px; font: 500 15px/1.2 var(--kq-clean); color: var(--kq-ink) !important; background: #fff; border: 1px solid #d4d4d8; border-radius: 8px; box-shadow: none; transition: background-color 0.15s, border-color 0.15s; }
+html[data-mode="clean"] .kq-btn:hover { transform: none; background: #f4f4f5; border-color: #a1a1aa; box-shadow: none; }
+html[data-mode="clean"] .kq-btn:active { transform: none; box-shadow: none; }
+html[data-mode="clean"] .kq-btn--gold, html[data-mode="clean"] .kq-bar .kq-resume { color: #fff !important; background: #18181b; border: 1px solid #18181b; box-shadow: none; }
+html[data-mode="clean"] .kq-btn--gold:hover, html[data-mode="clean"] .kq-bar .kq-resume:hover { background: #3f3f46; border-color: #3f3f46; box-shadow: none; }
+html[data-mode="clean"] .kq-btns { gap: 10px; }
+
+/* No frames, ornaments, pixel art, points, map, or dissolves */
+html[data-mode="clean"] .kq-win { border: 0; border-image: none; background: none; box-shadow: none; }
+html[data-mode="clean"] .kq-ornament, html[data-mode="clean"] .kq-hero > canvas, html[data-mode="clean"] .kq-title canvas { display: none; }
+html[data-mode="clean"] .kq-toast, html[data-mode="clean"] .kq-map, html[data-mode="clean"] .kq-narr, html[data-mode="clean"] .kq-dissolve { display: none !important; }
+html[data-mode="clean"].kq-arriving { background: #fff !important; }
+html[data-mode="clean"].kq-arriving body { opacity: 1; animation: none; }
+html[data-mode="clean"] .kq-portrait { width: 168px; height: 168px; border: 0; border-image: none; border-radius: 50%; overflow: hidden; background: #f4f4f5; }
+html[data-mode="clean"] .kq-portrait::before, html[data-mode="clean"] .kq-portrait::after { display: none; }
+html[data-mode="clean"] .kq-title { font: 700 46px/1.1 var(--kq-clean); letter-spacing: -0.025em; color: var(--kq-ink); text-shadow: none; }
+html[data-mode="clean"] .kq-title.is-pixel .kq-title__text { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; }
+
+/* Hero */
+html[data-mode="clean"] .kq-hero { background: #fff !important; }
+html[data-mode="clean"] .kq-hero__in { min-height: 0; padding: 88px 24px 24px; align-items: center; justify-content: flex-start; }
+html[data-mode="clean"] .kq-hero-win { gap: 44px; max-width: 920px; padding: 0; }
+html[data-mode="clean"] .kq-role { margin: 10px 0 18px; font: 500 19px/1.4 var(--kq-clean); letter-spacing: -0.01em; color: #52525b; }
+html[data-mode="clean"] .kq-lede { margin: 0 0 26px; font-size: 17px; line-height: 1.65; color: #3f3f46; }
+html[data-mode="clean"] .kq-status { display: flex; align-items: center; gap: 10px; margin-top: 22px; font: 400 14px/1.4 var(--kq-clean); color: #71717a; }
+html[data-mode="clean"] .kq-status::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: #16a34a; box-shadow: 0 0 0 3px #dcfce7; }
+
+/* Headings, cards, chips */
+html[data-mode="clean"] .kq-h { gap: 16px; margin: 0 0 24px; font: 600 24px/1.25 var(--kq-clean); letter-spacing: -0.015em; text-transform: none; color: var(--kq-ink); }
+html[data-mode="clean"] .kq-h::after { height: 1px; background: #e4e4e7; opacity: 1; }
+html[data-mode="clean"] .kq-grid { gap: 20px; }
+html[data-mode="clean"] .kq-card { padding: 24px; background: #fff; border: 1px solid #e4e4e7; border-radius: 12px; box-shadow: none; }
+html[data-mode="clean"] .kq-card::before, html[data-mode="clean"] .kq-card::after { display: none; }
+html[data-mode="clean"] a.kq-card { transition: border-color 0.15s, box-shadow 0.15s; }
+html[data-mode="clean"] a.kq-card:hover { transform: none; border-color: #d4d4d8; box-shadow: 0 8px 24px -12px rgba(24, 24, 27, 0.22); }
+html[data-mode="clean"] .kq-meta { margin-bottom: 6px; font: 500 13px/1.4 var(--kq-clean); letter-spacing: 0; color: #71717a; }
+html[data-mode="clean"] .kq-card h3 { margin: 0 0 8px; font: 600 18px/1.35 var(--kq-clean); letter-spacing: -0.01em; color: var(--kq-ink); }
+html[data-mode="clean"] .kq-card p { font-size: 15.5px; line-height: 1.6; color: #52525b; }
+html[data-mode="clean"] .kq-go, html[data-mode="clean"] a.kq-card:hover .kq-go { padding-top: 18px; font: 500 14px/1 var(--kq-clean); color: var(--kq-ink); }
+html[data-mode="clean"] .kq-chips { gap: 6px; }
+html[data-mode="clean"] .kq-chip { padding: 5px 10px; font: 500 12.5px/1.2 var(--kq-clean); color: #3f3f46; background: #f4f4f5; border: 0; border-radius: 999px; }
+
+/* About section, sheet, contact */
+html[data-mode="clean"] .kq-prose p { font-size: 17px; line-height: 1.7; color: #3f3f46; }
+html[data-mode="clean"] .kq-sheet { border-top: 1px solid #e4e4e7; }
+html[data-mode="clean"] .kq-sheet > div { padding: 12px 0; border-bottom: 1px solid #e4e4e7; }
+html[data-mode="clean"] .kq-sheet dt { font: 500 12px/1.6 var(--kq-clean); letter-spacing: 0.06em; color: #71717a; }
+html[data-mode="clean"] .kq-sheet dd { font-size: 15.5px; color: var(--kq-ink); }
+html[data-mode="clean"] .kq-contact { grid-template-columns: minmax(0, 1fr); max-width: none; padding: 40px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 16px; }
+html[data-mode="clean"] .kq-contact__icon { display: none; }
+html[data-mode="clean"] .kq-contact__h { font: 600 28px/1.2 var(--kq-clean); letter-spacing: -0.02em; }
+html[data-mode="clean"] .kq-contact p { font-size: 17px; line-height: 1.65; color: #3f3f46; }
+
+/* About page */
+html[data-mode="clean"] .kq-about-stack { gap: 36px; }
+html[data-mode="clean"] .kq-titlecard__sub, html[data-mode="clean"] .kq-talker__who { display: none; }
+html[data-mode="clean"] .kq-talker { gap: 40px; max-width: 900px; padding: 0; }
+html[data-mode="clean"] .kq-talker__portrait { width: 152px; height: 152px; border-radius: 50%; object-fit: cover; box-shadow: none; }
+html[data-mode="clean"] .kq-talker__say { margin: 0 0 24px; font-size: 19px; line-height: 1.6; color: #3f3f46; }
+html[data-mode="clean"] .kq-quests { gap: 20px; }
+html[data-mode="clean"] .kq-quest__head h3 { font-size: 20px; }
+html[data-mode="clean"] .kq-quest__role { margin: 2px 0 12px; font: 500 15px/1.4 var(--kq-clean); color: #52525b !important; }
+html[data-mode="clean"] .kq-quest > p + .kq-list { margin-top: 12px; }
+html[data-mode="clean"] .kq-list li { padding-left: 18px; font-size: 15.5px; line-height: 1.6; color: #3f3f46; }
+html[data-mode="clean"] .kq-list li::before { left: 3px; top: 0.72em; width: 5px; height: 5px; border-radius: 50%; background: #a1a1aa; box-shadow: none; }
+html[data-mode="clean"] .kq-list strong { color: var(--kq-ink); font-weight: 600; }
+html[data-mode="clean"] .kq-inv .kq-card h3 { font: 600 15px/1.35 var(--kq-clean); letter-spacing: 0; color: var(--kq-ink); }
+
+/* Posts keep their own layouts; only the palette and fonts change */
+html[data-mode="clean"].kq-retheme { --bg-warm: #fafafa; --bg-subtle: #fafafa; --code-bg: #f4f4f5; --border: #e4e4e7; --border-light: #f4f4f5; }
+html[data-mode="clean"].kq-retheme body { background: #fff; }
+html[data-mode="clean"].kq-retheme body::before, html[data-mode="clean"].kq-retheme body::after { display: none; }
+
+@media (max-width: 860px) {
+  html.kq-js[data-mode="clean"] .kq-bar .kq-mode-link { display: none; }
+}
+@media (max-width: 700px) {
+  html[data-mode="clean"] .kq-hero__in { padding: 44px 16px 8px; }
+  html[data-mode="clean"] .kq-hero-win, html[data-mode="clean"] .kq-talker { gap: 22px; padding: 0; }
+  html[data-mode="clean"] .kq-hero-win .kq-portrait, html[data-mode="clean"] .kq-talker__portrait { justify-self: start; width: 104px; height: 104px; }
+  html[data-mode="clean"] .kq-title { font-size: 36px; }
+  html[data-mode="clean"] .kq-role { font-size: 17px; }
+  html[data-mode="clean"] .kq-talker__say { font-size: 17.5px; }
+}
+@media (max-width: 640px) {
+  html[data-mode="clean"] .kq-bar__in { flex-wrap: wrap; height: auto; padding: 12px 16px 6px; gap: 4px 8px; }
+  html[data-mode="clean"] .kq-bar .kq-resume { margin-left: auto; }
+  html[data-mode="clean"] .kq-strip { order: 3; flex: 1 0 100%; justify-content: space-between; margin: 0 -10px; }
+  html[data-mode="clean"] .kq-strip__item { padding: 8px 10px; }
+  html[data-mode="clean"] .kq-page section[id] { scroll-margin-top: 112px; }
+}
+@media (max-width: 560px) {
+  .kq-mode-bar p { padding: 7px 12px; }
+  html[data-mode="clean"] .kq-contact { padding: 28px 22px; }
 }

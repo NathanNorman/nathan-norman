@@ -256,7 +256,7 @@
     const scale = typeof o.scale === 'function' ? o.scale() : o.scale;
     const parent = this.canvas.parentElement;
     this.lastW = parent.clientWidth; this.lastH = parent.clientHeight;
-    const W = Math.ceil(parent.clientWidth / scale);
+    const W = Math.max(1, Math.ceil(parent.clientWidth / scale));  // hidden/zero-width hosts: build tiny, rebuild on resize
     const H = Math.max(60, Math.ceil(parent.clientHeight / scale));
     const R = Math.min(H, 160); // reference height for sprite-ish sizes, so tall hosts get more sea, not bigger art
     this.W = W; this.H = H;
@@ -504,6 +504,7 @@
   // Auto-mount: <canvas data-scene="isles" data-scene-opts='{...}'> fills its parent;
   // <h1 data-pixel-title="TEXT"> gets a gold pixel logo (text stays for screen readers).
   function mount() {
+    if (document.documentElement.getAttribute('data-mode') === 'clean') return;  // clean mode: no scenes, plain text titles
     const override = new URLSearchParams(location.search).get('scene');
     document.querySelectorAll('canvas[data-scene]').forEach(cv => {
       const opts = JSON.parse(cv.dataset.sceneOpts || '{}');

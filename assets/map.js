@@ -349,6 +349,7 @@
   // ── dialog ─────────────────────────────────────────────────────────
   let root, frame, narr, opener, prevOverflow, rafId;
   const reduce = () => global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const clean = () => document.documentElement.getAttribute('data-mode') === 'clean';  // the strip is plain links in clean mode
   const pct = (v, total) => (v / total * 100).toFixed(3) + '%';
 
   function fontLink() {
@@ -596,7 +597,7 @@
 
   function mountStrip() {
     const el = document.querySelector('.kq-strip');
-    if (!el || strip.items.length) return;
+    if (!el || strip.items.length || clean()) return;
     if (global.innerWidth <= 560) {  // phones use the Menu button; skip the work until there is room
       const retry = () => { if (global.innerWidth > 560) { global.removeEventListener('resize', retry); mountStrip(); } };
       global.addEventListener('resize', retry);
@@ -617,7 +618,7 @@
       a.addEventListener('mouseenter', on); a.addEventListener('mouseleave', off);
       a.addEventListener('focus', on); a.addEventListener('blur', off);
       a.addEventListener('click', e => {
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || clean()) return;
         e.preventDefault();
         stripTravel(item);
       });
