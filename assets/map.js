@@ -19,6 +19,18 @@
     return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
   }
   function fbm2(x, y, s, oct = 4) { let a = 0, amp = 0.5, f = 1, n = 0; for (let o = 0; o < oct; o++) { a += amp * noise2(x * f, y * f, s + o * 13); n += amp; f *= 2; amp *= 0.5; } return a / n; }
+  // Ridged multifractal noise: sharp crests and creases, the backbone of the mountain ranges.
+  function ridged(x, y, s, oct = 4) {
+    let sum = 0, amp = 0.5, f = 1, w = 1, norm = 0;
+    for (let o = 0; o < oct; o++) {
+      let n = 1 - Math.abs(noise2(x * f, y * f, s + o * 7) * 2 - 1);
+      n = n * n * w;
+      w = clamp(n * 1.8, 0, 1);
+      sum += n * amp; norm += amp;
+      f *= 2.1; amp *= 0.5;
+    }
+    return sum / norm;
+  }
   const pick = (pal, t, x, y) => { const n = pal.length - 1, v = clamp(t, 0, 1) * n, i = Math.min(n - 1, Math.floor(v)); return v - i > bayer(x, y) ? pal[i + 1] : pal[i]; };
 
   // ── palette ──────────────────────────────────────────────────────────
@@ -35,11 +47,21 @@
 
   // ── islands (low-res coordinates) ───────────────────────────────────
   const ISLES = [
-    { id: 'mountain', name: 'About', href: '/about', blob: { cx: 154, cy: 60, rx: 42, ry: 22, seed: 3, amp: 0.34 }, ridge: 1.0, label: { x: 40, y: 42 } },
-    { id: 'wonder', name: 'Writing', href: '/#writing', arc: { cx: 100, cy: 126, r: 40, a0: 3.30, a1: 4.95, th: 14, seed: 5 }, ridge: 0.35, label: { x: 82, y: 104 } },
-    { id: 'beast', name: 'Projects', href: '/#projects', blob: { cx: 222, cy: 106, rx: 25, ry: 11, seed: 7, amp: 0.34 }, ridge: 0.55, label: { x: 210, y: 71 } },
-    { id: 'crown', name: 'Home', href: '/', blob: { cx: 142, cy: 154, rx: 42, ry: 21, seed: 11, amp: 0.36 }, ridge: 0.5, label: { x: 46, y: 162 } }
+    { id: 'mountain', name: 'About', href: '/about', blob: { cx: 154, cy: 60, rx: 42, ry: 22, seed: 3, amp: 0.34 }, label: { x: 40, y: 42 } },
+    { id: 'wonder', name: 'Writing', href: '/#writing', arc: { cx: 100, cy: 126, r: 40, a0: 3.30, a1: 4.95, th: 17, seed: 5 }, label: { x: 82, y: 104 } },
+    { id: 'beast', name: 'Projects', href: '/#projects', blob: { cx: 222, cy: 106, rx: 25, ry: 11, seed: 7, amp: 0.34 }, label: { x: 210, y: 71 } },
+    { id: 'crown', name: 'Home', href: '/', blob: { cx: 142, cy: 154, rx: 42, ry: 21, seed: 11, amp: 0.36 }, label: { x: 46, y: 162 } }
   ];
+
+  // Terrain per island. Peaks are [u, v, spreadU, spreadV, height] in island-relative units
+  // (u, v span -1..1 across the island's radii). The crescent uses spine knobs [t along arc, spread, height].
+  const TOPO = {
+    mountain: { rise: 11, hills: 0.2, detail: 1.0, peaks: [[-0.12, -0.2, 0.5, 0.6, 1.0], [0.52, 0.0, 0.28, 0.45, 0.66], [-0.62, 0.2, 0.22, 0.4, 0.5]] },
+    crown: { rise: 8, hills: 0.34, detail: 0.5, peaks: [[0.45, -0.32, 0.24, 0.42, 0.8], [-0.52, 0.05, 0.3, 0.45, 0.45]],
+      lake: [-0.05, 0.1, 0.14, 0.26], river: [[-0.05, 0.1], [0.25, 0.45], [0.55, 1.3]] },
+    wonder: { rise: 6, hills: 0.35, detail: 0.4, spine: [[0.26, 0.12, 0.85], [0.52, 0.08, 0.45], [0.76, 0.1, 0.7]] },
+    beast: { rise: 8, hills: 0.3, detail: 0.7, peaks: [[-0.45, -0.1, 0.32, 0.7, 0.85], [0.5, 0.1, 0.32, 0.7, 0.62]] }
+  };
 
   function blobInside(b, x, y) {
     const dx = (x - b.cx) / b.rx, dy = (y - b.cy) / b.ry, r = Math.sqrt(dx * dx + dy * dy);
@@ -90,28 +112,71 @@
       }
       const din = distance(mask, 1), dout = distance(mask, 0);
       let maxD = 1; for (let i = 0; i < W * H; i++) if (mask[i]) maxD = Math.max(maxD, din[i]);
-      const seed = (isle.blob || isle.arc).seed;
-      const h = new Float32Array(W * H);
+      const seed = (isle.blob || isle.arc).seed, topo = TOPO[isle.id], b = isle.blob;
+      const h = new Float32Array(W * H), water = new Uint8Array(W * H);
+      const segDist = (px, py, ax, ay, bx, by) => { const vx = bx - ax, vy = by - ay, t = clamp(((px - ax) * vx + (py - ay) * vy) / (vx * vx + vy * vy), 0, 1); return Math.hypot(px - ax - vx * t, py - ay - vy * t); };
+      const river = topo.river && topo.river.map(([u, v]) => [b.cx + u * b.rx, b.cy + v * b.ry]);
       let maxH = 0.001;
       for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
         const i = y * W + x; if (!mask[i]) continue;
-        const base = Math.pow(smooth(0, maxD * 0.9, din[i]), 0.7);
-        const low = fbm2(x * 0.05, y * 0.05, seed + 9);
-        let v;
-        if (isle.ridge >= 1 && isle.blob) {
-          // One jagged east-west ridge with erosion gullies, like a mountain range seen from above.
-          const dyn = (y - isle.blob.cy) / isle.blob.ry;
-          const line = Math.max(0, 1 - Math.abs(dyn + 0.12) * 1.5);
-          const jag = fbm2(x * 0.12, 0.5, seed + 30);
-          const gully = Math.abs(Math.sin(x * 0.8 + fbm2(x * 0.05, y * 0.1, seed + 40) * 8));
-          v = base * (0.22 + 0.78 * Math.pow(line, 1.3) * (0.6 + 0.6 * jag)) - 0.06 * gully * line;
+        // Domain-warped noise so hills and ranges wander instead of following the coastline.
+        const wx = x + 6 * (fbm2(x * 0.05, y * 0.05, seed + 1) - 0.5), wy = y + 6 * (fbm2(x * 0.05, y * 0.05, seed + 2) - 0.5);
+        const hills = fbm2(wx * 0.06, wy * 0.06, seed + 3, 3);
+        const rdg = ridged(wx * 0.05, wy * 0.07, seed + 4, 3);
+        let mtn = 0;
+        if (b) {
+          topo.peaks.forEach(([u, v, su, sv, a], k) => {
+            const dx = (x - (b.cx + u * b.rx)) / (su * b.rx), dy = (y - (b.cy + v * b.ry)) / (sv * b.ry);
+            const r2 = dx * dx + dy * dy, ang = Math.atan2(dy, dx);
+            // Spurs: ridges radiating from the summit with valleys between, like a real range from above.
+            const spur = Math.pow(1 - Math.abs(Math.sin(ang * 2.5 + 1.6 * fbm2(Math.sqrt(r2) * 1.5, ang, seed + k * 9))), 2.2);
+            const fall = Math.exp(-r2);
+            mtn = Math.max(mtn, a * fall * (0.62 + 0.38 * spur * smooth(0.02, 0.35, r2)));
+          });
         } else {
-          v = base * (0.55 + 0.45 * low);
+          const A = isle.arc;
+          let th = Math.atan2(y - A.cy, x - A.cx); if (th < 0) th += Math.PI * 2;
+          const t = (th - A.a0) / (A.a1 - A.a0);
+          const d = Math.min(1, Math.abs(Math.hypot(x - A.cx, y - A.cy) - (A.r + 3 * Math.sin(t * 5 + A.seed))) / (A.th / 2));
+          let knob = 0; topo.spine.forEach(([tc, w, a]) => { knob = Math.max(knob, a * Math.exp(-(((t - tc) / w) ** 2))); });
+          mtn = Math.pow(1 - d * d, 0.4) * (0.15 + 0.85 * knob);
+        }
+        let v = 0.04 + topo.hills * hills * (1 - 0.6 * mtn) + mtn * (0.82 + 0.18 * topo.detail * rdg);
+        v *= smooth(0, 3.5, din[i]);  // beaches: a short ramp at the shore, then free-form interior
+        if (topo.lake) {
+          const [lu, lv, lsu, lsv] = topo.lake, lx = b.cx + lu * b.rx, ly = b.cy + lv * b.ry;
+          const q = ((x - lx) / (lsu * b.rx)) ** 2 + ((y - ly) / (lsv * b.ry)) ** 2;
+          v *= 1 - 0.7 * Math.exp(-q * 0.6);  // basin around the lake
+          if (q < 1 + 0.4 * (fbm2(x * 0.4, y * 0.4, seed + 50) - 0.5)) water[i] = 1;
+        }
+        if (river) {
+          let best = 1e9;
+          for (let k = 0; k < river.length - 1; k++) best = Math.min(best, segDist(x, y, river[k][0], river[k][1], river[k + 1][0], river[k + 1][1]));
+          v -= 0.2 * Math.exp(-((best / 3) ** 2));  // river valley
+          if (best < 0.85) water[i] = 1;
         }
         h[i] = Math.max(0, v);
         maxH = Math.max(maxH, h[i]);
       }
-      for (let i = 0; i < W * H; i++) h[i] /= maxH;
+      for (let i = 0; i < W * H; i++) h[i] = water[i] ? 0.06 : h[i] / maxH;
+      // Shading: one light from the northwest, plus cast shadows marched toward the light.
+      const S = topo.rise, tone = new Float32Array(W * H);
+      const Lx = -0.6, Ly = -0.75, Lz = 0.85, ln = Math.hypot(Lx, Ly, Lz), mx = -0.62, my = -0.78;
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+        const i = y * W + x; if (!mask[i]) continue;
+        const gx = (h[i + 1] - h[i - 1]) * 4.5, gy = (h[i + W] - h[i - W]) * 4.5;
+        const lambert = (-gx * Lx - gy * Ly + Lz) / (Math.hypot(gx, gy, 1) * ln);
+        let shadow = 0;
+        for (let k = 1; k <= 10; k++) {
+          const qx = Math.round(x + mx * k), qy = Math.round(y + my * k);
+          if (qx < 0 || qy < 0 || qx >= W || qy >= H) break;
+          if (h[qy * W + qx] * S > h[i] * S + k * 0.9) { shadow = 1; break; }
+        }
+        let t = 0.72 - 0.12 * h[i] + (lambert - 0.78) * 1.25 - shadow * 0.14 + (h[i] < 0.14 ? 0.08 : 0);
+        if (h[i] > 0.75 && lambert > 0.7) t += (h[i] - 0.75) * 0.7;  // pale rock on sunlit summits
+        if (din[i] < 1.6) t = Math.max(t, 0.82);  // pale sand along the shore
+        tone[i] = clamp(t, 0.02, 1);
+      }
       // Flat ink look: dark rim, lighter middle, mottled.
       const ink = new Uint32Array(W * H);
       for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
@@ -119,7 +184,7 @@
         const t = smooth(0, Math.min(maxD, 9), din[i]) * 0.85 + (fbm2(x * 0.12, y * 0.12, seed + 5) - 0.5) * 0.35;
         ink[i] = pick(INK, t, x, y);
       }
-      Object.assign(isle, { mask, din, dout, h, ink, box: { x0, y0, x1, y1 } });
+      Object.assign(isle, { mask, din, dout, h, ink, water, tone, box: { x0, y0, x1, y1 } });
     });
   }
 
@@ -208,25 +273,22 @@
       if (d > ringW - 1.3) { if (d < ringW - 0.4 || bayer(x, y) < 0.6) px[i] = RING_OUT; }
       else px[i] = d <= 1.2 && r > 0.35 ? FOAM : (d > ringW - 2.4 ? RING_MID : RING_IN);
     }
-    const S = (isle.ridge >= 1 ? 10 : 6) * r, colorMix = smooth(0, 0.55, r);
-    const L = [-0.4, -0.55, 1.1], ln = Math.hypot(L[0], L[1], L[2]);
+    const S = TOPO[isle.id].rise * r, colorMix = smooth(0, 0.55, r);
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       const i = y * W + x; if (!isle.mask[i]) continue;
-      const h = isle.h[i];
-      const gx = (isle.h[i + 1] - isle.h[i - 1]) * 9, gy = (isle.h[i + W] - isle.h[i - W]) * 9;
-      const nl = Math.hypot(gx, gy, 1);
-      const lambert = (-gx * L[0] - gy * L[1] + L[2]) / (nl * ln);
-      const shadeT = clamp((lambert - 0.2) / 0.8, 0, 1) * 0.7 + h * 0.25 + 0.08;
-      const useTerrain = bayer(x, y) < colorMix * 1.05;
-      const ty = Math.round(y - h * S);
+      const t = isle.tone[i], useTerrain = bayer(x, y) < colorMix * 1.05;
+      const ty = Math.round(y - isle.h[i] * S);
       // Pixels between this column's raised top and its ground point are the slope facing the
       // viewer; shade them like the slope (a bit darker lower down), not as a flat cliff color.
       for (let yy = ty + 1; yy <= y; yy++) {
         if (yy < 0) continue;
         const up = (y - yy) / Math.max(1, y - ty);
-        px[yy * W + x] = useTerrain ? pick(TERRAIN, shadeT - 0.12 - (1 - up) * 0.22, x, yy) : isle.ink[i];
+        px[yy * W + x] = useTerrain ? pick(TERRAIN, t - 0.05 - (1 - up) * 0.1, x, yy) : isle.ink[i];
       }
-      if (ty >= 0) px[ty * W + x] = useTerrain ? pick(TERRAIN, shadeT, x, ty) : isle.ink[i];
+      if (ty < 0) continue;
+      if (!useTerrain) px[ty * W + x] = isle.ink[i];
+      else if (isle.water[i]) px[ty * W + x] = r > 0.4 && bayer(x, ty) < 0.4 ? RING_MID : RING_IN;
+      else px[ty * W + x] = pick(TERRAIN, t, x, ty);
     }
   }
 
@@ -302,7 +364,7 @@
       '<div class="kq-map__bar"><button type="button" class="kq-btn kq-map__sound" aria-pressed="true"></button>' +
       '<button type="button" class="kq-btn kq-map__close" data-close>Close <small>(Esc)</small></button></div>' +
       '<div class="kq-map__frame"><canvas class="kq-map__art" width="320" height="200" aria-hidden="true"></canvas>' +
-      '<h2 class="kq-map__title" id="kq-map-title"><span>Land of the</span> Green<br>Isles</h2>' +
+      '<h2 class="kq-sr" id="kq-map-title">Map of the site</h2>' +
       '<p class="kq-map__hint">Touch an island to travel</p>' + isles +
       '<div class="kq-narr" role="status" aria-live="polite" hidden><span class="kq-narr__cap" aria-hidden="true">Y</span><span class="kq-sr">Y</span>ou feel a strange pulling sensation....</div>' +
       '</div><div class="kq-map__legend">' + legend + '</div>';

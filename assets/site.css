@@ -222,9 +222,7 @@ a.kq-card:hover .kq-go { color: var(--kq-ruby); }
 .kq-map.is-traveling .kq-map__frame, .kq-map.is-traveling .kq-map__frame a { cursor: url(/assets/img/cursor-crown.png) 14 10, progress; }
 @keyframes kq-unroll { from { clip-path: inset(0 46% 0 46%); } to { clip-path: inset(0 0 0 0); } }
 .kq-map__art { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
-.kq-map__title, .kq-map__name { font-family: 'Jacquarda Bastarda 9', Georgia, serif; font-weight: 400; }
-.kq-map__title { position: absolute; left: 62%; top: 66%; margin: 0; font-size: calc(18px * var(--s)); line-height: 0.95; letter-spacing: 0; color: #4f3119; }
-.kq-map__title span { display: block; margin-bottom: calc(2px * var(--s)); font-size: calc(9px * var(--s)); }
+.kq-map__name { font-family: 'Jacquarda Bastarda 9', Georgia, serif; font-weight: 400; }
 .kq-map__hint { position: absolute; left: 50%; top: 8%; transform: translateX(-50%); white-space: nowrap; margin: 0; font: 500 max(10px, calc(5px * var(--s)))/1 var(--kq-px); color: #6b4a26; }
 .kq-map__isle { position: absolute; inset: 0; pointer-events: none; text-decoration: none; outline: none; }
 .kq-map__label { position: absolute; pointer-events: auto; }
