@@ -106,13 +106,17 @@
                     <p class="kq-quest__role">Senior Software Engineer, Data Platform</p>
                     <p>Backend engineer on the analytics platform behind restaurant reporting (~45 developers contribute monthly). Shipped production agents and MCP integrations for platform Q&amp;A and ops workflows, plus migrations and ECS capacity work on Kafka, Spark, Glue, and AWS.</p>
                     <ul class="kq-list">
-                        <li>Built and shipped apex-researcher, a Kotlin/Koog A2A service on ECS for Advanced Analytics Platform Q&amp;A, with DataHub and Sourcegraph MCP integrations, channel-aware routing, and fail-open startup.</li>
+                        <li>Built and shipped apex-researcher, an agent service (Kotlin, Koog, A2A protocol) on ECS that answers questions about Toast&rsquo;s analytics platform using DataHub and Sourcegraph through MCP.</li>
+                        <li>Built an investigation agent for Red Flag support escalations that works from triage through evidence gathering to a written report, with its own validators, tools, and model for each phase. Rewrote the original Python orchestration as a Kotlin/Koog workflow with an MCP tool sidecar for Splunk, Datadog, Sourcegraph, and GitHub.</li>
+                        <li>Built a ticket router that predicts the owning team for support escalations, running in shadow mode and scoring itself against final assignments before it is trusted to reassign anything.</li>
                         <li>Built Slack agents for production alert triage and ticket investigation using a Postgres catalog assembled from 3,000+ alerts.</li>
-                        <li>Built shared Claude Marketplace tooling used beyond the analytics team: toast-analytics-engineering, GitHub Workflows, and toast-review-fix.</li>
-                        <li>Ran weekly AI Enablement Office Hours covering Claude Code plugins, hooks, session memory, live incidents, and production agent services.</li>
-                        <li>Lead on the Labor Druid-to-OpenSearch migration: local stack playbook, labor-olap-consumer, OpenSearch cutover runbooks.</li>
-                        <li>Built target-tracking autoscaling for analytics services on ECS.</li>
-                        <li>Found about $120K/year in recoverable storage through analysis of roughly 3 million S3 access-log entries.</li>
+                        <li>Exposed internal systems (data catalog, notebook execution, CI/CD, log search) to any agent through MCP servers with standardized SSO auth.</li>
+                        <li>Created toast-bedrock-adapter, Toast&rsquo;s standard LLM access layer: an Anthropic- and OpenAI-compatible proxy to Amazon Bedrock with per-user cost attribution and OpenTelemetry metrics. Other teams adopted it on their own and contributed PRs.</li>
+                        <li>Published Claude Code plugins and skills to Toast&rsquo;s internal marketplace, connecting agents to logs, code search, CI/CD, deploys, project tracking, and Slack. Engineers across the org adopted them.</li>
+                        <li>Turned a multi-day engagement with a senior engineer into a self-serve workflow with a pipeline-authoring skill that generates Kafka-to-Spark config and SQL and validates it locally.</li>
+                        <li>Ran weekly AI Enablement Office Hours covering Claude Code plugins, hooks, session memory, live incidents, and running agents in production.</li>
+                        <li>Led the Labor Druid-to-OpenSearch migration, including the local stack playbook, the labor-olap-consumer service, and cutover runbooks.</li>
+                        <li>Built target-tracking autoscaling for analytics services on ECS, and found about $120K/year in recoverable storage by analyzing roughly 3 million S3 access-log entries.</li>
                     </ul>
                 </article>
                 <article class="kq-card kq-quest">
@@ -123,7 +127,7 @@
                     <p class="kq-quest__role">Senior Software Engineer</p>
                     <ul class="kq-list">
                         <li>Led reporting and notifications for Bandwidth Dashboard: assigned work, unblocked engineers, reviewed team code, and represented incidents at the company Outage Review Board.</li>
-                        <li>Led Dashboard geo redundancy across two datacenters, including infrastructure specifications, Ansible failover, Route53 DNS automation, replicated S3 storage, data migration, and cross-team failover tests.</li>
+                        <li>Led Dashboard geo redundancy across two datacenters, including infrastructure specifications, Ansible failover, Route 53 DNS automation, replicated S3 storage, data migration, and cross-team failover tests.</li>
                         <li>Administered SonarQube for roughly 120 engineers, managing access and helping teams add static analysis to their builds.</li>
                     </ul>
                 </article>
@@ -147,25 +151,30 @@
             <h2 class="kq-h"><span class="kq-adv-only">Inventory</span><span class="kq-clean-only">Skills</span></h2>
             <div class="kq-grid kq-grid--3 kq-inv">
                 <div class="kq-card">
-                    <h3>Agent orchestration</h3>
-                    <div class="kq-chips"><span class="kq-chip">Production agent services</span><span class="kq-chip">MCP servers and tool routing</span><span class="kq-chip">Koog DAGs</span><span class="kq-chip">Async A2A</span><span class="kq-chip">Shadow eval</span><span class="kq-chip">Fail-open boot</span></div>
+                    <h3>Languages and frameworks</h3>
+                    <div class="kq-chips"><span class="kq-chip">Python</span><span class="kq-chip">Java</span><span class="kq-chip">Kotlin</span><span class="kq-chip">SQL</span><span class="kq-chip">Spring Boot</span></div>
                 </div>
                 <div class="kq-card">
-                    <h3>Inference and cloud</h3>
-                    <div class="kq-chips"><span class="kq-chip">Bedrock</span><span class="kq-chip">AWS ECS autoscaling</span><span class="kq-chip">Lambda</span><span class="kq-chip">S3</span><span class="kq-chip">DynamoDB</span><span class="kq-chip">Glue</span><span class="kq-chip">Docker</span><span class="kq-chip">Terraform</span><span class="kq-chip">Token cost instrumentation</span></div>
+                    <h3>AI agents</h3>
+                    <div class="kq-chips"><span class="kq-chip">Claude Code</span><span class="kq-chip">MCP</span><span class="kq-chip">Koog</span><span class="kq-chip">A2A protocol</span><span class="kq-chip">Amazon Bedrock</span></div>
                 </div>
                 <div class="kq-card">
-                    <h3>Languages</h3>
-                    <div class="kq-chips"><span class="kq-chip">Python</span><span class="kq-chip">Java</span><span class="kq-chip">Kotlin</span><span class="kq-chip">SQL</span></div>
+                    <h3>AWS</h3>
+                    <div class="kq-chips"><span class="kq-chip">ECS</span><span class="kq-chip">Lambda</span><span class="kq-chip">S3</span><span class="kq-chip">DynamoDB</span><span class="kq-chip">Glue</span><span class="kq-chip">EventBridge</span><span class="kq-chip">Route 53</span><span class="kq-chip">CloudFormation</span></div>
                 </div>
                 <div class="kq-card">
-                    <h3>Ops agents and observability</h3>
-                    <div class="kq-chips"><span class="kq-chip">Slack triage agents</span><span class="kq-chip">Datadog</span><span class="kq-chip">Splunk</span><span class="kq-chip">FireHydrant</span><span class="kq-chip">Postgres alert catalogs</span><span class="kq-chip">Kafka</span><span class="kq-chip">Spark</span><span class="kq-chip">OpenSearch</span></div>
+                    <h3>Data</h3>
+                    <div class="kq-chips"><span class="kq-chip">Kafka</span><span class="kq-chip">Spark</span><span class="kq-chip">PostgreSQL</span><span class="kq-chip">MySQL</span><span class="kq-chip">Hadoop</span></div>
                 </div>
                 <div class="kq-card">
-                    <h3>Shared developer tooling</h3>
-                    <div class="kq-chips"><span class="kq-chip">Claude Marketplace plugins and skills</span><span class="kq-chip">Office hours and explainers</span><span class="kq-chip">Static analysis rollout</span><span class="kq-chip">Deployment automation</span></div>
+                    <h3>Infrastructure and CI</h3>
+                    <div class="kq-chips"><span class="kq-chip">Terraform</span><span class="kq-chip">Ansible</span><span class="kq-chip">Docker</span><span class="kq-chip">Gradle</span><span class="kq-chip">GitHub Actions</span><span class="kq-chip">SonarQube</span></div>
                 </div>
+                <div class="kq-card">
+                    <h3>Observability</h3>
+                    <div class="kq-chips"><span class="kq-chip">Datadog</span><span class="kq-chip">Splunk</span><span class="kq-chip">FireHydrant</span></div>
+                </div>
+            </div>
             </div>
         </div>
     </section>
