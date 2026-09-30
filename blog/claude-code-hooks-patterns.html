@@ -32,7 +32,7 @@
 })(document.documentElement);
 </script>
 <title>Four Hooks Patterns for Steering Claude Code</title>
-<meta name="description" content="Four composable patterns for controlling Claude Code agent behavior using hooks: PreToolUse interception, orchestrators, session state files, and PostToolUse context injection.">
+<meta name="description" content="Four patterns for steering Claude Code with hooks: PreToolUse interception, an orchestrator, session state, and PostToolUse context injection, retested against the current hooks API.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;0,800;1,400&family=Pixelify+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -573,7 +573,7 @@ footer a:hover {
 <nav>
   <div class="nav-inner">
     <a href="#" class="nav-title">Hooks Patterns</a>
-    <a href="#problem">The Problem</a>
+    <a href="#problem">Why Hooks</a>
     <a href="#pattern-1">Interception</a>
     <a href="#pattern-2">Orchestrator</a>
     <a href="#pattern-3">Session State</a>
@@ -585,9 +585,9 @@ footer a:hover {
 <!-- ═══ HERO ═══ -->
 <div class="hero">
   <div class="container">
-    <div class="hero-badge">Mar 2026 &middot; Claude Code</div>
+    <div class="hero-badge">Claude Code &middot; Rewritten Sep 2026</div>
     <h1>Four Hooks Patterns for<br>Steering Claude Code</h1>
-    <p class="subtitle">Composable patterns for controlling what Claude Code does &mdash; and when it learns what &mdash; using hooks. No CLAUDE.md bloat required.</p>
+    <p class="subtitle">A line in CLAUDE.md is guidance. A hook is code that runs on every matching tool call. These are the four hook patterns my Claude Code setup runs on, retested against the current hooks API, and the ways my own versions of them failed.</p>
   </div>
 </div>
 
@@ -596,119 +596,218 @@ footer a:hover {
   <div class="container">
 
     <section id="problem">
-      <p>Telling Claude &ldquo;don&rsquo;t use <code>find</code>&rdquo; or &ldquo;always check X before doing Y&rdquo; in CLAUDE.md works &mdash; until the context window fills up and those instructions get compressed away. The more rules you add, the less reliably any single rule fires. And front-loading every possible instruction means Claude reads 200 lines of rules before touching your actual task.</p>
-      <p>Hooks solve this by moving behavioral control out of the prompt and into code that runs at deterministic moments: before a tool fires, after a tool fires, on session start, on session stop. Your rules become shell scripts and Python programs that execute every time, regardless of how full the context window gets.</p>
-      <p>Here are four patterns I&rsquo;ve been using that compose well together. All code examples are available in the <a href="https://github.com/NathanNorman/claude-code-hooks-patterns" target="_blank" rel="noopener">companion reference repo</a>.</p>
+      <p>Claude Code loads CLAUDE.md into every session as context, not configuration. The <a href="https://code.claude.com/docs/en/memory" target="_blank" rel="noopener">memory docs</a> say it arrives as a user message after the system prompt, and that Claude tries to follow it with no guarantee of strict compliance. They also say files over 200 lines reduce adherence. For a rule that has to hold every time, the same page points to a hook.</p>
+      <p>A hook is a handler, usually a shell command, that Claude Code runs at a fixed point in its lifecycle: before a tool call, after one, or when a session starts or ends. A <code>PreToolUse</code> hook receives the tool call Claude has built, as JSON on stdin, before the call runs. It fires in every permission mode, including <code>bypassPermissions</code>, and it can block the call and tell Claude why.</p>
+      <p>The first version of this post, from March 2026, said CLAUDE.md instructions get compressed away as the context window fills. That was wrong. Claude Code re-reads the project-root CLAUDE.md from disk after compaction. The weakness is that Claude can read a rule and still not apply it, and a longer file makes that more likely.</p>
+      <p>My setup has 19 hook handlers in <code>~/.claude/settings.json</code>, and one of them, a Bash orchestrator, runs 12 check scripts. The four patterns below still hold it together. When I retested them for this rewrite, every failure I found was in my own matching code: regexes that blocked the wrong commands, session state keyed to the wrong identifier, and a check order I broke by appending to a file. Each section shows the pattern with tested code, then what went wrong with my version.</p>
     </section>
 
     <hr>
 
     <section id="pattern-1">
-      <h2>Pattern 1: PreToolUse Interception</h2>
-      <p><strong>When:</strong> You want to block or warn before a command runs.</p>
-      <p>Register a hook on <code>PreToolUse</code> with a tool matcher (e.g., <code>Bash</code>). The hook reads the command from stdin, decides whether to allow or block, and exits with code <code>0</code> (allow) or <code>2</code> (block with message on stderr).</p>
-      <p>The hook script receives JSON on stdin with <code>tool_input.command</code>. Parse it, match patterns, and exit <code>0</code> (allow) or <code>2</code> (block):</p>
+      <h2>Pattern 1: PreToolUse interception</h2>
+      <p><strong>When:</strong> a tool call should be blocked or redirected before it runs.</p>
+      <p>Register a command hook on <code>PreToolUse</code> with a tool matcher such as <code>Bash</code>. Claude Code sends the call as JSON on stdin, including <code>session_id</code>, <code>cwd</code>, <code>tool_name</code>, and <code>tool_input</code>, which holds the command. The script answers with its exit code. Exit 2 blocks the call, and Claude reads stderr as the reason, so it can change course. Exit 0 means no objection, and the normal permission check still runs. Any other code, including 1, is a non-blocking error, and the call proceeds.</p>
       <pre data-lang="Bash"><code>#!/bin/bash
-HOOK_DATA=$(cat)
-COMMAND=$(echo "$HOOK_DATA" | jq -r '.tool_input.command // ""')
+# PreToolUse hook on Bash: block find rooted at / or the home directory.
+cmd=$(jq -r '.tool_input.command // ""')
 
-if echo "$COMMAND" | grep -qE 'find\s+(/|~)'; then
-    echo "BLOCKED: find on broad path. Use Glob or Grep instead." &gt;&amp;2
-    exit 2  # Block &mdash; stderr message is shown to Claude
+# find, then /, ~, ~/, or $HOME, then a space or the end of the command
+if grep -qE '(^|[;&amp;|[:space:]])find[[:space:]]+(/|~/?|"?\$HOME/?"?)([[:space:]]|$)' &lt;&lt;&lt;"$cmd"; then
+  echo "Blocked: find on / or ~ walks the whole disk. Use the Glob or Grep tool." &gt;&amp;2
+  exit 2   # block the call; Claude reads stderr as the reason
 fi
+exit 0     # no objection; the normal permission check still applies</code></pre>
+      <p>Add an <code>if</code> condition to the registration so the script only starts for <code>find</code> commands. The condition uses permission-rule syntax, and Claude Code checks it against each subcommand, so <code>ls &amp;&amp; find / -name x</code> still triggers it:</p>
+      <pre data-lang="JSON"><code>{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(find *)",
+            "command": "$HOME/.claude/hooks/checks/block-broad-find.sh"
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+      <p>Exit 2 is the short form. A hook can also exit 0 and print JSON with <code>permissionDecision</code> set to <code>deny</code>, <code>ask</code>, or <code>allow</code>. With <code>ask</code>, the user gets a confirmation prompt instead of Claude getting a refusal, which fits commands that are sometimes right.</p>
 
-exit 0  # Allow</code></pre>
-      <p>The stderr message becomes part of Claude&rsquo;s context, so it knows <em>why</em> the command was blocked and can adjust. See the <a href="https://github.com/NathanNorman/claude-code-hooks-patterns/tree/main/pattern-1-pretooluse" target="_blank" rel="noopener">full examples</a> in the companion repo.</p>
-      <p><strong>Use cases:</strong> Blocking <code>rm -rf</code>, preventing force-push, catching <code>find ~/</code>, enforcing specific workflows over raw CLI commands.</p>
+      <h3>What went wrong with mine</h3>
+      <p>I reran the March checks from the companion repo against the commands they were written for. Five results were backwards:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Command</th>
+            <th>March code</th>
+            <th>Should</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>find ~/ -name '*.log'</code></td>
+            <td>Allowed by the find blocker, though the post named this case</td>
+            <td>Block</td>
+          </tr>
+          <tr>
+            <td><code>find ~/src -name x</code></td>
+            <td>Blocked by the snippet in the post</td>
+            <td>Allow</td>
+          </tr>
+          <tr>
+            <td><code>git rm old.txt</code></td>
+            <td>Blocked by the Pattern 1 rm check</td>
+            <td>Allow</td>
+          </tr>
+          <tr>
+            <td><code>rm -rf .</code></td>
+            <td>Allowed by the orchestrator&rsquo;s rm check</td>
+            <td>Warn</td>
+          </tr>
+          <tr>
+            <td><code>git push --force-with-lease</code></td>
+            <td>Blocked by a check whose message recommends it</td>
+            <td>Allow</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Two more failures came from my live setup during this rewrite. My <code>rm</code> check blocked a read-only test script because its quoted test strings contained <code>rm -rf</code>. A hook sees command text, not intent. My push-to-main check asked <code>git</code> about the directory the hook runs in, which is the session&rsquo;s directory, not the one a command is about to <code>cd</code> into. I pushed a private repo from a session opened in my public site repo, and the check blocked the push and named the site repo.</p>
+      <p>Permission rules have the same limit. The <a href="https://code.claude.com/docs/en/permissions" target="_blank" rel="noopener">permissions docs</a> say a Bash rule covers the form of a command Claude usually writes and is not a security boundary around the program. A regex in a hook is no different: <code>cd / &amp;&amp; find .</code> walks the same disk as <code>find /</code>. For enforcement that doesn&rsquo;t depend on command text, the docs point to the sandbox. I treat PreToolUse checks as guardrails against Claude&rsquo;s habits, and I test each one with a pipe, including commands it should allow:</p>
+      <pre data-lang="Bash"><code>echo '{"tool_input":{"command":"git push --force-with-lease"}}' \
+  | ~/.claude/hooks/checks/prevent-force-push.sh; echo "exit $?"</code></pre>
     </section>
 
     <hr>
 
     <section id="pattern-2">
-      <h2>Pattern 2: The Orchestrator</h2>
-      <p><strong>When:</strong> You have multiple independent checks that should all run on the same hook event.</p>
-      <p>The naive approach &mdash; registering 8 separate hooks in settings.json &mdash; gets unwieldy fast. Each hook independently parses stdin, ordering is implicit, and your settings.json balloons with repeated boilerplate.</p>
-      <p>Instead, register <strong>one</strong> orchestrator script that delegates to check modules in a directory:</p>
+      <h2>Pattern 2: The orchestrator</h2>
+      <p><strong>When:</strong> several checks inspect the same event.</p>
+      <p>Registering each check as its own hook works until the checks interact. Claude Code runs every matching hook in parallel and lets each one finish, even after another has denied the call. The <a href="https://code.claude.com/docs/en/hooks-guide" target="_blank" rel="noopener">hooks guide</a> warns against relying on one hook&rsquo;s deny to stop another hook&rsquo;s side effects. When more than one hook rewrites a tool&rsquo;s input, the last to finish wins, and the order isn&rsquo;t fixed.</p>
+      <p>An orchestrator is one registered hook that runs the checks itself, in order, and stops at the first block. Each check reads the same JSON on stdin that a hook would, so every check also works as a standalone hook and from a test pipe:</p>
       <pre data-lang="Bash"><code>#!/bin/bash
-HOOK_DATA=$(cat)
-COMMAND=$(echo "$HOOK_DATA" | jq -r '.tool_input.command // ""')
-[[ -z "$COMMAND" ]] &amp;&amp; exit 0
+# PreToolUse hook on Bash: send the same input to each check, in order.
+# A check exits 2 to block (its stderr is Claude's reason) or 0 to pass.
+input=$(cat)
+checks="$HOME/.claude/hooks/checks"
 
-CHECKS_DIR="$HOME/.claude/hooks/checks"
-for check in "$CHECKS_DIR"/prevent-force-push.sh \
-             "$CHECKS_DIR"/rm-safety-check.sh \
-             "$CHECKS_DIR"/block-broad-find.sh; do
-    [[ -x "$check" ]] &amp;&amp; "$check" "$COMMAND"
-    [[ $? -eq 2 ]] &amp;&amp; exit 2
+# Blocks first, rewrites last: a check that prints JSON ends the run.
+for check in block-broad-find.sh prevent-force-push.sh rm-warn-once.sh; do
+  out=$("$checks/$check" &lt;&lt;&lt;"$input")
+  status=$?
+  [ "$status" -eq 2 ] &amp;&amp; exit 2
+  if [ "$status" -ne 0 ]; then       # missing or crashed: fail closed, loudly
+    echo "Hook check $check failed with exit $status. Fix it before running commands." &gt;&amp;2
+    exit 2
+  fi
+  [ -n "$out" ] &amp;&amp; { echo "$out"; exit 0; }
 done
 exit 0</code></pre>
-      <p>Each check is a standalone script: takes the command as <code>$1</code>, exits <code>0</code> to pass or <code>2</code> to block. Adding a new check means dropping a file into <code>checks/</code> and adding one line to the loop. See the <a href="https://github.com/NathanNorman/claude-code-hooks-patterns/tree/main/pattern-2-orchestrator" target="_blank" rel="noopener">full orchestrator</a> in the repo.</p>
-      <h3>Benefits</h3>
-      <ul>
-        <li>One entry in settings.json instead of eight</li>
-        <li>Checks run in explicit order (put hard blocks first)</li>
-        <li>Each check is independently testable</li>
-        <li>Dead-simple to add or remove checks</li>
-      </ul>
+      <p>Three rules come with the loop. Blocks run before rewrites, because a check that prints JSON ends the run. A check that is missing or crashes blocks the command with a message; my old loop skipped any check it couldn&rsquo;t execute, without a word. And a rewrite has to return the whole tool input: the docs say <code>updatedInput</code> replaces the input object, so any field left out is dropped.</p>
+
+      <h3>What went wrong with mine</h3>
+      <p>My orchestrator runs 12 check scripts. Ten can block, and two rewrite commands through <code>updatedInput</code>. One of the rewrites appends <code>|| true</code> to pytest and ruff runs, so a failing test doesn&rsquo;t stop Claude mid-iteration. A comment above that step says it has to run last. I later appended two checks below it, including the one that blocks <code>git commit</code> and <code>git push</code> in a single command.</p>
+      <p>A dry run during this rewrite showed the result. <code>git commit -am wip &amp;&amp; git push</code> is blocked. <code>pytest -q &amp;&amp; git commit -am wip &amp;&amp; git push</code> is rewritten, approved with <code>permissionDecision: "allow"</code>, and never reaches the check. The appended <code>|| true</code> covers the push too, so a failed push would report success, and the rewrite sends back only the command, which drops the call&rsquo;s timeout and background flag. My orchestrator was 179 lines of repeated <code>if</code> blocks, and the ordering rule was a comment on one of them. In the loop above, the whole order is one line, where a check in the wrong place is visible.</p>
     </section>
 
     <hr>
 
     <section id="pattern-3">
-      <h2>Pattern 3: Session State Files</h2>
-      <p><strong>When:</strong> You want a hook to fire once per session, not on every invocation.</p>
-      <p>A &ldquo;warn on first <code>rm</code>, allow subsequent&rdquo; pattern needs state. The trick: use the Claude Code process PID as a session identifier, and touch a file in a state directory.</p>
-      <pre data-lang="Bash"><code>CLAUDE_PID=$(find_claude_pid)  # walk up process tree to find "claude"
-STATE_FILE="$HOME/.claude/hooks/state/my-check/$CLAUDE_PID"
-mkdir -p "$(dirname "$STATE_FILE")"
+      <h2>Pattern 3: Session state</h2>
+      <p><strong>When:</strong> a check should warn once per session and then step aside.</p>
+      <p>Some commands deserve friction the first time and not after. A warn-once check blocks the first <code>rm</code> of a session with a short checklist and lets later ones through. That needs a session identifier, and every hook already receives one: <code>session_id</code> is a common input field on every event.</p>
+      <pre data-lang="Bash"><code>#!/bin/bash
+# PreToolUse check: block the first rm in a session with a warning; let later ones run.
+input=$(cat)
+cmd=$(jq -r '.tool_input.command // ""' &lt;&lt;&lt;"$input")
+session=$(jq -r '.session_id // "unknown"' &lt;&lt;&lt;"$input")
 
-[ -f "$STATE_FILE" ] &amp;&amp; exit 0          # already warned this session
-touch "$STATE_FILE"                       # mark warned
-echo "First-time warning for this session..." &gt;&amp;2
+# rm at the start of a command or after ; &amp; |, so "git rm" passes
+grep -qE '(^|[;&amp;|])[[:space:]]*rm[[:space:]]' &lt;&lt;&lt;"$cmd" || exit 0
+
+state="$HOME/.claude/hooks/state/rm-warned/$session"
+[ -f "$state" ] &amp;&amp; exit 0            # already warned in this session
+mkdir -p "$(dirname "$state")" &amp;&amp; touch "$state"
+echo "First rm this session. List what it deletes and confirm with the user, then run it again." &gt;&amp;2
 exit 2</code></pre>
-      <p>The <code>find_claude_pid</code> function walks up the process tree via <code>ps -o ppid=</code> until it finds a process named <code>claude</code>, giving you a stable session identifier. State files accumulate as sessions end; a <strong>lazy cleanup</strong> (5% probability per invocation) checks if each PID is still alive and deletes stale files. See the <a href="https://github.com/NathanNorman/claude-code-hooks-patterns/tree/main/pattern-3-session-state" target="_blank" rel="noopener">full implementation</a> in the repo.</p>
-      <p><strong>Use cases:</strong> Warn once about <code>rm</code> then allow, remind about safety checks on first push, show validation reminders once per session.</p>
+      <p>The state directory holds one empty file per session. A <code>SessionEnd</code> hook can delete a session&rsquo;s files as it closes; SessionEnd hooks get a 1.5-second default budget, which is enough for <code>rm</code>. Hooks declared in a skill&rsquo;s frontmatter can set <code>once: true</code>, which removes the hook after its first successful run, but a block doesn&rsquo;t count as success, and settings files ignore the field.</p>
+
+      <h3>What went wrong with mine</h3>
+      <p>The March version identified the session by walking up the process tree to a process named <code>claude</code> and using its PID. On macOS, <code>ps -o comm=</code> printed the binary&rsquo;s full path, so the published comparison never matched, and the function fell back to its parent&rsquo;s PID. Under the orchestrator, that parent is a new process on every tool call. In a test harness, three calls produced three different session IDs, so &ldquo;warn once&rdquo; would have warned every time.</p>
+      <p>My own copy compared the basename and worked, but a PID was still the wrong key. One of my desktop-app conversations ran on three different Claude Code processes in under a day, the last one after a version update, and my push warning fired once in each. The conversation&rsquo;s session ID never changed. The state directories also kept files from May, because the cleanup removed files for dead PIDs only when that particular check ran, and PIDs get reused. Four of my other hooks already read <code>session_id</code> from stdin. I hadn&rsquo;t carried that over to these checks.</p>
     </section>
 
     <hr>
 
     <section id="pattern-4">
-      <h2>Pattern 4: PostToolUse Context Injection</h2>
-      <p><strong>When:</strong> You want to push the right reference doc at the right moment, based on what the agent just did.</p>
-      <p>This is the opposite of Pattern 1 &mdash; instead of blocking before, you inject context after. The hook watches what tool was just used and pushes a relevant document into Claude&rsquo;s context via <code>hookSpecificOutput.additionalContext</code>.</p>
-      <p>The core output is simple &mdash; when a trigger matches, emit the resource as JSON on stdout:</p>
-      <pre data-lang="Python"><code># When a trigger matches, inject the resource into Claude's context
-content = open("resources/deployment-checklist.md").read()
-json.dump({
-    "hookSpecificOutput": {
-        "hookEventName": "PostToolUse",
-        "additionalContext": content,
-    }
-}, sys.stdout)</code></pre>
-      <p>Build a trigger system on top: a JSON manifest that maps tool patterns to resource files:</p>
+      <h2>Pattern 4: PostToolUse context injection</h2>
+      <p><strong>When:</strong> a reference doc matters at one moment and not for the rest of the session.</p>
+      <p>A <code>PostToolUse</code> hook can return <code>additionalContext</code>. Claude Code wraps the string in a system reminder next to the tool result, and Claude reads it on its next request. A deployment checklist that arrives right after <code>kubectl apply</code> is in front of Claude while it reads the apply output, instead of sitting in CLAUDE.md for the whole session.</p>
+      <p>The trigger system is a manifest that maps tool calls to docs:</p>
       <pre data-lang="JSON"><code>{
   "push_triggers": [
-    { "trigger": { "tool": "Bash", "command_pattern": "kubectl apply" },
+    { "trigger": { "tool": "Bash", "command_pattern": "\\bkubectl\\s+apply\\b" },
       "resource": "deployment-checklist" },
-    { "trigger": { "tool": "Write", "file_path_pattern": ".*\\.css$" },
-      "resource": "style-guide" }
-  ],
-  "resources": [
-    { "name": "deployment-checklist", "file": "resources/deployment-checklist.md" },
-    { "name": "style-guide", "file": "resources/style-guide.md" }
+    { "trigger": { "tool": "Bash", "command_pattern": "\\bhelm\\s+upgrade\\b" },
+      "resource": "deployment-checklist" }
   ]
 }</code></pre>
-      <p>The <a href="https://github.com/NathanNorman/claude-code-hooks-patterns/tree/main/pattern-4-context-injection" target="_blank" rel="noopener">full implementation</a> in the repo includes trigger matching, session-scoped deduplication, and micro-reminders.</p>
-      <h3>Why this beats CLAUDE.md</h3>
-      <p>Your deployment checklist might be 50 lines. Your style guide might have examples and anti-patterns. Putting all of that in CLAUDE.md bloats the prompt with content that&rsquo;s only relevant at specific moments. With push triggers, the agent gets the deployment checklist exactly when it runs <code>kubectl</code> &mdash; not 200 turns earlier when it was reading the task description.</p>
-      <p>You can also track which resources have been injected per session (using Pattern 3&rsquo;s session state) so each resource fires exactly once, avoiding repeated context bloat.</p>
+      <p>The hook checks each trigger against the call and sends a doc the first time it matches in a session, with the same <code>session_id</code> key as Pattern 3:</p>
+      <pre data-lang="Python"><code>#!/usr/bin/env python3
+"""PostToolUse hook: send a reference doc the first time its trigger matches in a session."""
+import json
+import os
+import re
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+STATE = os.path.expanduser("~/.claude/hooks/state/injected")
+
+event = json.load(sys.stdin)
+args = event.get("tool_input") or {}
+with open(os.path.join(HERE, "triggers.json")) as f:
+    rules = json.load(f)["push_triggers"]
+
+for rule in rules:
+    t = rule["trigger"]
+    if t["tool"] != event.get("tool_name"):
+        continue
+    # A missing pattern is "" and matches anything.
+    if not re.search(t.get("command_pattern", ""), args.get("command", "")):
+        continue
+    if not re.search(t.get("file_path_pattern", ""), args.get("file_path", "")):
+        continue
+    marker = os.path.join(STATE, event.get("session_id", "unknown"), rule["resource"])
+    if os.path.exists(marker):
+        continue  # already sent in this session
+    os.makedirs(os.path.dirname(marker), exist_ok=True)
+    open(marker, "w").close()
+    with open(os.path.join(HERE, "resources", rule["resource"] + ".md")) as f:
+        doc = f.read()
+    json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse",
+                                      "additionalContext": doc}}, sys.stdout)
+    break</code></pre>
+      <p>Before building this, check whether a built-in feature covers the case. Path-scoped rules, markdown files in <code>.claude/rules/</code> with a <code>paths</code> list in their frontmatter, load when Claude reads a matching file. My March example pushed a CSS style guide whenever Claude wrote a <code>.css</code> file; most of that belongs in a rule with <code>paths: ["**/*.css"]</code>. Skills load their instructions when they&rsquo;re invoked or when Claude judges them relevant. A hook is still the right tool when the trigger is a command, like <code>kubectl apply</code>, rather than a file.</p>
+
+      <h3>Limits I missed</h3>
+      <p>When a session compacts, context that hooks added is summarized with the rest of the conversation. The marker that says a doc was sent survives, so in the March version the checklist was gone after compaction and never came back. A <code>SessionStart</code> hook with the <code>compact</code> matcher clears the session&rsquo;s markers:</p>
+      <pre data-lang="Bash"><code>#!/bin/bash
+# SessionStart hook, matcher "compact": compaction summarizes injected docs away,
+# so forget which ones this session was sent and let them fire again.
+session=$(jq -r '.session_id // empty')
+[ -n "$session" ] &amp;&amp; rm -rf "$HOME/.claude/hooks/state/injected/$session"
+exit 0</code></pre>
+      <p>Each <code>additionalContext</code> value is capped at 10,000 characters. Past that, Claude gets a file path and a 2,000-character preview, and nothing asks it to read the file. The docs also recommend writing injected text as statements of fact rather than commands, since text that reads like a system instruction can trigger Claude&rsquo;s prompt-injection defenses. My March checklist was a list of imperatives. The one in the repo now states facts, such as &ldquo;Image tags are pinned to a version.&rdquo;</p>
     </section>
 
     <hr>
 
     <section id="compose">
-      <h2>How They Compose</h2>
-      <p>These four patterns layer naturally:</p>
+      <h2>How they compose</h2>
+      <p>The four patterns sit on the two tool events. The orchestrator runs the PreToolUse checks, session state decides which warnings still fire, and the injector runs after the tool:</p>
 
       <div class="flow-diagram" style="text-align: center;">
         <svg viewBox="0 0 900 310" xmlns="http://www.w3.org/2000/svg" width="100%" style="max-width: 1125px;" font-family="'DM Sans', system-ui, sans-serif">
@@ -770,7 +869,7 @@ json.dump({
         <thead>
           <tr>
             <th>Pattern</th>
-            <th>Hook Event</th>
+            <th>Hook event</th>
             <th>Purpose</th>
             <th>Fires</th>
           </tr>
@@ -778,44 +877,83 @@ json.dump({
         <tbody>
           <tr>
             <td>PreToolUse interception</td>
-            <td><code>PreToolUse</code></td>
-            <td>Block dangerous commands</td>
-            <td>Before tool runs</td>
+            <td>PreToolUse</td>
+            <td>Block or redirect a tool call</td>
+            <td>Before the tool runs</td>
           </tr>
           <tr>
             <td>Orchestrator</td>
-            <td><code>PreToolUse</code></td>
-            <td>Single entry point for many checks</td>
-            <td>Before tool runs</td>
+            <td>PreToolUse</td>
+            <td>Run several checks in a fixed order</td>
+            <td>Before the tool runs</td>
           </tr>
           <tr>
-            <td>Session state files</td>
+            <td>Session state</td>
             <td>Any</td>
-            <td>Warn once, allow after</td>
-            <td>Once per session</td>
+            <td>Warn once per session, keyed on <code>session_id</code></td>
+            <td>First match in a session</td>
           </tr>
           <tr>
             <td>Context injection</td>
-            <td><code>PostToolUse</code></td>
-            <td>Push docs at the right moment</td>
-            <td>After tool runs</td>
+            <td>PostToolUse</td>
+            <td>Send a doc when it becomes relevant</td>
+            <td>After the tool runs</td>
           </tr>
         </tbody>
       </table>
+      <p>Registered together, the whole setup is three entries in <code>settings.json</code>:</p>
+      <pre data-lang="JSON"><code>{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/pre-bash-orchestrator.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $HOME/.claude/hooks/post-tool-injector.py"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/reset-injected.sh"
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre>
     </section>
 
     <hr>
 
     <section>
-      <h2>Getting Started</h2>
+      <h2>Where I&rsquo;d start</h2>
       <ol>
-        <li><strong>Start with Pattern 1</strong> &mdash; pick one command you want to intercept (e.g., <code>find ~/</code>) and write a simple PreToolUse hook</li>
-        <li><strong>When you have 3+ checks</strong>, wrap them in an orchestrator (Pattern 2)</li>
-        <li><strong>Add session state</strong> (Pattern 3) when &ldquo;warn once&rdquo; beats &ldquo;block every time&rdquo;</li>
-        <li><strong>Graduate to Pattern 4</strong> when you have reference docs that are only relevant at specific moments</li>
+        <li>Keep guidance in CLAUDE.md. Move a rule into a <code>PreToolUse</code> hook when it has to hold every time, and give the hook an <code>if</code> condition.</li>
+        <li>Test each check with piped JSON, including commands it should allow.</li>
+        <li>Move to an orchestrator at the third check, with blocks listed before rewrites.</li>
+        <li>Key per-session state on <code>session_id</code>.</li>
+        <li>Before writing an injector, try a path-scoped rule or a skill.</li>
       </ol>
-      <p>All four patterns use standard Claude Code hook APIs &mdash; no special tooling required. The official <a href="https://code.claude.com/docs/en/hooks" target="_blank" rel="noopener">hooks reference</a> and <a href="https://code.claude.com/docs/en/hooks-guide" target="_blank" rel="noopener">hooks guide</a> cover the fundamentals; the patterns here are built on top.</p>
-      <p>Full working code for every pattern is in the <a href="https://github.com/NathanNorman/claude-code-hooks-patterns" target="_blank" rel="noopener">companion repository</a>.</p>
+      <p>A CLAUDE.md rule fails when Claude doesn&rsquo;t apply it. A hook fails when its match is wrong, and it fails the same way on every call, with no error. That consistency is the reason to move a rule into a hook, and the reason to test the hook like any other code.</p>
+      <p>The <a href="https://code.claude.com/docs/en/hooks" target="_blank" rel="noopener">hooks reference</a> and <a href="https://code.claude.com/docs/en/hooks-guide" target="_blank" rel="noopener">hooks guide</a> cover the full API. The code in this post, with its tests, is in the <a href="https://github.com/NathanNorman/claude-code-hooks-patterns" target="_blank" rel="noopener">companion repository</a>.</p>
     </section>
 
   </div>
@@ -825,7 +963,7 @@ json.dump({
 <footer>
   <div class="container">
     <p>
-      <a href="/">Nathan Norman</a> &nbsp;&bull;&nbsp; Mar 2026
+      <a href="/">Nathan Norman</a> &nbsp;&bull;&nbsp; Written March 2026 &middot; Rewritten September 2026
     </p>
     <p style="margin-top: 0.4rem;">
       Code: <a href="https://github.com/NathanNorman/claude-code-hooks-patterns" target="_blank" rel="noopener">github.com/NathanNorman/claude-code-hooks-patterns</a>
