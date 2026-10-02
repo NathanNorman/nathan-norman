@@ -389,7 +389,7 @@
       <span>446 birds</span>
       <span>14 training runs</span>
       <span>Parked</span>
-      <span>Rewritten September 2026</span>
+      <span>September 2026</span>
     </div>
     <div class="bird-strip">
       <figure class="bird-figure">
@@ -436,8 +436,8 @@
         </table>
       </div>
 
-      <p>None of them beat the heuristic. The AlphaZero network, which took most of those three weeks, finished 2.8 points a game ahead of the random bot, and over 200 games its win rate isn't clearly different from the random bot's. A dozen REINFORCE and A2C configurations won 19% to 30% of their games, but they trained against the heuristic itself, so those numbers don't compare cleanly with the table.</p>
-      <p>I measured the random bot in September, while checking this post's numbers, on the code as it stood when v9 finished. The heuristic won 90.3% of those 5,000 games. The project is parked. The rest of this post is about how I missed how close to random the network was, because those mistakes are the part I'd reuse.</p>
+      <p>None of them beat the heuristic. The AlphaZero network, which took most of those three weeks, finished 2.8 points a game ahead of the random bot, and over 200 games its win rate isn't clearly different from the random bot's. Simpler policy-gradient agents, a dozen REINFORCE and A2C configurations without tree search, won 19% to 30% of their games, but they trained against the heuristic itself, so those numbers don't compare cleanly with the table.</p>
+      <p>The random bot's numbers come from 5,000 games I ran in September 2026 on the code as it stood when v9 finished, and the heuristic won 90.3% of them. The project is parked. The rest of this post is about how I missed how close to random the network was, because those mistakes are the part I'd reuse.</p>
     </div>
   </div>
 </section>
@@ -539,8 +539,8 @@
   <div class="container">
     <div class="reveal">
       <h2>Pretraining, then self-play with tree search</h2>
-      <p>The plan followed AlphaGo: learn to copy the heuristic, then improve through self-play. Two AlphaZero runs from random weights at 20 simulations a move went nowhere, so I pretrained a network on games of the heuristic playing itself. Most of the later self-play runs started from a pretrained network.</p>
-      <p>Each self-play iteration plays games on up to 56 parallel workers, with a tree search (MCTS) at every decision. The search's visit counts at the root become the policy target for that position, and the final score margin becomes the value target. Training samples batches of 256 from a buffer of recent positions. Opponents are a mix of the current network, older checkpoints, and the random bot.</p>
+      <p>The plan followed AlphaGo: learn to copy the heuristic, then improve through self-play. I started with two AlphaZero runs from random weights, each searching 20 simulations per move, where a simulation is one lookahead through the game tree. Both went nowhere, so I pretrained a network on games of the heuristic playing itself. Most of the later self-play runs started from a pretrained network.</p>
+      <p>Each self-play iteration plays games on up to 56 parallel workers, with a Monte Carlo tree search (MCTS) at every decision. The search's visit counts at the root become the policy target for that position, and the final score margin becomes the value target. Training samples batches of 256 from a buffer of recent positions. Opponents are a mix of the current network, older checkpoints, and the random bot.</p>
 
       <div class="diagram">
         <svg viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The self-play training loop">
@@ -855,7 +855,7 @@
       </div>
 
       <p>The last one cost two runs. v10 added a hidden layer to the value head and blended the search's Q estimate into the value target. Its value loss climbed into the thousands, and I blamed the loss weight, which I had raised to 1.0. v11 used 0.25 and diverged the same way, which is how I found the formula. A sigmoid output scored against targets between 0 and 1 can't produce a squared error above 1, so a value loss in the thousands meant bad targets, and I should have checked them first.</p>
-      <p>v10's changes came partly from a review I had three research agents write when the 50-simulation scores stalled. Three of its explanations don't survive a read of the training code. It said a value-loss weight of 0.25 across 20 decision types starved the value head at an 80:1 gradient ratio, but the training step adds one policy term and one weighted value term per decision type, so the 20 cancels. It said a policy loss near 13.8 meant near-uniform move choices, but the logged loss is a sum over decision types, not a per-move cross-entropy. And it said the temperature setting taught the network to spread its bets, but in my code temperature only chooses which move gets played. The policy target is the raw visit distribution either way.</p>
+      <p>v10's changes came partly from a review I had three AI research agents write when the 50-simulation scores stalled. Its explanations sounded right, and three of them don't survive a read of the training code. It said a value-loss weight of 0.25 across 20 decision types starved the value head at an 80:1 gradient ratio, but the training step adds one policy term and one weighted value term per decision type, so the 20 cancels. It said a policy loss near 13.8 meant near-uniform move choices, but the logged loss is a sum over decision types, not a per-move cross-entropy. And it said the temperature setting taught the network to spread its bets, but in my code temperature only chooses which move gets played. The policy target is the raw visit distribution either way.</p>
       <p>v12 was the first run with the fixed formula. It started June 4, and I never recorded how it ended.</p>
 
       <details>
@@ -915,7 +915,7 @@
 
 <footer>
   <div class="container">
-    Written May 2026 · Rewritten September 2026 · Bird icons from game-icons.net (CC BY 3.0)
+    September 2026 · Bird icons from game-icons.net (CC BY 3.0)
   </div>
 </footer>
 
