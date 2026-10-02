@@ -31,7 +31,8 @@
     });
   })(document.documentElement);
   </script>
-  <title>Teaching a Network to Play Wingspan</title>
+  <title>Three Weeks of AlphaZero, 2.8 Points Better Than Random</title>
+  <meta name="description" content="I trained an AlphaZero-style network to play Wingspan for three weeks. A bot that plays at random scored 2.8 points less. How three measurements hid that, and the five-second check that would have caught it.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦅</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -383,8 +384,8 @@
 <section class="hero">
   <div class="container">
     <div class="hero-kicker">Wingspan AI · Project log</div>
-    <h1>Teaching a Network to Play Wingspan</h1>
-    <p class="hero-subtitle">From May 17 to June 4, 2026, I trained an AlphaZero-style agent to play the board game Wingspan. My best network averaged 38.9 points a game against my heuristic bot. A bot that picks legal moves at random averages 36.1. This post is about the measurements that kept me from seeing how small that gap was.</p>
+    <h1>Three Weeks of AlphaZero, 2.8 Points Better Than Random</h1>
+    <p class="hero-subtitle">I trained an AlphaZero-style network to play the board game Wingspan for three weeks, and none of my charts had a random bot on them.</p>
     <div class="hero-meta">
       <span>446 birds</span>
       <span>14 training runs</span>
@@ -420,8 +421,8 @@
 <section id="result">
   <div class="container">
     <div class="reveal">
-      <h2>The best network finished 2.8 points ahead of random</h2>
-      <p>The goal was a network that beats <strong>SmartHeuristicAgent</strong>, a hand-written player that averages about 55 points a game. These are two-player games against it:</p>
+      <p>In September, three months after the training ended, I ran the comparison I had skipped: a bot that picks a legal move at random, playing against my hand-written Wingspan player. The hand-written player averages about 55 points a game. Against it, the random bot averaged 36.1. The measurement took under five seconds.</p>
+      <p>My best network, after three weeks of AlphaZero-style training on up to 56 parallel workers, averaged 38.9.</p>
 
       <div class="table-wrap">
         <table>
@@ -436,19 +437,26 @@
         </table>
       </div>
 
-      <p>None of them beat the heuristic. The AlphaZero network, which took most of those three weeks, finished 2.8 points a game ahead of the random bot, and over 200 games its win rate isn't clearly different from the random bot's. Simpler policy-gradient agents, a dozen REINFORCE and A2C configurations without tree search, won 19% to 30% of their games, but they trained against the heuristic itself, so those numbers don't compare cleanly with the table.</p>
-      <p>The random bot's numbers come from 5,000 games I ran in September 2026 on the code as it stood when v9 finished, and the heuristic won 90.3% of them. The project is parked. The rest of this post is about how I missed how close to random the network was, because those mistakes are the part I'd reuse.</p>
+      <p>Over 200 games, the network&rsquo;s win rate isn&rsquo;t clearly better than the random bot&rsquo;s. The pretrained network, before any self-play, scored within a third of a point of the random bot. And most of the scores I watched during training, the ones I called a plateau, were below random play.</p>
+      <p>Three things kept me from seeing it: a training loss that measured memory, an evaluation that measured the cheapest version of the player, and no floor under either.</p>
+
+      <details>
+        <summary>How these numbers were measured</summary>
+        <div class="detail-body">
+          <p>Every row is two-player games against SmartHeuristicAgent, the hand-written player. The random bot&rsquo;s numbers come from 5,000 games I ran in September 2026 on the code as it stood when v9 finished, and the heuristic won 90.3% of them. Simpler policy-gradient agents, a dozen REINFORCE and A2C configurations without tree search, won 19% to 30% of their games, but they trained against the heuristic itself, so those numbers don&rsquo;t compare cleanly with the table.</p>
+        </div>
+      </details>
     </div>
   </div>
 </section>
 
-<!-- SECTION 2: THE GAME -->
+<!-- SECTION 2: THE PLAN -->
 <section id="game">
   <div class="container">
     <div class="reveal">
-      <h2>The game and the benchmark</h2>
-      <p>Wingspan is a card game about building an engine out of birds. On each turn a player takes one of four actions: play a bird, gain food, lay eggs, or draw cards. Birds go into three habitat rows. Each bird makes its row's action stronger, and taking a row's action activates the brown powers of the birds in that row, right to left.</p>
-      <p>I wrote the simulator in Kotlin, starting April 30, to replace a Python version from 2025. It covers all four expansions and 446 birds. Every choice with more than one option is its own decision on a stack: choosing to play a bird leads to a choice of bird, then a habitat, then how to pay, then whatever the bird's power asks. There are 20 decision types. A two-player game runs about 190 decisions, and the only reward is the final score, so an early move gets credit or blame from an outcome many turns later.</p>
+      <h2>The plan: copy the heuristic, then beat it</h2>
+      <p>Wingspan is a card game about building an engine out of birds. On each turn a player takes one of four actions: play a bird, gain food, lay eggs, or draw cards. Birds go into three habitat rows, each bird makes its row&rsquo;s action stronger, and taking a row&rsquo;s action activates the brown powers of the birds in that row, right to left.</p>
+      <p>My simulator, written in Kotlin starting April 30 to replace a Python version from 2025, covers all four expansions and 446 birds. Every choice with more than one option is its own decision: playing a bird means choosing the bird, then a habitat, then how to pay, then whatever the bird&rsquo;s power asks. A two-player game runs about 190 decisions of 20 types, and the only reward is the final score, so an early move gets credit or blame from an outcome many turns later.</p>
 
       <div class="metrics">
         <div class="metric-card">
@@ -529,19 +537,12 @@
         <p class="diagram-caption">Playing a bird is a chain of smaller decisions. The network has one policy head for each of the 20 decision types.</p>
       </div>
 
-      <p>The benchmark, SmartHeuristicAgent, is a hand-written player. I wrote it on May 21 and tuned it from 62% to 90% wins against the random bot the same day.</p>
-    </div>
-  </div>
-</section>
+      <p>The opponent was SmartHeuristicAgent, a player I wrote by hand on May 21 and tuned against the random bot the same day, from 62% wins to 90%. The plan followed AlphaGo: train a network to copy the heuristic, then improve it through self-play, with a Monte Carlo tree search (MCTS) at every decision. Two early runs from random weights went nowhere, so most runs started from a network pretrained on games of the heuristic playing itself. I ran 14 versions of that plan between May 17 and June 4.</p>
 
-<!-- SECTION 3: THE PIPELINE -->
-<section id="pipeline">
-  <div class="container">
-    <div class="reveal">
-      <h2>Pretraining, then self-play with tree search</h2>
-      <p>The plan followed AlphaGo: learn to copy the heuristic, then improve through self-play. I started with two AlphaZero runs from random weights, each searching 20 simulations per move, where a simulation is one lookahead through the game tree. Both went nowhere, so I pretrained a network on games of the heuristic playing itself. Most of the later self-play runs started from a pretrained network.</p>
-      <p>Each self-play iteration plays games on up to 56 parallel workers, with a Monte Carlo tree search (MCTS) at every decision. The search's visit counts at the root become the policy target for that position, and the final score margin becomes the value target. Training samples batches of 256 from a buffer of recent positions. Opponents are a mix of the current network, older checkpoints, and the random bot.</p>
-
+      <details>
+        <summary>The training loop and the network</summary>
+        <div class="detail-body">
+          <p>Each self-play iteration plays games on up to 56 parallel workers, with a search at every decision, where a simulation is one lookahead through the game tree. The search&rsquo;s visit counts at the root become the policy target for that position, and the final score margin becomes the value target. Training samples batches of 256 from a buffer of recent positions. Opponents are a mix of the current network, older checkpoints, and the random bot.</p>
       <div class="diagram">
         <svg viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The self-play training loop">
           <rect width="720" height="260" fill="#EDE8E0" rx="10"/>
@@ -602,8 +603,7 @@
         </svg>
         <p class="diagram-caption">The network gives the search its move priors and position values, and the search's visit counts become the policy target. The temperature τ only changes which move gets played. The value weight was 1.0 until v8.</p>
       </div>
-
-      <p>The network is a plain MLP. Most of its 19 million weights sit in the first layer, because the input encodes every card position (hand, boards, tray) as a one-hot bird ID:</p>
+          <p>The network is a plain MLP. Most of its 19 million weights sit in the first layer, because the input encodes every card position (hand, boards, tray) as a one-hot bird ID:</p>
       <pre>Input: 36,132 floats (one-hot bird IDs for the hand, the boards, and the tray,
                       plus food, bonus cards, round goals, and turn order)
   └─ trunk: Linear(36,132→512) → ReLU → Linear(512→512) → ReLU → Linear(512→256) → ReLU
@@ -614,11 +614,7 @@
        │    … 17 more
        └─ value: Linear(256→1) → sigmoid                          (v1 to v9)
                  Linear(256→128) → ReLU → Linear(128→1) → sigmoid   (v10 on)</pre>
-      <p>The value head predicts a clipped score margin rather than a win probability: 0.5 is a tie, and 1.0 is a lead of 20 points or more.</p>
-
-      <details>
-        <summary>How the search uses the network</summary>
-        <div class="detail-body">
+          <p>The value head predicts a clipped score margin rather than a win probability: 0.5 is a tie, and 1.0 is a lead of 20 points or more.</p>
           <p>For each decision, the search runs N simulations from the current position. Each simulation walks down the tree, at every step taking the move with the highest <code>Q + c·P·√N / (1 + n)</code>: Q is the move's average value so far, P is the network's prior for it, N is the visit count of the position, and n is the move's. At a position it hasn't expanded yet, the network supplies priors for the legal moves and a value, and the value is backed up along the path. After N simulations, the visit counts at the root become the policy target. The move played is the most-visited one, or during training a sample weighted by visits<sup>1/τ</sup>.</p>
           <p>During training, Dirichlet noise is mixed into the root priors, with <code>α = 10 / n</code> for n legal moves, clamped between 0.3 and 3. A 5-way decision gets α = 2.0, and anything above 33 options gets 0.3.</p>
         </div>
@@ -627,15 +623,14 @@
   </div>
 </section>
 
-<!-- SECTION 4: MEASUREMENTS -->
+<!-- SECTION 3: MEASUREMENTS -->
 <section id="measurement">
   <div class="container">
     <div class="reveal">
-      <h2>Three measurements that misled me</h2>
+      <h2>Three measurements that flattered the network</h2>
 
-      <h3>The pretraining loss</h3>
-      <p>Pretraining generated 900,000 games of the heuristic playing itself and trained for 200,000 steps. The policy loss fell from 22.6 to 0.245, and the value loss from 1.32 to 0.007. Played without search, the network averaged 36.4 against the heuristic and won half its games against the random bot. It played like the random bot.</p>
-      <p>At the time I read that as proof that a policy network can't play without search. The likelier cause is in the data. Holding every position in memory crashed the machine about 1,800 games in, so I capped the buffer at 200,000 positions, and the pretrainer drops the oldest positions as it generates. Training saw only the last 1,000 or so games, over hundreds of passes. My best explanation is that the network memorized them. I never held out games to check, and that was the mistake.</p>
+      <h3>A loss curve that measured memory</h3>
+      <p>Pretraining generated 900,000 games of the heuristic playing itself and trained for 200,000 steps. The policy loss fell from 22.6 to 0.245, and the value loss from 1.32 to 0.007:</p>
 
       <div class="diagram">
         <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pretraining policy and value loss on a log scale, falling steeply in the first 20,000 steps">
@@ -672,9 +667,12 @@
         <p class="diagram-caption">Pretraining loss on a log scale. Every step sampled from the same 200,000 positions, so the curve shows how well the network fit them, not how well it plays.</p>
       </div>
 
-      <h3>The eval's search budget</h3>
-      <p>Self-play progress came from HeuristicEval: 100 games against the heuristic, reporting the network's average score. For the first runs the evaluator was hardcoded to zero simulations, so it measured the raw policy and reported about 1% wins. After that fix it ran at 50 simulations, the same as training.</p>
-      <p>At 50 simulations every run topped out between 21 and 28 and then drifted. I stopped v5 after its score slid from 24.4 to 21.3. Changing the opponent mix and the buffer size, then moving to a bigger machine, raised the peak by about 3 points. Then I re-evaluated one of v7's checkpoints with more search:</p>
+      <p>It is the prettiest chart in this post. Played without search, the network averaged 36.4 against the heuristic and won half its games against the random bot. At the time I read that as proof that a policy network can&rsquo;t play without search.</p>
+      <p>The likelier cause is in the data. Holding every position in memory crashed the machine about 1,800 games in, so I capped the buffer at 200,000 positions, and the pretrainer dropped the oldest positions as it generated. Training saw only the last 1,000 or so games, over hundreds of passes. My best explanation is that the network memorized them. I never held out games to check.</p>
+
+      <h3>An eval that measured the cheapest player</h3>
+      <p>Self-play progress came from HeuristicEval: 100 games against the heuristic, reporting the network&rsquo;s average score. For the first runs the evaluator was hardcoded to zero simulations, so it measured the raw policy and reported about 1% wins. After that fix it ran at 50 simulations, the same as training.</p>
+      <p>At 50 simulations every run topped out between 21 and 28 and then drifted. I stopped v5 after its score slid from 24.4 to 21.3. Changing the opponent mix and the buffer size, then moving to a bigger machine, raised the peak by about 3 points. Then I re-evaluated one of v7&rsquo;s checkpoints with more search:</p>
 
       <div class="sim-chart">
         <div class="sim-row">
@@ -705,7 +703,7 @@
       </div>
       <p style="font-size:0.82rem; color:var(--text-muted); margin-top:-8px">v7's iteration-80 checkpoint, 100 games at each simulation count. Bars are scaled to the heuristic's average of 55. The last bar is the random bot.</p>
 
-      <p>The score rose with every doubling of the search, and I had been measuring at the cheapest setting. Re-evaluated at 200 simulations, v7's checkpoints scored about 9 points higher than they had at 50. v9 trained at 200 simulations and held between 35.6 and 39.4 for all 100 iterations.</p>
+      <p>The score rose with every doubling of the search. I had been measuring the cheapest version of the player, and I stopped runs on that number. Re-evaluated at 200 simulations, v7&rsquo;s checkpoints scored about 9 points higher than they had at 50, and v9, trained at 200, held between 35.6 and 39.4 for all 100 iterations:</p>
 
       <div class="diagram">
         <svg viewBox="0 0 720 232" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Scores against the heuristic by training iteration for v7 and v9, with the random bot's average as a reference line">
@@ -788,22 +786,31 @@
         <p class="diagram-caption">Score against the heuristic by training iteration, 100 games per point. v7's 50-simulation evals were only logged from iteration 80 on.</p>
       </div>
 
-      <h3>The missing floor</h3>
-      <p>The random bot's 36.1 changes how every number above reads. Every 50-simulation score I watched was below random play, and I called it a plateau. The 200-simulation scores that looked like a breakthrough range from 4.5 points below the random bot to 3.3 above it.</p>
+      <h3>No floor</h3>
+      <p>The random bot&rsquo;s 36.1 changes how every number above reads. Every 50-simulation score I watched was below random play, and I called it a plateau. The 200-simulation scores that looked like a breakthrough range from 4.5 points below the random bot to 3.3 above it.</p>
+      <p>The random bot wasn&rsquo;t hard to find. I had used it on May 21 to tune the heuristic.</p>
       <div class="pull-quote">
-        <p>Measuring the random bot takes under five seconds. I didn't do it until September.</p>
+        <p>Measuring the random bot takes under five seconds. I didn&rsquo;t do it until September.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- SECTION 5: BUGS -->
+<!-- SECTION 4: BUGS -->
 <section id="bugs">
   <div class="container">
     <div class="reveal">
       <h2>The bugs underneath</h2>
-      <p>The measurement problems sat on top of ordinary bugs. Most were silent: training kept running and the losses kept moving.</p>
+      <p>Under the measurements sat eight ordinary bugs. Most were silent: training kept running and the losses kept moving.</p>
+      <p>The exploration constant in my search came from a formula I wrote myself, <code>c·√(2·ln((N+19653)/19652))</code>. At 50 visits it comes to 0.072, so the search barely explored. AlphaZero&rsquo;s version is <code>ln((N+19653)/19652) + 1.25</code>. I raised c to 5 instead of fixing the formula.</p>
+      <p>One environment variable, <code>DNNL_DEFAULT_FPMATH_MODE=BF16</code>, is an inference speedup that also applies to the backward pass. With it on, v7&rsquo;s value loss sat between 0.60 and 0.73 for all 125 iterations, where earlier runs had reached 0.25. Turning it off for v8 exposed a second bug: my code read loss values after DJL, the Java deep learning library, had freed them. BF16 had left the freed memory readable. Without it, the losses came back NaN and corrupted the weights.</p>
+      <p>The most expensive bug cost two runs. v10 added a hidden layer to the value head and blended the search&rsquo;s Q estimate into the value target. Its value loss climbed into the thousands, and I blamed the loss weight, which I had raised to 1.0. v11 used 0.25 and diverged the same way. The cause was a formula that put Q between 50 and 150 instead of 0 and 1. A sigmoid output scored against targets between 0 and 1 can&rsquo;t produce a squared error above 1, so a value loss in the thousands meant bad targets, and I should have checked them first.</p>
+      <p>v10&rsquo;s changes came partly from a review I had three AI research agents write when the 50-simulation scores stalled. My plan for v10 listed one of its findings among &ldquo;two confirmed failure modes&rdquo;: a value-loss weight of 0.25 across 20 decision types, it said, starved the value head at an 80:1 gradient ratio. The training step adds one policy term and one weighted value term per decision type, so the 20 cancels, and the ratio is 4:1. Two more of its explanations fail a read of the code. A policy loss near 13.8 didn&rsquo;t mean near-uniform move choices, because the logged loss is a sum over decision types. And the temperature setting didn&rsquo;t teach the network to spread its bets, because in my code temperature only chooses which move gets played.</p>
+      <p>v12 was the first run with the fixed formula. It started June 4, and I never recorded how it ended.</p>
 
+      <details>
+        <summary>All eight bugs</summary>
+        <div class="detail-body">
       <div class="table-wrap">
         <table>
           <thead>
@@ -853,10 +860,8 @@
           </tbody>
         </table>
       </div>
-
-      <p>The last one cost two runs. v10 added a hidden layer to the value head and blended the search's Q estimate into the value target. Its value loss climbed into the thousands, and I blamed the loss weight, which I had raised to 1.0. v11 used 0.25 and diverged the same way, which is how I found the formula. A sigmoid output scored against targets between 0 and 1 can't produce a squared error above 1, so a value loss in the thousands meant bad targets, and I should have checked them first.</p>
-      <p>v10's changes came partly from a review I had three AI research agents write when the 50-simulation scores stalled. Its explanations sounded right, and three of them don't survive a read of the training code. It said a value-loss weight of 0.25 across 20 decision types starved the value head at an 80:1 gradient ratio, but the training step adds one policy term and one weighted value term per decision type, so the 20 cancels. It said a policy loss near 13.8 meant near-uniform move choices, but the logged loss is a sum over decision types, not a per-move cross-entropy. And it said the temperature setting taught the network to spread its bets, but in my code temperature only chooses which move gets played. The policy target is the raw visit distribution either way.</p>
-      <p>v12 was the first run with the fixed formula. It started June 4, and I never recorded how it ended.</p>
+        </div>
+      </details>
 
       <details>
         <summary>All 14 runs</summary>
@@ -890,25 +895,14 @@
   </div>
 </section>
 
-<!-- SECTION 6: LESSONS -->
+<!-- SECTION 5: THE LESSON -->
 <section id="lessons">
   <div class="container">
     <div class="reveal">
-      <h2>What I'd check first next time</h2>
-
-      <h3>Put the random bot on every chart</h3>
-      <p>A floor turns a score into a result. With one on the chart, the 50-simulation plateau reads as below random, the pretrained network as random, and the best checkpoint as a few points better than random. That's a different project from the one I thought I was running.</p>
-
-      <h3>Evaluate at the search budget you'll play with</h3>
-      <p>A search agent's score depends on how much it searches. The same checkpoint scored 25.0 at 50 simulations and 35.1 at 400. Evaluating at the training budget felt consistent, but it measured the cheapest version of the player, and I stopped runs on that number.</p>
-
-      <h3>Know what the loss was computed on</h3>
-      <p>A falling training loss only says the network fits its training set. Mine fit 200,000 positions from about 1,000 games. Logging the dataset size next to the loss, and holding out a few hundred games for a validation loss, would have caught it on the first run.</p>
-
-      <h3>Check the math before trusting the explanation</h3>
-      <p>The c_puct formula, the root Q, and the 80:1 ratio each fail a two-minute check: compute c at 50 visits, assert that Q stays between 0 and 1, count the loss terms in one training step. I skipped those checks because each explanation sounded right.</p>
-
-      <p>The project is parked. The simulator and the heuristic are on the main branch, along with a browser UI for playing against the engine, and the training code is archived. If I pick it back up, v12 reruns first, with the random bot on the chart.</p>
+      <h2>Measure the dumbest opponent first</h2>
+      <p>A floor turns a score into a result. With the random bot on my charts, the plateau reads as below random, the pretrained network as random, and the best checkpoint as a few points better than random. That&rsquo;s a different project from the one I thought I was running, and five seconds of random play would have shown it to me in May.</p>
+      <p>The other lessons are smaller versions of the same one. Evaluate a search agent at the budget it will play with. Log what a loss was computed on, and hold out games to check it. And before trusting an explanation, do the two-minute arithmetic: compute c at 50 visits, check that Q stays between 0 and 1, and count the loss terms in one training step.</p>
+      <p>The project is parked. The simulator, the heuristic, and a browser UI for playing against the engine are on the main branch, and the training code is archived. If I pick it back up, v12 reruns first, and its first chart gets a line at 36.1.</p>
     </div>
   </div>
 </section>
