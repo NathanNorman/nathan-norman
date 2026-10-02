@@ -370,9 +370,9 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 
 <div class="hero">
   <div class="container">
-    <div class="hero-badge">Project &middot; Rewritten Oct 2026</div>
+    <div class="hero-badge">Project &middot; October 2026</div>
     <h1>The Loading Dock<br>Booth Bot</h1>
-    <p class="subtitle">A Telegram bot that books phone booths at my coworking space through a Claude tool loop. Its logs show where the loop worked, where the prompt&rsquo;s rules failed, and three confirmed reservations that never existed.</p>
+    <p class="subtitle">A Telegram bot that books phone booths at my coworking space through a Claude tool loop. Over seven months it confirmed 118 reservations. Three of them never existed.</p>
   </div>
 </div>
 
@@ -381,7 +381,7 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 
     <section id="idea">
       <p>The Loading Dock is the coworking space I work from in Raleigh. Members book its phone booths through OfficeRnD&rsquo;s web portal, which takes a login and a few screens per booking. In December 2025 I built a Telegram bot that books from one message. Claude Haiku 4.5 reads the request and calls four booking tools, and the tools call the same endpoints the portal&rsquo;s own web app uses.</p>
-      <p>I was its only user. From January 5 to July 30, 2026, it answered 236 messages and confirmed 118 reservations, and a log table kept every exchange. This rewrite of the April post is built on those logs and on OfficeRnD&rsquo;s confirmation emails. Claude handled the language reliably. The rules I wrote into the prompt failed in ways my safety check couldn&rsquo;t see.</p>
+      <p>I was the bot&rsquo;s only user. From January 5 to July 30, 2026, it answered 236 messages and logged every exchange. Checked against OfficeRnD&rsquo;s confirmation emails, those logs show Claude handling the language reliably and the rules in its prompt failing, including three confirmations for reservations that were never made. This post covers how the bot works, what the logs show, and what I moved from the prompt into code when I rebuilt it.</p>
 
       <div class="comparison reveal">
         <div class="comparison-card" style="border-left: 3px solid var(--tg-blue)">
@@ -611,8 +611,8 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
         </div>
       </div>
 
-      <h3>Confirmations that weren&rsquo;t bookings</h3>
-      <p>On the days I checked, OfficeRnD emailed me a confirmation within 15 seconds of every booking the bot made. Its reference codes end in a two-character suffix that changes each month: 76 in January, 77 in February, 78 in March. Six of the bot&rsquo;s 118 confirmations had codes that break that pattern. I checked the three from February, March, and April against OfficeRnD&rsquo;s emails. On each of those days, OfficeRnD confirmed every other booking the bot made and had no record of these three. Claude had written a confirmation, reference code included, for a reservation that didn&rsquo;t exist. This one is from February 26:</p>
+      <h3>Three confirmations for reservations that didn&rsquo;t exist</h3>
+      <p>Three times, the bot confirmed a booking that OfficeRnD never made, reference code included. This one is from February 26:</p>
 
       <div style="margin:1.5rem 0" class="reveal">
         <div class="chat-label">Me</div>
@@ -622,9 +622,9 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
         <div class="chat-bubble reply">✅ Done! <strong>Booth 3 - Beryl</strong> at <strong>3pm for 30 minutes today</strong>.<br><br>Reference code: <strong>MQ7K2P9</strong><br><br>Back-to-back with your 2pm slot! 📞</div>
       </div>
 
-      <p>OfficeRnD sent no confirmation for a 3:00 reservation that afternoon, and MQ7K2P9 doesn&rsquo;t fit its codes. The other three odd codes are from January, when my email record is incomplete, so I can&rsquo;t confirm them either way.</p>
+      <p>On the days I checked, OfficeRnD emailed a confirmation within 15 seconds of every booking the bot made. On February 26, March 3, and April 28, it confirmed every other booking the bot made that day and sent nothing for these three. The codes give them away too. OfficeRnD&rsquo;s reference codes end in a two-character suffix that changes each month, 76 in January, 77 in February, 78 in March, and MQ7K2P9 and the other two don&rsquo;t fit. Three January confirmations also break the pattern, but my January email record is incomplete, so I can&rsquo;t confirm those either way.</p>
       <p>The bot had a guard for exactly this case. After Claude&rsquo;s final reply, a regular expression looked for &ldquo;booked,&rdquo; &ldquo;reserved,&rdquo; or &ldquo;reference:&rdquo; followed by a code. If the booking tool hadn&rsquo;t run that turn, the guard replaced the reply with &ldquo;I need to actually book that for you. Let me try again - please repeat your request.&rdquo; All three invented confirmations got past it. Two said &ldquo;Reference code:&rdquo;, one said &ldquo;Ref:&rdquo;, and none said &ldquo;booked&rdquo; or &ldquo;reserved.&rdquo;</p>
-      <p>Meanwhile the guard fired 19 times. Two were false alarms on questions: &ldquo;is booth 4 booked at 2pm?&rdquo; and &ldquo;what booth am i booked for at 9&rdquo; both got &ldquo;I need to actually book that for you.&rdquo; In four more, my next try came back with no availability, so the reply it blocked was most likely a correct &ldquo;all booths are booked.&rdquo; I can&rsquo;t see the other 13 replies, because the guard replaced them, and 12 of them ended with me sending the request again.</p>
+      <p>The guard fired 19 times on other replies. At least two were false alarms on questions: &ldquo;is booth 4 booked at 2pm?&rdquo; and &ldquo;what booth am i booked for at 9&rdquo; both got &ldquo;I need to actually book that for you.&rdquo; In four more, my next attempt came back with no availability, so the blocked reply was most likely a correct &ldquo;all booths are booked.&rdquo; The other 13 blocked replies are gone, because the guard replaced them, and 12 of them ended with me sending the request again.</p>
 
       <h3>The booth I asked for</h3>
       <p>Fourteen of my messages named a specific booth, and the book tool had no way to target one. On February 23 the bot asked which of two open booths I wanted, and I said Booth 3:</p>
@@ -640,7 +640,7 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
       <p>That reservation is real. OfficeRnD&rsquo;s confirmation, sent ten seconds later, is for Phone Booth 2. The tool booked the first open booth and reported it, and Claude told me the booth I had asked for.</p>
 
       <h3>Rules in the prompt</h3>
-      <p>Despite the CRITICAL section, 13 requests like &ldquo;can i get a booth at 1053 at 11:30 for 1 hour&rdquo; came back as &ldquo;Want me to book one?&rdquo; or a question like it, nine of them between May 27 and June 16. Nothing in the Telegram tools checks the 30-day window, either. Claude was reliable at turning a message into tool arguments. It was not reliable at following a procedure written in prose, even one marked CRITICAL.</p>
+      <p>Despite the CRITICAL section, 13 requests like &ldquo;can i get a booth at 1053 at 11:30 for 1 hour&rdquo; came back as &ldquo;Want me to book one?&rdquo; or a question like it, nine of them between May 27 and June 16. Nothing in the Telegram tools checks the 30-day window, either. Claude turned messages into tool arguments reliably. It did not reliably follow procedure written in prose, even when the prose said CRITICAL.</p>
     </section>
 
     <hr>
@@ -657,7 +657,7 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
         <div class="pipeline-step accent">Credentials<br>saved<span class="step-label">Fernet-encrypted</span></div>
       </div>
 
-      <p>The April post said /unregister removes all stored data. It doesn&rsquo;t. Here is what the bot keeps:</p>
+      <p>Here is what the bot stores for each user, and how well each piece is protected:</p>
 
       <div class="tool-grid reveal">
         <div class="tool-card">
@@ -678,26 +678,15 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
         </div>
       </div>
 
-      <p>That log is a privacy gap for any user but me, and it is also what made this rewrite&rsquo;s checks possible.</p>
+      <p>That log is a privacy gap for any user but me. It is also the record this post is built on.</p>
 
-      <table>
-        <thead><tr><th>Command</th><th>What it does</th></tr></thead>
-        <tbody>
-          <tr><td><strong>/start</strong></td><td>Creates the user record and shows help</td></tr>
-          <tr><td><strong>/help</strong></td><td>Shows help</td></tr>
-          <tr><td><strong>/register</strong></td><td>Connects an OfficeRnD account; /cancel stops partway</td></tr>
-          <tr><td><strong>/unregister</strong></td><td>Deletes the account and conversation, not the log</td></tr>
-          <tr><td><strong>/new</strong></td><td>Clears the conversation, as do &ldquo;new,&rdquo; &ldquo;reset,&rdquo; and &ldquo;start over&rdquo;</td></tr>
-          <tr><td><strong>/status</strong></td><td>Shows which email is connected</td></tr>
-        </tbody>
-      </table>
     </section>
 
     <hr>
 
     <section id="rebuild">
       <h2>The September rebuild</h2>
-      <p>I last used the Telegram bot on July 30, 2026. In September I put the booking tools behind OpenClaw, a self-hosted agent gateway on a server I manage, and I book from a private Discord channel now. Only the OfficeRnD client carried over. Most of the changes move a rule from the prompt into code:</p>
+      <p>I last used the Telegram bot on July 30, 2026. Since September I have booked from a private Discord channel, through tools I put behind OpenClaw, a self-hosted agent gateway on a server I manage. Only the OfficeRnD client carried over. Most of the changes move a rule from the prompt into code:</p>
 
       <table>
         <thead><tr><th>Telegram bot</th><th>Discord tools</th></tr></thead>
@@ -720,7 +709,7 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 
 <footer>
   <div class="container">
-    <p>Loading Dock Booth Bot &middot; Built for my own bookings at <a href="https://theloadingdock.com">The Loading Dock</a>, Raleigh NC &middot; Written April 2026 &middot; Rewritten October 2026</p>
+    <p>Loading Dock Booth Bot &middot; Built for my own bookings at <a href="https://theloadingdock.com">The Loading Dock</a>, Raleigh NC &middot; October 2026</p>
   </div>
 </footer>
 
